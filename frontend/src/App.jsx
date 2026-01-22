@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import '@/shared/styles/global.css';
 import { Home } from '@/features/home';
 import { Login } from '@/features/auth';
+import VerificationPage from '@/features/auth/pages/VerificationPage';
+import EmailVerificationPage from '@/features/auth/pages/EmailVerificationPage';
 
 // Farmer Pages
 import {
@@ -45,6 +47,8 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/verify" element={<VerificationPage />} />
+        <Route path="/verify-email" element={<EmailVerificationPage />} />
 
         {/* Nested Farmer Routes */}
         <Route path="/farmer" element={<FarmerLayout />}>

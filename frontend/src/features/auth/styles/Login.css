@@ -231,6 +231,40 @@
   cursor: not-allowed;
 }
 
+/* Demo Button */
+.demo-btn {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #ff6b35, #f7931e);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.demo-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #e55a2b, #d67710);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 107, 53, 0.4);
+}
+
+.demo-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.demo-btn i {
+  font-size: 16px;
+}
+
 /* Links & Text */
 .switch-form {
   text-align: center;

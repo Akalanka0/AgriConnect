@@ -66,9 +66,9 @@ export const rateLimiter = (maxRequests = 5, windowMs = 15 * 60 * 1000) => {
 /**
  * Stricter rate limiter for login endpoints
  */
-export const loginRateLimiter = rateLimiter(5, 15 * 60 * 1000); // 5 requests per 15 minutes
+export const loginRateLimiter = rateLimiter(100, 15 * 60 * 1000); // 100 requests per 15 minutes (Increased for testing)
 
 /**
  * Standard rate limiter for registration
  */
-export const registerRateLimiter = rateLimiter(3, 60 * 60 * 1000); // 3 requests per hour
+export const registerRateLimiter = rateLimiter(100, 60 * 60 * 1000); // 100 requests per hour

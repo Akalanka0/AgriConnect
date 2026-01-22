@@ -48,6 +48,9 @@ You will need to have the following software installed on your system:
       cp .env.example .env
       ```
     - Update the `.env` file with your MySQL database credentials and a JWT secret.
+    - Configure Gmail SMTP settings for email OTP verification:
+      - `GMAIL_EMAIL`
+      - `GMAIL_APP_PASSWORD`
 
 4.  **Set up the database**:
     - Make sure your MySQL server is running.
@@ -66,6 +69,15 @@ You will need to have the following software installed on your system:
     npm start
     ```
     This will start both the frontend and backend development servers. The frontend will be available at `http://localhost:5173` and the backend at `http://localhost:5000`.
+
+## Email Verification (OTP)
+
+After registration, the backend sends a **6-digit OTP** to the user's email address (via Gmail SMTP). Users must verify their email before they can log in.
+
+### API Endpoints
+
+- `POST /api/auth/send-email-otp` - Send/resend email OTP
+- `POST /api/auth/verify-email-otp` - Verify email OTP
 
 ## Technology Stack
 
@@ -98,9 +110,12 @@ The database consists of three main tables: `users`, `farmer_details`, and `inst
 | `full_name` | `VARCHAR`    | The user's full name.                                |
 | `email`     | `VARCHAR`    | The user's email address (must be unique).           |
 | `nic`       | `VARCHAR`    | The user's National Identity Card number (unique).   |
-| `phone`     | `VARCHAR`    | The user's phone number (unique).                    |
+| `phone`     | `VARCHAR`    | The user's phone number.                             |
 | `password`  | `VARCHAR`    | A hashed version of the user's password.             |
 | `role`      | `ENUM`       | `farmer`, `instructor`, or `admin`.                  |
+| `email_verified`| `BOOLEAN` | Whether the email has been verified via OTP.         |
+| `verification_token`| `VARCHAR` | Stores the current 6-digit email OTP (nullable).   |
+| `verification_token_expires`| `TIMESTAMP` | Email OTP expiry time (nullable).        |
 | `created_at`| `TIMESTAMP`  | The date and time the user account was created.      |
 | `updated_at`| `TIMESTAMP`  | The date and time the user account was last updated. |
 
@@ -156,4 +171,4 @@ Contributions are welcome! Please feel free to submit a pull request.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+This project is licensed under the MIT License.

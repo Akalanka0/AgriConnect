@@ -16,6 +16,34 @@ const RegisterForm = ({
     loading,
     setIsLogin
 }) => {
+    // Demo data autofill function
+    const fillDemoData = () => {
+        const demoData = {
+            fullName: role === 'farmer' ? 'Demo Farmer' : 'Demo Instructor',
+            email: 'akalankasenanayake88@gmail.com',
+            password: 'demo12345',
+            confirmPassword: 'demo12345',
+            nic: role === 'farmer' ? '123456789V' : '987654321V',
+            phone: role === 'farmer' ? '0712345678' : '0718765432',
+        };
+
+        // Cycle through demo IDs
+        const farmerIds = ['DEMO-FARM-2026-0001'];
+        const instructorIds = ['DEMO-INST-2026-00001'];
+        
+        // Use current time to cycle through IDs (changes every minute)
+        const minuteIndex = 0; // Fixed to 0 since we only have one reusable ID now
+        
+        if (role === 'farmer') {
+            demoData.farmerId = farmerIds[minuteIndex];
+        } else if (role === 'instructor') {
+            demoData.instructorId = instructorIds[minuteIndex];
+        }
+
+        setRegisterData(demoData);
+        setPasswordStrength(checkPasswordStrength('demo12345'));
+    };
+
     return (
         <div>
             <div className="login-header">
@@ -153,6 +181,18 @@ const RegisterForm = ({
                     <span>{loading ? 'Creating...' : 'Create Account'}</span>
                     {loading && <div className="loading"></div>}
                 </button>
+                
+                {/* Quick Demo Button */}
+                <button 
+                    type="button" 
+                    className="demo-btn" 
+                    onClick={fillDemoData}
+                    disabled={loading}
+                >
+                    <i className="fas fa-magic"></i>
+                    Quick Demo - {role === 'farmer' ? 'Farmer' : 'Instructor'}
+                </button>
+                
                 <div className="switch-form">
                     <p>Already have an account? <a onClick={() => setIsLogin(true)}>Sign in</a></p>
                 </div>

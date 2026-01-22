@@ -1,16 +1,14 @@
 # Dependencies
-/node_modules
-/backend/node_modules
-/frontend/node_modules
+node_modules/
 .pnp
 .pnp.js
 
 # Testing
-/coverage
+coverage/
 
 # Production
-/dist
-/build
+dist/
+build/
 
 # Environment variables
 .env
@@ -18,24 +16,29 @@
 .env.development.local
 .env.test.local
 .env.production.local
-/backend/.env
-/frontend/.env
+*.env
+!.env.example
 
 # Logs
 *.log
 npm-debug.log*
-yarn-error.log
+yarn-error.log*
+yarn-debug.log*
 
 # OS generated files
 .DS_Store
 Thumbs.db
+Desktop.ini
 
 # IDEs
 .vscode/
 .idea/
+*.swp
+*.swo
 .project
 .classpath
-.settings
+.settings/
+*.sublime-workspace
 
 # Vite
-.vite
+.vite/

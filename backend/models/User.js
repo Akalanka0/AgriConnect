@@ -95,6 +95,24 @@ const User = sequelize.define('User', {
         type: DataTypes.ENUM('active', 'inactive', 'suspended'),
         defaultValue: 'active',
         allowNull: false
+    },
+    email_verified: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        allowNull: false
+    },
+    verification_token: {
+        type: DataTypes.STRING(255),
+        allowNull: true
+    },
+    verification_token_expires: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    original_email: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        comment: 'Original email for demo accounts (stores actual email before timestamp modification)'
     }
 }, {
     tableName: 'users',
