@@ -1,4 +1,7 @@
+import crypto from 'crypto';
 import { registerUser, loginUser } from '../services/authService.js';
+import { sendVerificationEmail } from '../services/emailService.js';
+import { User } from '../models/index.js';
 
 /**
  * Register a new user (farmer or instructor)
@@ -15,7 +18,6 @@ export const registerUserController = async (req, res) => {
             phone,
             farmer_id,
             instructor_id,
-            address
         } = req.body;
 
         // Basic validation
@@ -44,20 +46,19 @@ export const registerUserController = async (req, res) => {
 
         // Add role-specific data
         if (role.toLowerCase() === 'farmer') {
-            if (!farmer_id || !address) {
+            if (!farmer_id) {
                 return res.status(400).json({
                     success: false,
                     error: {
                         code: 'MISSING_FIELDS',
-                        message: 'Farmer registration requires farmer_id and address',
+                        message: 'Farmer registration requires farmer_id',
                         details: {
-                            required: ['farmer_id', 'address']
+                            required: ['farmer_id']
                         }
                     }
                 });
             }
             userData.farmer_id = farmer_id.trim();
-            userData.address = address.trim();
         } else if (role.toLowerCase() === 'instructor') {
             if (!instructor_id) {
                 return res.status(400).json({
@@ -121,7 +122,7 @@ export const registerUserController = async (req, res) => {
                 success: false,
                 error: {
                     code: 'VALIDATION_ERROR',
-                    message: 'Validation failed',
+                    message: validationErrors.length > 0 ? validationErrors[0].message : 'Validation failed',
                     details: validationErrors
                 }
             });
@@ -132,7 +133,7 @@ export const registerUserController = async (req, res) => {
                 success: false,
                 error: {
                     code: 'DUPLICATE_ENTRY',
-                    message: error.message || 'Duplicate entry. This record already exists'
+                    message: error.errors && error.errors.length > 0 ? error.errors[0].message : (error.message || 'Duplicate entry. This record already exists')
                 }
             });
         }
@@ -144,6 +145,250 @@ export const registerUserController = async (req, res) => {
             error: {
                 code: 'INTERNAL_ERROR',
                 message: error.message || 'An error occurred during registration'
+            }
+        });
+    }
+};
+
+export const sendEmailOTPController = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                error: {
+                    code: 'MISSING_EMAIL',
+                    message: 'Email is required'
+                }
+            });
+        }
+
+        const normalizedEmail = email.toLowerCase().trim();
+        
+        // For demo email, find by original_email and get most recent UNVERIFIED account
+        const isDemoEmail = normalizedEmail === process.env.DEV_EMAIL_BYPASS;
+        let user;
+        
+        if (isDemoEmail) {
+            user = await User.findOne({ 
+                where: { 
+                    original_email: normalizedEmail,
+                    email_verified: false // Only get unverified demo accounts
+                },
+                order: [['created_at', 'DESC']] // Get most recent unverified demo account
+            });
+        } else {
+            user = await User.findOne({ where: { email: normalizedEmail } });
+        }
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                error: {
+                    code: 'USER_NOT_FOUND',
+                    message: 'User not found'
+                }
+            });
+        }
+
+        // For demo accounts, always allow OTP verification (for testing multiple registrations)
+        if (!isDemoEmail && user.email_verified) {
+            return res.status(200).json({
+                success: true,
+                message: 'Email already verified'
+            });
+        }
+
+        const otp = crypto.randomInt(100000, 1000000).toString();
+        const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+        await user.update({
+            verification_token: otp,
+            verification_token_expires: otpExpires
+        });
+
+        // For demo email, send OTP to the original email address
+        if (isDemoEmail) {
+            try {
+                await sendVerificationEmail(normalizedEmail, otp, user.full_name || 'Demo User');
+                return res.status(200).json({
+                    success: true,
+                    message: 'Verification code sent to your email',
+                    demo: true
+                });
+            } catch (emailError) {
+                console.error('Demo email send failed:', emailError);
+                return res.status(500).json({
+                    success: false,
+                    error: {
+                        code: 'EMAIL_SEND_FAILED',
+                        message: 'Failed to send verification email. Please try again.'
+                    }
+                });
+            }
+        }
+
+        await sendVerificationEmail(user.email, otp, user.full_name || 'User');
+
+        return res.status(200).json({
+            success: true,
+            message: 'Verification code sent to your email'
+        });
+    } catch (error) {
+        console.error('Send email OTP error:', error);
+        return res.status(500).json({
+            success: false,
+            error: {
+                code: 'INTERNAL_ERROR',
+                message: 'An error occurred while sending verification code'
+            }
+        });
+    }
+};
+
+export const verifyEmailOTPController = async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+
+        if (!email || !otp) {
+            return res.status(400).json({
+                success: false,
+                error: {
+                    code: 'MISSING_FIELDS',
+                    message: 'Email and OTP are required'
+                }
+            });
+        }
+
+        const user = await User.findOne({ where: { email } });
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                error: {
+                    code: 'USER_NOT_FOUND',
+                    message: 'User not found'
+                }
+            });
+        }
+
+        if (user.email_verified) {
+            return res.status(200).json({
+                success: true,
+                message: 'Email already verified'
+            });
+        }
+
+        if (!user.verification_token || !user.verification_token_expires) {
+            return res.status(400).json({
+                success: false,
+                error: {
+                    code: 'NO_OTP',
+                    message: 'No verification code found. Please request a new code.'
+                }
+            });
+        }
+
+        if (new Date(user.verification_token_expires) < new Date()) {
+            return res.status(400).json({
+                success: false,
+                error: {
+                    code: 'OTP_EXPIRED',
+                    message: 'Verification code has expired'
+                }
+            });
+        }
+
+        if (String(user.verification_token) !== String(otp).trim()) {
+            return res.status(400).json({
+                success: false,
+                error: {
+                    code: 'INVALID_OTP',
+                    message: 'Invalid verification code'
+                }
+            });
+        }
+
+        await user.update({
+            email_verified: true,
+            verification_token: null,
+            verification_token_expires: null
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: 'Email verified successfully'
+        });
+    } catch (error) {
+        console.error('Verify email OTP error:', error);
+        return res.status(500).json({
+            success: false,
+            error: {
+                code: 'INTERNAL_ERROR',
+                message: 'An error occurred during email verification'
+            }
+        });
+    }
+};
+
+/**
+ * Verify email
+ * GET /api/auth/verify-email
+ */
+export const verifyEmailController = async (req, res) => {
+    try {
+        const { token } = req.query;
+
+        if (!token) {
+            return res.status(400).json({
+                success: false,
+                error: {
+                    code: 'MISSING_TOKEN',
+                    message: 'Verification token is required'
+                }
+            });
+        }
+
+        const user = await User.findOne({ where: { verification_token: token } });
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                error: {
+                    code: 'INVALID_TOKEN',
+                    message: 'Invalid verification token'
+                }
+            });
+        }
+
+        if (user.verification_token_expires && new Date(user.verification_token_expires) < new Date()) {
+            return res.status(400).json({
+                success: false,
+                error: {
+                    code: 'TOKEN_EXPIRED',
+                    message: 'Verification token has expired'
+                }
+            });
+        }
+
+        await user.update({
+            email_verified: true,
+            verification_token: null,
+            verification_token_expires: null
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: 'Email verified successfully'
+        });
+    } catch (error) {
+        console.error('Email verification error:', error);
+        return res.status(500).json({
+            success: false,
+            error: {
+                code: 'INTERNAL_ERROR',
+                message: 'An error occurred during email verification'
             }
         });
     }
@@ -185,6 +430,16 @@ export const loginUserController = async (req, res) => {
             });
         }
 
+        if (error.message.includes('ACCOUNT_NOT_VERIFIED')) {
+            return res.status(403).json({
+                success: false,
+                error: {
+                    code: 'ACCOUNT_NOT_VERIFIED',
+                    message: 'Please verify your email to login.'
+                }
+            });
+        }
+
         if (error.message.includes('ACCOUNT_')) {
             const status = error.message.split('_')[1].toLowerCase();
             return res.status(403).json({
@@ -209,4 +464,10 @@ export const loginUserController = async (req, res) => {
 };
 
 // Export for routes
-export { registerUserController as registerUser, loginUserController as loginUser };
+export {
+    registerUserController as registerUser,
+    loginUserController as loginUser,
+    verifyEmailController as verifyEmail,
+    sendEmailOTPController as sendEmailOTP,
+    verifyEmailOTPController as verifyEmailOTP
+};

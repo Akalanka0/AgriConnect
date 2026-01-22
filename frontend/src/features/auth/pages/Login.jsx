@@ -55,6 +55,33 @@ const Login = () => {
 
   const [errors, setErrors] = useState({});
 
+  const showNotification = useCallback((message, type = 'success') => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 3000);
+  }, []);
+
+  // Check backend connection on mount
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        console.log('Checking backend connection...');
+        const response = await fetch('/api/auth/test');
+        const data = await response.json();
+        console.log('Backend connection status:', data);
+        if (response.ok) {
+          showNotification('Connected to backend successfully', 'success');
+        } else {
+            console.error('Backend returned error:', data);
+        }
+      } catch (error) {
+        console.error('Backend connection failed:', error);
+        showNotification('Cannot connect to backend server', 'error');
+      }
+    };
+    
+    checkConnection();
+  }, [showNotification]);
+
   useEffect(() => {
     const savedUsername = localStorage.getItem('agriConnectUsername');
     const rememberMe = localStorage.getItem('agriConnectRemember') === 'true';
@@ -69,17 +96,13 @@ const Login = () => {
     }
   }, [location.search]);
 
-  const showNotification = useCallback((message, type = 'success') => {
-    setNotification({ show: true, message, type });
-    setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 3000);
-  }, []);
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     const newErrors = {};
 
-    if (!loginData.username) newErrors.username = 'Please enter your email or phone';
+    if (!loginData.username) newErrors.username = 'Please enter your email';
     if (!loginData.password) newErrors.password = 'Please enter your password';
 
     if (Object.keys(newErrors).length > 0) {
@@ -89,7 +112,10 @@ const Login = () => {
     }
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/login`, {
+      const loginUrl = `/api/auth/login`;
+      console.log('Attempting login to:', loginUrl);
+      
+      const response = await fetch(loginUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -122,7 +148,15 @@ const Login = () => {
           else navigate('/farmer');
         }, 800);
       } else {
-        showNotification(data.message || 'Login failed. Please try again.', 'error');
+        if (data.message && data.message.includes('ACCOUNT_NOT_VERIFIED')) {
+          showNotification('Account not verified. Please check your email.', 'error');
+          setTimeout(() => {
+            navigate(`/verify?email=${encodeURIComponent(loginData.username)}`);
+          }, 1000);
+        } else {
+          const errorMessage = data.error?.message || data.message || 'Login failed. Please try again.';
+          showNotification(errorMessage, 'error');
+        }
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -174,7 +208,10 @@ const Login = () => {
         registrationPayload.instructor_id = registerData.instructorId;
       }
 
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/register`, {
+      const registerUrl = `/api/auth/register`;
+      console.log('Attempting registration to:', registerUrl);
+
+      const response = await fetch(registerUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -185,16 +222,17 @@ const Login = () => {
       const data = await response.json();
 
       if (response.ok) {
-        showNotification(`Account created successfully! Registered as ${role}.`, 'success');
+        showNotification('Account created successfully! Please verify your email.', 'success');
         setRegisterData({
           fullName: '', email: '', nic: '', phone: '',
           farmerId: '', instructorId: '', password: '', confirmPassword: ''
         });
         setTimeout(() => {
-          setIsLogin(true);
+          navigate(`/verify?email=${encodeURIComponent(registrationPayload.email)}`);
         }, 800);
       } else {
-        showNotification(data.message || 'Registration failed. Please try again.', 'error');
+        const errorMessage = data.error?.message || data.message || 'Registration failed. Please try again.';
+        showNotification(errorMessage, 'error');
       }
     } catch (error) {
       console.error('Registration error:', error);
@@ -221,7 +259,7 @@ const Login = () => {
     setResetLoading(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/forgot-password`, {
+      const response = await fetch(`/api/auth/forgot-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -260,7 +298,7 @@ const Login = () => {
 
     setResetLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/verify-otp`, {
+      const response = await fetch(`/api/auth/verify-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -298,7 +336,7 @@ const Login = () => {
 
     setResetLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/reset-password`, {
+      const response = await fetch(`/api/auth/reset-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

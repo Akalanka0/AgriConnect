@@ -14,6 +14,9 @@ export default [
       react: {
         version: "18.2.0"
       }
+    },
+    rules: {
+      "no-unused-vars": ["error", { varsIgnorePattern: "^React$" }]
     }
   }
 ];

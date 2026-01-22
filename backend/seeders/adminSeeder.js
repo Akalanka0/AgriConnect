@@ -1,11 +1,15 @@
 import { User } from '../models/index.js';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 const seedAdmin = async () => {
   try {
     // Check if admin user already exists
     const adminUser = await User.findOne({ where: { role: 'admin' } });
     if (adminUser) {
+      await adminUser.update({
+        status: 'active',
+        email_verified: true
+      });
       console.log('Admin user already exists');
       return;
     }
@@ -20,6 +24,7 @@ const seedAdmin = async () => {
       nic: '000000000V',
       phone: '0000000000',
       status: 'active',
+      email_verified: true
     });
 
     console.log('Admin user created successfully!');

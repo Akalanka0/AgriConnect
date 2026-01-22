@@ -10,6 +10,7 @@
     "start": "vite"
   },
   "dependencies": {
+    "prop-types": "^15.8.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-router-dom": "^6.21.0"
@@ -20,7 +21,6 @@
     "eslint": "^9.39.2",
     "eslint-plugin-react": "^7.37.5",
     "globals": "^15.0.0",
-    "prop-types": "^15.8.1",
     "vite": "^7.3.1"
   }
 }
