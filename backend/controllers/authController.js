@@ -165,18 +165,14 @@ export const sendEmailOTPController = async (req, res) => {
         }
 
         const normalizedEmail = email.toLowerCase().trim();
-        
-        // For demo email, find by original_email and get most recent UNVERIFIED account
         const isDemoEmail = normalizedEmail === process.env.DEV_EMAIL_BYPASS;
-        let user;
         
+        let user;
         if (isDemoEmail) {
+            // Find the most recently created user for the demo email
             user = await User.findOne({ 
-                where: { 
-                    original_email: normalizedEmail,
-                    email_verified: false // Only get unverified demo accounts
-                },
-                order: [['created_at', 'DESC']] // Get most recent unverified demo account
+                where: { email: normalizedEmail },
+                order: [['created_at', 'DESC']]
             });
         } else {
             user = await User.findOne({ where: { email: normalizedEmail } });

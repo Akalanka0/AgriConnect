@@ -15,7 +15,7 @@ export const authenticate = async (req, res, next) => {
                 success: false,
                 error: {
                     code: 'NO_TOKEN',
-                    message: 'Access denied. No token provided.'
+                    message: 'Access denied. Please log in.'
                 }
             });
         }
@@ -37,7 +37,7 @@ export const authenticate = async (req, res, next) => {
                 success: false,
                 error: {
                     code: 'INVALID_TOKEN',
-                    message: 'Invalid token. User not found.'
+                    message: 'Session invalid. Please log in again.'
                 }
             });
         }
@@ -82,7 +82,7 @@ export const authenticate = async (req, res, next) => {
             success: false,
             error: {
                 code: 'INTERNAL_ERROR',
-                message: 'An error occurred during authentication'
+                message: 'Something went wrong. Please try again.'
             }
         });
     }

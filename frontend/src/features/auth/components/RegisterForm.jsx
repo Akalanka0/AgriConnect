@@ -20,7 +20,7 @@ const RegisterForm = ({
     const fillDemoData = () => {
         const demoData = {
             fullName: role === 'farmer' ? 'Demo Farmer' : 'Demo Instructor',
-            email: 'akalankasenanayake88@gmail.com',
+            email: 'testuseragri@gmail.com',
             password: 'demo12345',
             confirmPassword: 'demo12345',
             nic: role === 'farmer' ? '123456789V' : '987654321V',

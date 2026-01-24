@@ -37,7 +37,7 @@ export const rateLimiter = (maxRequests = 5, windowMs = 15 * 60 * 1000) => {
                 success: false,
                 error: {
                     code: 'RATE_LIMIT_EXCEEDED',
-                    message: 'Too many requests. Please try again later.',
+                    message: 'Too many attempts. Please wait a moment and try again.',
                     retryAfter: resetTime.toISOString()
                 }
             });

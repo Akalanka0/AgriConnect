@@ -25,8 +25,11 @@ export const storeOTP = (email, otp) => {
 
 /**
  * Verify OTP
+ * @param {string} email
+ * @param {string} providedOTP
+ * @param {boolean} consume - Whether to delete the OTP after successful verification (default: true)
  */
-export const verifyOTP = (email, providedOTP) => {
+export const verifyOTP = (email, providedOTP, consume = true) => {
     const storedData = otpStore.get(email.toLowerCase());
     
     if (!storedData) {
@@ -42,8 +45,11 @@ export const verifyOTP = (email, providedOTP) => {
         return { valid: false, message: 'Invalid OTP' };
     }
     
-    // OTP is valid, remove it from store
-    otpStore.delete(email.toLowerCase());
+    // OTP is valid
+    if (consume) {
+        otpStore.delete(email.toLowerCase());
+    }
+    
     return { valid: true, message: 'OTP verified successfully' };
 };
 
