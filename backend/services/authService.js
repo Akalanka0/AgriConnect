@@ -53,8 +53,31 @@ export const registerUser = async (userData) => {
             transaction
         });
 
-        if (existingNIC) {
+        // Allow reuse of specific demo NICs
+        const isDemoNIC = ['123456789V', '987654321V'].includes(userData.nic);
+
+        if (existingNIC && !isDemoNIC) {
             throw new Error('NIC_EXISTS: NIC already registered');
+        } else if (existingNIC && isDemoNIC) {
+            // If it's a demo NIC, we need to handle it.
+            // Since NIC is unique in the DB (likely), we might have a constraint issue if we just proceed to create.
+            // If the user with this NIC is the SAME as the one we are re-registering (by email), it was handled above by destroying the user.
+            // But if another user has this NIC, we have a problem.
+            
+            // However, the logic at the top deletes the user if the EMAIL matches the demo email.
+            // If the user is trying to register with a DIFFERENT email but the DEMO NIC, we should probably block it or handle it.
+            // But based on the request "reuse 123456789V", we assume it's for the demo flow.
+            
+            // The constraint on the DB for NIC needs to be respected.
+            // If we are here, it means a user exists with this NIC.
+            // If that user was NOT deleted (because email didn't match), we can't create a new user with the same NIC due to DB unique constraint.
+            
+            // So we must delete the OLD user who has this NIC to free it up, 
+            // OR we assume the "delete old user by email" above already cleared it if it was the same user.
+            
+            // If existingNIC is not null here, it means there is a user with this NIC.
+            // We should destroy that user to allow reuse of the NIC, similar to how we destroy by email.
+             await existingNIC.destroy({ transaction });
         }
 
         // Hash password

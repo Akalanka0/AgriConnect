@@ -272,10 +272,6 @@ const Login = () => {
       if (response.ok) {
         showNotification(data.message, 'success');
         setResetStep('otp'); // Move to OTP step
-        // For demo purposes, we can still show a mock OTP if it's a demo account
-        if (resetEmail === 'example@gmail.com') {
-          showNotification(`Demo OTP: 1234 (for example@gmail.com)`, 'info');
-        }
       } else {
         showNotification(data.message || 'Failed to send reset email.', 'error');
       }
@@ -398,7 +394,7 @@ const Login = () => {
   return (
     <div className="login-container">
       <div className={`notification ${notification.show ? 'show' : ''} ${notification.type}`}>
-        <i className="fas fa-check-circle"></i>
+        <i className={`fas ${notification.type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'}`}></i>
         <span>{notification.message}</span>
       </div>
 

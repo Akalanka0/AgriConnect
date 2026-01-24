@@ -83,7 +83,8 @@ export const verifyOTPController = async (req, res) => {
             });
         }
 
-        const verification = verifyOTP(email, otp);
+        // Verify OTP (peek mode - don't consume yet)
+        const verification = verifyOTP(email, otp, false);
 
         if (!verification.valid) {
             return res.status(400).json({
@@ -141,8 +142,8 @@ export const resetPassword = async (req, res) => {
             });
         }
 
-        // Verify OTP first
-        const verification = verifyOTP(email, otp);
+        // Verify OTP first (consume mode - delete after use)
+        const verification = verifyOTP(email, otp, true);
         if (!verification.valid) {
             return res.status(400).json({
                 success: false,

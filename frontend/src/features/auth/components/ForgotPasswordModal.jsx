@@ -53,8 +53,8 @@ const ForgotPasswordModal = ({
                             <div className="reset-sample-data">
                                 <div className="sample-label"><i className="fas fa-lightbulb"></i> Sample Data</div>
                                 <div className="sample-items">
-                                    <div className="sample-item" onClick={() => setResetEmail('example@gmail.com')}>
-                                        <span>Email:</span> example@gmail.com | <span>OTP:</span> 1234
+                                    <div className="sample-item" onClick={() => setResetEmail('testuseragri@gmail.com')}>
+                                        <span>Email:</span> testuseragri@gmail.com
                                     </div>
                                 </div>
                             </div>
@@ -150,7 +150,7 @@ const ForgotPasswordModal = ({
                                 />
                                 <button
                                     type="button"
-                                    className="password-.toggle"
+                                    className="password-toggle"
                                     onClick={() => setShowResetPassword({ ...showResetPassword, confirm: !showResetPassword.confirm })}
                                 >
                                     <i className={`fas fa-eye${showResetPassword.confirm ? '-slash' : ''}`}></i>

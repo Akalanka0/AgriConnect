@@ -1,7 +1,7 @@
 # Demo Registration Guide
 
 ## Overview
-This guide explains how to create demo farmer and instructor accounts using the special demo email `akalankasenanayake88@gmail.com`.
+This guide explains how to create demo farmer and instructor accounts using the special demo email `testuseragri@gmail.com`.
 
 ## Demo Email Benefits
 - **Multiple Registrations**: Register unlimited times with the same email
@@ -31,7 +31,7 @@ This guide explains how to create demo farmer and instructor accounts using the 
 ```json
 {
   "full_name": "Demo Farmer",
-  "email": "akalankasenanayake88@gmail.com",
+  "email": "testuseragri@gmail.com",
   "password": "demo12345",
   "role": "farmer",
   "nic": "123456789V",
@@ -44,7 +44,7 @@ This guide explains how to create demo farmer and instructor accounts using the 
 ```json
 {
   "full_name": "Demo Instructor",
-  "email": "akalankasenanayake88@gmail.com",
+  "email": "testuseragri@gmail.com",
   "password": "demo12345",
   "role": "instructor",
   "nic": "987654321V",
@@ -59,7 +59,7 @@ This guide explains how to create demo farmer and instructor accounts using the 
 2. **NIC Handling**: A short timestamp is appended to NIC for uniqueness
 3. **ID Handling**: Demo IDs are **reusable** - multiple demo accounts can use the same demo ID
 4. **Verification**: Email verification is automatically bypassed
-5. **Login**: Use original email `akalankasenanayake88@gmail.com` for login
+5. **Login**: Use original email `testuseragri@gmail.com` for login
 6. **Quick Demo**: Use the "Quick Demo" button to auto-fill all fields
 
 ## Testing Flow
@@ -68,7 +68,7 @@ This guide explains how to create demo farmer and instructor accounts using the 
 2. The form auto-fills with demo data (8+ character password)
 3. Click **"Create Account"** to register
 4. The account is automatically verified
-5. Login with `akalankasenanayake88@gmail.com` and your password
+5. Login with `testuseragri@gmail.com` and your password
 6. Access the appropriate dashboard based on role
 
 ## Notes

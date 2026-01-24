@@ -8,9 +8,8 @@
         "start": "nodemon server.js",
         "dev": "nodemon server.js",
         "migrate": "node migrations/run_migrations.js",
-        "migrate:reset": "node migrations/reset_migrations.js",
         "seed": "node seeders/runSeeders.js",
-        "seed:admin": "node seeders/adminSeed.js"
+        "seed:admin": "node seeders/adminSeeder.js"
     },
     "keywords": [],
     "author": "",
