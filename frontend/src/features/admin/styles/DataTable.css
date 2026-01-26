@@ -1,0 +1,105 @@
+.data-table-container {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table th {
+    background: #f8f9fa;
+    color: #7f8c8d;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    padding: 1rem 1.5rem;
+    text-align: left;
+    border-bottom: 2px solid #ecf0f1;
+}
+
+.data-table th.col-actions {
+    width: 120px;
+}
+
+.data-table td {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #ecf0f1;
+    color: var(--dark);
+    font-size: 0.9rem;
+    vertical-align: middle;
+}
+
+.data-table tr:last-child td {
+    border-bottom: none;
+}
+
+.data-table tr:hover {
+    background-color: #fcfcfc;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem !important;
+    color: #95a5a6;
+    font-style: italic;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-action {
+    border-radius: 6px;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 6px 12px;
+    min-width: 32px;
+    gap: 6px;
+}
+
+.btn-action i {
+    font-size: 0.9em;
+}
+
+.btn-action.btn-icon-only {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+}
+
+.btn-primary {
+    background-color: var(--primary);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+}
+
+.btn-secondary {
+    background-color: #95a5a6;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #7f8c8d;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, var(--accent), #c0392b);
+}
+
+.btn-danger:hover {
+    filter: brightness(1.1);
+}

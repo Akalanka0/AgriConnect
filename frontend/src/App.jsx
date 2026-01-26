@@ -1,5 +1,5 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastProvider as AdminToastProvider } from '@/features/admin/components/Toast';
 import '@/shared/styles/global.css';
 import { Home } from '@/features/home';
 import { Login } from '@/features/auth';
@@ -63,7 +63,7 @@ export default function App() {
         </Route>
 
         {/* Nested Admin Routes */}
-        <Route path="/admin" element={<AdminLayout />}>
+        <Route path="/admin" element={<AdminToastProvider><AdminLayout /></AdminToastProvider>}>
           <Route index element={<AdminHome />} />
           <Route path="users" element={<UserManagement />} />
           <Route path="engagement" element={<Engagement />} />

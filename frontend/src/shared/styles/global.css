@@ -117,14 +117,6 @@ h6 {
   --bg-gradient: linear-gradient(135deg, #e8f5e9, #c8e6c9);
 }
 
-.theme-brown {
-  --primary: #5d4037;
-  --primary-dark: #3e2723;
-  --primary-light: #8d6e63;
-  --accent: #d84315;
-  --bg-gradient: linear-gradient(135deg, #efebe9, #d7ccc8);
-}
-
 .theme-blue {
   --primary: #1565c0;
   --primary-dark: #0d47a1;

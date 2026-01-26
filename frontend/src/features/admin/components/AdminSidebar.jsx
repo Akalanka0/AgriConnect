@@ -11,13 +11,13 @@ const AdminSidebar = ({ activePage, sidebarActive, handleNavigation, logout, loc
     ];
 
     return (
-        <div className={`sidebar ${sidebarActive ? 'active' : ''}`}>
-            <div className="sidebar-header">
+        <div className={`admin-sidebar ${sidebarActive ? 'active' : ''}`}>
+            <div className="admin-sidebar-header">
                 <div className="logo"><i className="fas fa-seedling"></i></div>
                 <h1>AgriConnect</h1>
             </div>
 
-            <div className="sidebar-menu">
+            <div className="admin-sidebar-menu">
                 {menuItems.map((item) => (
                     <div
                         key={item.id}
@@ -30,7 +30,7 @@ const AdminSidebar = ({ activePage, sidebarActive, handleNavigation, logout, loc
                 ))}
             </div>
 
-            <div className="sidebar-footer">
+            <div className="admin-sidebar-footer">
                 <button className="logout-btn" onClick={logout}>
                     <i className="fas fa-sign-out-alt"></i>
                     <span className="menu-text">Log Out</span>
