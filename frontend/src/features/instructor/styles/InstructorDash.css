@@ -228,9 +228,10 @@ body {
   border-radius: var(--border-radius);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
   z-index: 1000;
-  display: none;
+  display: block; /* Changed from none to block */
   max-height: 400px;
   overflow-y: auto;
+  animation: fadeIn 0.3s ease;
 }
 
 .notification-dropdown.show {
