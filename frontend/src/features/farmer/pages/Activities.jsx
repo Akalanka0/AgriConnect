@@ -6,9 +6,28 @@ const Activities = () => {
     const [activityForm, setActivityForm] = useState({
         activityType: '',
         activityCrop: '',
+        instructorDivision: '',
         activityDate: '',
         activityNotes: ''
     });
+
+    // Mock Data for Farmer Locations (Instructor Divisions)
+    const availableLocations = [
+        {
+            id: 1,
+            businessArea: 'Rajanganaya',
+            instructorDivision: 'Yaya 4',
+            instructorName: 'Piyadasa Silva',
+            instructorId: 'INST-2026-0001'
+        },
+        {
+            id: 2,
+            businessArea: 'Vilachchiya',
+            instructorDivision: 'Track 4',
+            instructorName: 'Upul Tharanga',
+            instructorId: 'INST-2026-0002'
+        }
+    ];
 
     useEffect(() => {
         setActivityForm(prev => ({
@@ -27,6 +46,7 @@ const Activities = () => {
         setActivityForm({
             activityType: '',
             activityCrop: '',
+            instructorDivision: '',
             activityDate: new Date().toISOString().split('T')[0],
             activityNotes: ''
         });
@@ -77,6 +97,37 @@ const Activities = () => {
                             </select>
                         </div>
                         <div className="form-group">
+                            <label>Instructor Division</label>
+                            <select
+                                className="form-control"
+                                value={activityForm.instructorDivision}
+                                onChange={(e) => {
+                                    const selectedValue = e.target.value;
+                                    setActivityForm(prev => ({
+                                        ...prev,
+                                        instructorDivision: selectedValue,
+                                    }));
+                                }}
+                            >
+                                <option value="">Select division</option>
+                                {availableLocations.map(loc => (
+                                    <option key={loc.id} value={`${loc.businessArea} - ${loc.instructorDivision}`}>
+                                        {loc.businessArea} - {loc.instructorDivision}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label>Location</label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                value={activityForm.fieldLocation}
+                                onChange={(e) => setActivityForm({ ...activityForm, fieldLocation: e.target.value })}
+                                placeholder="Enter location (e.g., Field A, North Plot)"
+                            />
+                        </div>
+                        <div className="form-group">
                             <label>Date</label>
                             <input
                                 type="date"
@@ -108,10 +159,10 @@ const Activities = () => {
                     <div className="card-content">
                         <div className="activities-list">
                             {[
-                                { type: 'Irrigation', crop: 'Rice Paddy', location: 'Field A', date: '2025-10-05', details: 'Completed irrigation for rice paddy field. Applied 2 inches of water.' },
-                                { type: 'Pest Control', crop: 'Vegetables', location: 'Field B', date: '2025-10-03', details: 'Applied organic pesticide for aphid control in vegetable garden.' },
-                                { type: 'Fertilizing', crop: 'Corn', location: 'Field C', date: '2025-10-01', details: 'Applied NPK fertilizer to corn field. Used 50kg per acre.' },
-                                { type: 'Planting', crop: 'Tomatoes', location: 'Field D', date: '2025-09-28', details: 'Planted tomato seedlings. Spacing: 2 feet between plants.' }
+                                { type: 'Irrigation', crop: 'Rice Paddy', location: 'Field A', instructorDivision: 'Rajanganaya - Yaya 4', date: '2025-10-05', details: 'Completed irrigation for rice paddy field. Applied 2 inches of water.' },
+                                { type: 'Pest Control', crop: 'Vegetables', location: 'Field B', instructorDivision: 'Vilachchiya - Track 4', date: '2025-10-03', details: 'Applied organic pesticide for aphid control in vegetable garden.' },
+                                { type: 'Fertilizing', crop: 'Corn', location: 'Field C', instructorDivision: 'Rajanganaya - Yaya 4', date: '2025-10-01', details: 'Applied NPK fertilizer to corn field. Used 50kg per acre.' },
+                                { type: 'Planting', crop: 'Tomatoes', location: 'Field D', instructorDivision: 'Vilachchiya - Track 4', date: '2025-09-28', details: 'Planted tomato seedlings. Spacing: 2 feet between plants.' }
                             ].map((activity, index) => (
                                 <div className="activity-item" key={index}>
                                     <div className="activity-info">
@@ -121,6 +172,7 @@ const Activities = () => {
                                         <div className="activity-details">
                                             <p><strong>Crop:</strong> {activity.crop}</p>
                                             <p><strong>Location:</strong> {activity.location}</p>
+                                            <p><strong>Instructor Division:</strong> {activity.instructorDivision}</p>
                                             <p>{activity.details}</p>
                                         </div>
                                     </div>

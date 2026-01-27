@@ -7,6 +7,7 @@ const AdminSidebar = ({ activePage, sidebarActive, handleNavigation, logout, loc
         { id: 'users', icon: 'fas fa-users', label: 'User Management', path: '/admin/users' },
         { id: 'engagement', icon: 'fas fa-handshake', label: 'Instructor-Farmer', path: '/admin/engagement' },
         { id: 'reports', icon: 'fas fa-file-alt', label: 'Reports', path: '/admin/reports' },
+        { id: 'ids', icon: 'fas fa-id-card', label: 'User ID Management', path: '/admin/ids' },
         { id: 'settings', icon: 'fas fa-cog', label: 'Settings', path: '/admin/settings' }
     ];
 

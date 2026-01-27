@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { useOutletContext } from 'react-router-dom';
 import StatCard from '../components/StatCard';
@@ -17,6 +17,8 @@ const AdminHome = () => {
     const [modalTitle, setModalTitle] = useState('Send Message');
     const [recipientType, setRecipientType] = useState('all');
     const [showUserSelection, setShowUserSelection] = useState(false);
+    const [usersList, setUsersList] = useState([]);
+    const [selectedUserIds, setSelectedUserIds] = useState([]);
 
     // State for Message Form
     const [messageSubject, setMessageSubject] = useState('');
@@ -27,41 +29,85 @@ const AdminHome = () => {
     // Context and State
     const { showToast } = useToast();
     const [isSending, setIsSending] = useState(false);
+    const [stats, setStats] = useState([]);
+    const [recentActivities, setRecentActivities] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    // Mock Data for Dashboard
-    const stats = [
-        {
-            label: 'Total Users',
-            value: '35',
-            icon: 'fas fa-users',
-            color: 'blue'
-        },
-        {
-            label: 'Farmers',
-            value: '25',
-            icon: 'fas fa-tractor',
-            color: 'success'
-        },
-        {
-            label: 'Instructors',
-            value: '5',
-            icon: 'fas fa-chalkboard-teacher',
-            color: 'orange'
-        },
-        {
-            label: 'Admins',
-            value: '5',
-            icon: 'fas fa-user-shield',
-            color: 'purple'
+    // Fetch Users for Selection
+    useEffect(() => {
+        if (recipientType === 'select' || recipientType === 'custom') {
+            const fetchUsersForSelect = async () => {
+                try {
+                    const response = await fetch('/api/admin/users?limit=50&status=active');
+                    const result = await response.json();
+                    if (result.success) {
+                        setUsersList(result.data);
+                    }
+                } catch (error) {
+                    console.error('Error fetching users for selection:', error);
+                    showToast('Failed to load users list', 'error');
+                }
+            };
+            fetchUsersForSelect();
         }
-    ];
+    }, [recipientType, showToast]);
 
-    const recentActivities = [
-        { action: 'User FARM001 joined', time: 'Today', icon: 'fas fa-user-plus', color: '#2ecc71' },
-        { action: 'User FARM004 blocked', time: '2 hours ago', icon: 'fas fa-user-slash', color: '#e74c3c' },
-        { action: 'User INST002 joined', time: 'Yesterday', icon: 'fas fa-user-plus', color: '#3498db' },
-        { action: 'User INST005 joined', time: '2 days ago', icon: 'fas fa-user-plus', color: '#f39c12' }
-    ];
+    // Fetch Dashboard Stats
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const response = await fetch('/api/admin/stats');
+                const result = await response.json();
+
+                if (result.success) {
+                    const { counts, recentActivity } = result.data;
+
+                    setStats([
+                        {
+                            label: 'Total Users',
+                            value: counts.totalUsers,
+                            icon: 'fas fa-users',
+                            color: 'blue'
+                        },
+                        {
+                            label: 'Farmers',
+                            value: counts.farmers,
+                            icon: 'fas fa-tractor',
+                            color: 'success'
+                        },
+                        {
+                            label: 'Instructors',
+                            value: counts.instructors,
+                            icon: 'fas fa-chalkboard-teacher',
+                            color: 'orange'
+                        },
+                        {
+                            label: 'Admins',
+                            value: counts.admins,
+                            icon: 'fas fa-user-shield',
+                            color: 'purple'
+                        }
+                    ]);
+
+                    // Transform recent activity for display
+                    const transformedActivity = recentActivity.map(user => ({
+                        action: `User ${user.full_name} (${user.role}) joined`,
+                        time: new Date(user.created_at).toLocaleDateString(),
+                        icon: 'fas fa-user-plus',
+                        color: '#2ecc71'
+                    }));
+                    setRecentActivities(transformedActivity);
+                }
+            } catch (error) {
+                console.error('Failed to fetch dashboard stats:', error);
+                showToast('Failed to load dashboard data', 'error');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchStats();
+    }, [showToast]);
 
     // Helper Functions
     const openNotifications = () => {
@@ -93,7 +139,18 @@ const AdminHome = () => {
         setMessageSubject('');
         setMessageText('');
         setAttachment(null);
+        setSelectedUserIds([]);
         if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    const handleUserSelect = (userId) => {
+        setSelectedUserIds(prev => {
+            if (prev.includes(userId)) {
+                return prev.filter(id => id !== userId);
+            } else {
+                return [...prev, userId];
+            }
+        });
     };
 
     const handleRecipientChange = (e) => {
@@ -123,15 +180,66 @@ const AdminHome = () => {
             showToast('Please enter a message', 'error');
             return;
         }
+        if (recipientType === 'select' && selectedUserIds.length === 0) {
+            showToast('Please select at least one recipient', 'error');
+            return;
+        }
 
         setIsSending(true);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1500));
 
-        showToast('Message sent successfully!');
-        setIsSending(false);
-        closeMessageModal();
+        try {
+            const formData = new FormData();
+            formData.append('subject', messageSubject);
+            formData.append('content', messageText);
+            formData.append('recipientType', recipientType);
+
+            if (recipientType === 'select') {
+                formData.append('recipientIds', JSON.stringify(selectedUserIds));
+            }
+
+            if (attachment) {
+                formData.append('attachment', attachment);
+            }
+
+            const response = await fetch('/api/admin/messages/send', {
+                method: 'POST',
+                headers: {
+                    // Content-Type is set automatically for FormData
+                    'Authorization': `Bearer ${localStorage.getItem('token')}` // Ensure auth
+                },
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showToast('Message sent successfully!', 'success');
+                closeMessageModal();
+            } else {
+                showToast(result.error.message || 'Failed to send message', 'error');
+            }
+        } catch (error) {
+            console.error('Send message error:', error);
+            showToast('Failed to send message', 'error');
+        } finally {
+            setIsSending(false);
+        }
     };
+
+    if (loading) {
+        return (
+            <div className="page active" id="home">
+                <div className="page-title">
+                    <i className="fas fa-home"></i>
+                    <h2>Home</h2>
+                </div>
+                <div className="no-results-container">
+                    <i className="fas fa-spinner fa-spin no-results-icon"></i>
+                    <p>Loading dashboard data...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="page active" id="home">
@@ -257,41 +365,21 @@ const AdminHome = () => {
                                     <div className="admin-form-group" id="userSelectionModal">
                                         <label>Select Users:</label>
                                         <div className="user-selection-container">
-                                            <div className="user-group-title">
-                                                Farmers
-                                            </div>
-                                            <label className="user-checkbox-item">
-                                                <input type="checkbox" value="sunil" />
-                                                <span>Sunil Perera</span>
-                                            </label>
-                                            <label className="user-checkbox-item">
-                                                <input type="checkbox" value="kamala" />
-                                                <span>Kamala Fernando</span>
-                                            </label>
-                                            <label className="user-checkbox-item">
-                                                <input type="checkbox" value="nimal" />
-                                                <span>Nimal Rajapaksa</span>
-                                            </label>
-                                            <label className="user-checkbox-item">
-                                                <input type="checkbox" value="saman" />
-                                                <span>Saman Kumara</span>
-                                            </label>
-
-                                            <div className="user-group-title">
-                                                Instructors
-                                            </div>
-                                            <label className="user-checkbox-item">
-                                                <input type="checkbox" value="rohan" />
-                                                <span>Rohan Silva</span>
-                                            </label>
-                                            <label className="user-checkbox-item">
-                                                <input type="checkbox" value="priya" />
-                                                <span>Priya Bandara</span>
-                                            </label>
-                                            <label className="user-checkbox-item">
-                                                <input type="checkbox" value="anura" />
-                                                <span>Anura Wickramasinghe</span>
-                                            </label>
+                                            {usersList.length > 0 ? (
+                                                usersList.map(user => (
+                                                    <label key={user.id} className="user-checkbox-item">
+                                                        <input
+                                                            type="checkbox"
+                                                            value={user.id}
+                                                            checked={selectedUserIds.includes(user.id)}
+                                                            onChange={() => handleUserSelect(user.id)}
+                                                        />
+                                                        <span>{user.full_name || user.name} ({user.role})</span>
+                                                    </label>
+                                                ))
+                                            ) : (
+                                                <p style={{ padding: '10px', color: '#666' }}>Loading users...</p>
+                                            )}
                                         </div>
                                     </div>
                                 )}

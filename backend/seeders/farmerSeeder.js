@@ -2,7 +2,7 @@ import { FarmerDetail } from '../models/index.js';
 import { faker } from '@faker-js/faker';
 
 const generateMockFarmerId = (index) => {
-    const year = new Date().getFullYear();
+    const year = 2025; // Fixed year as per requirements
     const paddedIndex = String(index).padStart(4, '0');
     return `FARM-${year}-${paddedIndex}`;
 };

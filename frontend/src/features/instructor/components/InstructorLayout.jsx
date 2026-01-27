@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import InstructorSidebar from './InstructorSidebar';
-import '@/features/instructor/styles/InstructorDash.css'; // Reusing existing styles
+import InstructorMessageModal from './modals/InstructorMessageModal';
+import AddFarmerModal from './modals/AddFarmerModal';
+import RatingsModal from './modals/RatingsModal';
+import '@/features/instructor/styles/InstructorDash.css'; // Independent styles
 
 const InstructorLayout = () => {
     const [isSidebarActive, setIsSidebarActive] = useState(false);
@@ -53,7 +56,7 @@ const InstructorLayout = () => {
     };
 
     return (
-        <div className="app-container theme-instructor theme-blue">
+        <div className="app-container theme-instructor">
 
             <InstructorSidebar isActive={isSidebarActive} onLogout={handleLogout} />
 
@@ -77,7 +80,9 @@ const InstructorLayout = () => {
                 </div>
 
                 {/* Page Content */}
-                <Outlet context={{ showToast, openModal, closeModal, showModals }} />
+                <div className="instructor-page-container">
+                    <Outlet context={{ showToast, openModal, closeModal, showModals }} />
+                </div>
 
                 {/* Toast Notification */}
                 {toast.show && (
@@ -88,17 +93,39 @@ const InstructorLayout = () => {
             </div>
 
             {/* 
-               Note: Modals that are global or triggered from multiple places should be placed here.
-               For this refactor, I will pass the modal props down to pages via context 
-               OR keep the modals in the individual pages if they are page-specific.
-               
-               Looking at the original code, many modals are specific.
-               However, keeping them here allows 'openModal' from any page to work without 
-               duplicating state in every page.
-               
-               For simplicity/time, I will keep the State here, but I might need to move the Modal 
-               markup here too if I want them to overlay everything correctly.
+               Modals rendered here to overlay the entire layout
             */}
+            {showModals.sendMessage && (
+                <InstructorMessageModal
+                    isOpen={showModals.sendMessage}
+                    onClose={() => closeModal('sendMessage')}
+                    onSubmit={(data) => {
+                        console.log('Message sent:', data);
+                        closeModal('sendMessage');
+                        showToast('Message sent successfully!', 'success');
+                    }}
+                />
+            )}
+
+            {showModals.addFarmer && (
+                <AddFarmerModal
+                    isOpen={showModals.addFarmer}
+                    onClose={() => closeModal('addFarmer')}
+                    onSubmit={(data) => {
+                        console.log('Farmer added:', data);
+                        closeModal('addFarmer');
+                        showToast('Farmer added successfully!', 'success');
+                    }}
+                />
+            )}
+
+            {showModals.ratings && (
+                <RatingsModal
+                    isOpen={showModals.ratings}
+                    onClose={() => closeModal('ratings')}
+                />
+            )}
+
         </div>
     );
 };

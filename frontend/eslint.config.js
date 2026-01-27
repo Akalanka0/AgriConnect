@@ -10,13 +10,18 @@ export default [
   pluginJs.configs.recommended,
   pluginReactConfig,
   {
+    languageOptions: {
+      globals: globals.browser,
+    },
     settings: {
       react: {
-        version: "18.2.0"
+        version: "detect"
       }
     },
     rules: {
-      "no-unused-vars": ["error", { varsIgnorePattern: "^React$" }]
+      "react/react-in-jsx-scope": "off",
+      "react/jsx-uses-react": "off",
+      "no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^React$" }]
     }
   }
 ];

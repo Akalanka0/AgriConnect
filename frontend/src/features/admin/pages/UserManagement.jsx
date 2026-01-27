@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import DataTable from '../components/DataTable';
 import StatusBadge from '../components/StatusBadge';
 import UserDetailsDrawer from '../components/UserDetailsDrawer';
@@ -13,6 +13,9 @@ const UserManagement = () => {
     const [areaFilter, setAreaFilter] = useState('All');
     const [selectedUser, setSelectedUser] = useState(null);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [users, setUsers] = useState([]);
+    const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
 
     // Toast and Confirm Modal State
     const { showToast } = useToast();
@@ -25,86 +28,123 @@ const UserManagement = () => {
         loading: false
     });
 
-    // Mock Data (In real app, fetch from API)
-    const [farmers, setFarmers] = useState([
-        { id: 'FARM001', name: 'Sunil Perera', email: 'sunil@example.com', phone: '0771234567', district: 'Anuradhapura', location: 'Padaviya', instructorDivision: 'Boganewa', instructor: 'Rohan Silva', status: 'Active', joined: '2023-10-15' },
-        { id: 'FARM002', name: 'Kamala Fernando', email: 'kamala@example.com', phone: '0719876543', district: 'Anuradhapura', location: 'Padaviya', instructorDivision: 'Boganewa', instructor: 'Rohan Silva', status: 'Active', joined: '2024-01-20' },
-        { id: 'FARM003', name: 'Nimal Rathnayake', email: 'nimal@example.com', phone: '0755555555', district: 'Anuradhapura', location: 'Padaviya', instructorDivision: 'Kumbukwewa', instructor: 'Rohan Silva', status: 'Active', joined: '2023-11-05' },
-        { id: 'FARM004', name: 'Saman Kumara', email: 'saman@example.com', phone: '0761112222', district: 'Anuradhapura', location: 'Padaviya', instructorDivision: 'Kumbukwewa', instructor: 'Rohan Silva', status: 'Blocked', joined: '2023-09-12' },
-        { id: 'FARM005', name: 'Ajith Weerasinghe', email: 'ajith@example.com', phone: '0773334444', district: 'Anuradhapura', location: 'Padaviya', instructorDivision: 'Boganewa', instructor: 'Rohan Silva', status: 'Active', joined: '2024-02-10' },
+    // Fetch Users Function
+    const fetchUsers = async () => {
+        setLoading(true);
+        try {
+            const queryParams = new URLSearchParams({
+                role: activeTab === 'farmers' ? 'farmer' : 'instructor',
+                page: pagination.page,
+                limit: pagination.limit,
+                status: statusFilter
+            });
 
-        { id: 'FARM006', name: 'Chitra Kumari', email: 'chitra@example.com', phone: '0712223333', district: 'Anuradhapura', location: 'Rajanganaya', instructorDivision: 'Yaya 1', instructor: 'Priya Bandara', status: 'Active', joined: '2023-12-01' },
-        { id: 'FARM007', name: 'Sarath Fonseka', email: 'sarath@example.com', phone: '0774445555', district: 'Anuradhapura', location: 'Rajanganaya', instructorDivision: 'Yaya 1', instructor: 'Priya Bandara', status: 'Active', joined: '2023-11-20' },
-        { id: 'FARM008', name: 'Malini De Silva', email: 'malini@example.com', phone: '0756667777', district: 'Anuradhapura', location: 'Rajanganaya', instructorDivision: 'Yaya 2', instructor: 'Priya Bandara', status: 'Active', joined: '2024-01-05' },
-        { id: 'FARM009', name: 'Bandara Menike', email: 'bandara@example.com', phone: '0701112222', district: 'Anuradhapura', location: 'Rajanganaya', instructorDivision: 'Yaya 2', instructor: 'Priya Bandara', status: 'Active', joined: '2023-10-30' },
-        { id: 'FARM010', name: 'Jagath Pushpakumara', email: 'jagath@example.com', phone: '0763334444', district: 'Anuradhapura', location: 'Rajanganaya', instructorDivision: 'Yaya 1', instructor: 'Priya Bandara', status: 'Active', joined: '2024-02-15' },
+            if (searchTerm) queryParams.append('search', searchTerm);
 
-        { id: 'FARM011', name: 'Gunapala Herath', email: 'gunapala@example.com', phone: '0715556666', district: 'Anuradhapura', location: 'Vahalkada', instructorDivision: 'Track 5', instructor: 'Anura Wickramasinghe', status: 'Active', joined: '2023-09-25' },
-        { id: 'FARM012', name: 'Siripala Gamage', email: 'siripala@example.com', phone: '0777778888', district: 'Anuradhapura', location: 'Vahalkada', instructorDivision: 'Track 5', instructor: 'Anura Wickramasinghe', status: 'Active', joined: '2023-10-10' },
-        { id: 'FARM013', name: 'Chandani Liyanage', email: 'chandani@example.com', phone: '0758889999', district: 'Anuradhapura', location: 'Vahalkada', instructorDivision: 'Track 6', instructor: 'Anura Wickramasinghe', status: 'Active', joined: '2024-01-12' },
-        { id: 'FARM014', name: 'Duminda Silva', email: 'duminda@example.com', phone: '0702223333', district: 'Anuradhapura', location: 'Vahalkada', instructorDivision: 'Track 6', instructor: 'Anura Wickramasinghe', status: 'Active', joined: '2023-11-18' },
-        { id: 'FARM015', name: 'Mahesh Senanayake', email: 'mahesh@example.com', phone: '0764445555', district: 'Anuradhapura', location: 'Vahalkada', instructorDivision: 'Track 5', instructor: 'Anura Wickramasinghe', status: 'Active', joined: '2024-02-20' },
+            const response = await fetch(`/api/admin/users?${queryParams}`);
+            const result = await response.json();
 
-        { id: 'FARM016', name: 'Thilini Priyadarshani', email: 'thilini@example.com', phone: '0716667777', district: 'Anuradhapura', location: 'Medawachchiya', instructorDivision: 'Tulana 1', instructor: 'Kasun Jayasuriya', status: 'Active', joined: '2023-12-10' },
-        { id: 'FARM017', name: 'Ruwan Hettiarachchi', email: 'ruwan@example.com', phone: '0779990000', district: 'Anuradhapura', location: 'Medawachchiya', instructorDivision: 'Tulana 1', instructor: 'Kasun Jayasuriya', status: 'Active', joined: '2023-11-08' },
-        { id: 'FARM018', name: 'Sanath Jayasuriya', email: 'sanath@example.com', phone: '0751112222', district: 'Anuradhapura', location: 'Medawachchiya', instructorDivision: 'Tulana 2', instructor: 'Kasun Jayasuriya', status: 'Active', joined: '2024-01-25' },
-        { id: 'FARM019', name: 'Upul Tharanga', email: 'upul@example.com', phone: '0703334444', district: 'Anuradhapura', location: 'Medawachchiya', instructorDivision: 'Tulana 2', instructor: 'Kasun Jayasuriya', status: 'Active', joined: '2023-10-22' },
-        { id: 'FARM020', name: 'Damitha Abeyratne', email: 'damitha@example.com', phone: '0765556666', district: 'Anuradhapura', location: 'Medawachchiya', instructorDivision: 'Tulana 1', instructor: 'Kasun Jayasuriya', status: 'Blocked', joined: '2024-02-28' },
-
-        { id: 'FARM021', name: 'Kanthi Perera', email: 'kanthi@example.com', phone: '0718889999', district: 'Anuradhapura', location: 'Kebithigollewa', instructorDivision: 'Handagala', instructor: 'Nimali Perera', status: 'Active', joined: '2023-09-15' },
-        { id: 'FARM022', name: 'Nihal Fernando', email: 'nihal@example.com', phone: '0772223333', district: 'Anuradhapura', location: 'Kebithigollewa', instructorDivision: 'Handagala', instructor: 'Nimali Perera', status: 'Active', joined: '2023-10-05' },
-        { id: 'FARM023', name: 'Wasantha Kumar', email: 'wasantha@example.com', phone: '0754445555', district: 'Anuradhapura', location: 'Kebithigollewa', instructorDivision: 'Kanugahawewa', instructor: 'Nimali Perera', status: 'Active', joined: '2024-01-18' },
-        { id: 'FARM024', name: 'Nayana Kumari', email: 'nayana@example.com', phone: '0706667777', district: 'Anuradhapura', location: 'Kebithigollewa', instructorDivision: 'Kanugahawewa', instructor: 'Nimali Perera', status: 'Active', joined: '2023-11-12' },
-        { id: 'FARM025', name: 'Ranjith Premadasa', email: 'ranjith@example.com', phone: '0768889999', district: 'Anuradhapura', location: 'Kebithigollewa', instructorDivision: 'Handagala', instructor: 'Nimali Perera', status: 'Active', joined: '2024-02-05' }
-    ]);
-
-    const [instructors, setInstructors] = useState([
-        { id: 'INST001', name: 'Rohan Silva', email: 'rohan@example.com', phone: '0711112222', district: 'Anuradhapura', businessArea: 'Padaviya', divisions: ['Boganewa', 'Kumbukwewa'], farmersCount: 5, status: 'Active', joined: '2023-01-15' },
-        { id: 'INST002', name: 'Priya Bandara', email: 'priya@example.com', phone: '0773334444', district: 'Anuradhapura', businessArea: 'Rajanganaya', divisions: ['Yaya 1', 'Yaya 2'], farmersCount: 5, status: 'Active', joined: '2023-02-20' },
-        { id: 'INST003', name: 'Anura Wickramasinghe', email: 'anura@example.com', phone: '0755556666', district: 'Anuradhapura', businessArea: 'Vahalkada', divisions: ['Track 5', 'Track 6'], farmersCount: 5, status: 'Active', joined: '2023-03-10' },
-        { id: 'INST004', name: 'Kasun Jayasuriya', email: 'kasun@example.com', phone: '0707778888', district: 'Anuradhapura', businessArea: 'Medawachchiya', divisions: ['Tulana 1', 'Tulana 2'], farmersCount: 5, status: 'Active', joined: '2023-04-05' },
-        { id: 'INST005', name: 'Nimali Perera', email: 'nimali@example.com', phone: '0769990000', district: 'Anuradhapura', businessArea: 'Kebithigollewa', divisions: ['Handagala', 'Kanugahawewa'], farmersCount: 5, status: 'Active', joined: '2023-05-12' }
-    ]);
-
-    // Filter Logic
-    const filterData = (data) => {
-        return data.filter(user => {
-            const term = searchTerm.toLowerCase();
-            const matchesSearch =
-                user.name.toLowerCase().includes(term) ||
-                user.email.toLowerCase().includes(term) ||
-                user.id.toLowerCase().includes(term) ||
-                (user.phone && user.phone.includes(term)) ||
-                (user.district && user.district.toLowerCase().includes(term)) ||
-                (user.location && user.location.toLowerCase().includes(term)) || // Farmer Business Area
-                (user.businessArea && user.businessArea.toLowerCase().includes(term)) || // Instructor Business Area
-                (user.instructorDivision && user.instructorDivision.toLowerCase().includes(term)) || // Farmer Division
-                (user.instructor && user.instructor.toLowerCase().includes(term)) || // Farmer's Instructor
-                (user.divisions && Array.isArray(user.divisions) && user.divisions.some(div => div.toLowerCase().includes(term))); // Instructor Divisions
-
-            const matchesStatus = statusFilter === 'all' || user.status.toLowerCase() === statusFilter.toLowerCase();
-
-            const userArea = activeTab === 'farmers' ? user.location : user.businessArea;
-            const matchesArea = areaFilter === 'All' || userArea === areaFilter;
-
-            return matchesSearch && matchesStatus && matchesArea;
-        });
+            if (result.success) {
+                // Transform data for DataTable
+                const transformedUsers = result.data.map(user => {
+                    const details = user.farmerDetail || user.instructorDetail || {};
+                    return {
+                        id: user.id, // Keep integer ID for API calls
+                        displayId: details.farmer_id || details.instructor_id || `USER-${user.id}`, // Display ID
+                        name: user.full_name,
+                        email: user.email,
+                        phone: user.phone,
+                        district: details.district || '-',
+                        location: details.business_area || '-', // Map business_area to location
+                        instructorDivision: details.instructor_division || '-',
+                        instructor: user.instructor, // Assigned Instructor Name
+                        farmersCount: user.farmersCount, // Calculated Farmers Count
+                        // For instructors
+                        businessArea: details.business_area || '-',
+                        divisions: typeof details.assigned_divisions === 'string' 
+                            ? JSON.parse(details.assigned_divisions || '[]') 
+                            : (details.assigned_divisions || []),
+                        status: user.status.charAt(0).toUpperCase() + user.status.slice(1), // Capitalize
+                        joined: new Date(user.created_at).toISOString().split('T')[0]
+                    };
+                });
+                setUsers(transformedUsers);
+                setPagination(prev => ({ ...prev, total: result.pagination.total }));
+            }
+        } catch (error) {
+            console.error('Error fetching users:', error);
+            showToast('Failed to load users', 'error');
+        } finally {
+            setLoading(false);
+        }
     };
 
-    // Get unique values for dropdowns
-    const getUniqueValues = (data, key) => {
-        return ['All', ...new Set(data.map(item => item[key]).filter(Boolean))];
+    // Initial Fetch & Refetch on Filters Change
+    useEffect(() => {
+        fetchUsers();
+    }, [activeTab, statusFilter, pagination.page, searchTerm]);
+
+    // Handle Status Change (Block/Unblock)
+    const handleStatusChange = async (user, newStatus) => {
+        try {
+            const response = await fetch(`/api/admin/users/${user.id}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus.toLowerCase() })
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                showToast(`User ${newStatus} successfully`, 'success');
+                
+                // Update local state immediately for real-time feel
+                setUsers(prevUsers => {
+                    // If current filter excludes the new status, remove the user
+                    if (statusFilter !== 'all' && statusFilter !== newStatus.toLowerCase()) {
+                        return prevUsers.filter(u => u.id !== user.id);
+                    }
+                    // Otherwise update the status in place
+                    return prevUsers.map(u => 
+                        u.id === user.id 
+                            ? { ...u, status: newStatus.charAt(0).toUpperCase() + newStatus.slice(1) } 
+                            : u
+                    );
+                });
+
+                // Update total count if user was removed from view
+                if (statusFilter !== 'all' && statusFilter !== newStatus.toLowerCase()) {
+                    setPagination(prev => ({ ...prev, total: prev.total - 1 }));
+                }
+            } else {
+                showToast(result.error.message, 'error');
+            }
+        } catch (error) {
+            console.error('Error updating status:', error);
+            showToast('Failed to update status', 'error');
+        }
     };
 
-    const currentList = activeTab === 'farmers' ? farmers : instructors;
+    // Filter Logic (Client-side filtering for Area/District if needed, but mostly Server-side now)
+    const currentList = users;
     const areaKey = activeTab === 'farmers' ? 'location' : 'businessArea';
-    const businessAreas = getUniqueValues(currentList, areaKey);
 
-    const currentData = activeTab === 'farmers' ? filterData(farmers) : filterData(instructors);
+    const businessAreas = ['All', ...Array.from(new Set(currentList.map(u => u[areaKey]).filter(Boolean)))];
+    const currentData = currentList.filter(u => {
+        const matchesArea = areaFilter === 'All' || u[areaKey] === areaFilter;
+        const term = searchTerm.toLowerCase();
+        const matchesSearch = !searchTerm || 
+            u.name.toLowerCase().includes(term) ||
+            (u.displayId || '').toLowerCase().includes(term) ||
+            (u.phone || '').toLowerCase().includes(term) ||
+            (u.email || '').toLowerCase().includes(term) ||
+            (u.district || '').toLowerCase().includes(term) ||
+            (u.location || '').toLowerCase().includes(term);
+        return matchesArea && matchesSearch;
+    });
 
     // Table Columns
     const farmerColumns = [
-        { header: 'ID', accessor: 'id', width: '100px' },
+        { header: 'ID', accessor: 'displayId', width: '140px' },
         { header: 'NAME', accessor: 'name' },
         { header: 'BUSINESS AREA', accessor: 'location' },
         { header: 'ASSIGNED INSTRUCTOR', accessor: 'instructor', render: (row) => row.instructor || 'Not Assigned' },
@@ -117,7 +157,7 @@ const UserManagement = () => {
     ];
 
     const instructorColumns = [
-        { header: 'ID', accessor: 'id', width: '100px' },
+        { header: 'ID', accessor: 'displayId', width: '140px' },
         { header: 'NAME', accessor: 'name' },
         { header: 'BUSINESS AREA', accessor: 'businessArea' },
         { header: 'FARMERS COUNT', accessor: 'farmersCount', render: (row) => row.farmersCount || 0 },
@@ -129,20 +169,23 @@ const UserManagement = () => {
         { header: 'JOINED DATE', accessor: 'joined' }
     ];
 
-    // Actions
-    const updateUserStatus = (userId, newStatus) => {
-        if (activeTab === 'farmers') {
-            setFarmers(prev => prev.map(user => user.id === userId ? { ...user, status: newStatus } : user));
-        } else {
-            setInstructors(prev => prev.map(user => user.id === userId ? { ...user, status: newStatus } : user));
-        }
-    };
+    const deleteUser = async (userId) => {
+        try {
+            const response = await fetch(`/api/admin/users/${userId}`, {
+                method: 'DELETE'
+            });
+            const result = await response.json();
 
-    const deleteUser = (userId) => {
-        if (activeTab === 'farmers') {
-            setFarmers(prev => prev.filter(user => user.id !== userId));
-        } else {
-            setInstructors(prev => prev.filter(user => user.id !== userId));
+            if (result.success) {
+                setUsers(prev => prev.filter(user => user.id !== userId));
+                setPagination(prev => ({ ...prev, total: prev.total - 1 }));
+                showToast('User deleted successfully', 'success');
+            } else {
+                showToast(result.error.message, 'error');
+            }
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            showToast('Failed to delete user', 'error');
         }
     };
 
@@ -159,11 +202,9 @@ const UserManagement = () => {
                 type: 'danger',
                 onConfirm: async () => {
                     setConfirmConfig(prev => ({ ...prev, loading: true }));
-                    // Simulate API call
-                    await new Promise(resolve => setTimeout(resolve, 800));
-                    deleteUser(user.id);
+                    await deleteUser(user.id);
                     setConfirmConfig(prev => ({ ...prev, isOpen: false, loading: false }));
-                    showToast(`${user.name} has been deleted.`, 'success');
+                    // Toast handled in deleteUser
                 }
             });
         } else if (action === 'block') {
@@ -175,8 +216,7 @@ const UserManagement = () => {
                 type: 'warning',
                 onConfirm: async () => {
                     setConfirmConfig(prev => ({ ...prev, loading: true }));
-                    await new Promise(resolve => setTimeout(resolve, 800));
-                    updateUserStatus(user.id, 'Blocked');
+                    await handleStatusChange(user, 'blocked');
                     setConfirmConfig(prev => ({ ...prev, isOpen: false, loading: false }));
                     showToast(`${user.name} has been blocked.`, 'warning');
                 }
@@ -190,8 +230,7 @@ const UserManagement = () => {
                 type: 'success',
                 onConfirm: async () => {
                     setConfirmConfig(prev => ({ ...prev, loading: true }));
-                    await new Promise(resolve => setTimeout(resolve, 800));
-                    updateUserStatus(user.id, 'Active');
+                    await handleStatusChange(user, 'active');
                     setConfirmConfig(prev => ({ ...prev, isOpen: false, loading: false }));
                     showToast(`${user.name} has been unblocked.`, 'success');
                 }
@@ -203,9 +242,9 @@ const UserManagement = () => {
         { name: 'view', type: 'primary', label: 'View' },
         { name: 'delete', type: 'danger', label: 'Delete' },
         {
-            name: (row) => row.status === 'Blocked' ? 'unblock' : 'block',
-            type: (row) => row.status === 'Blocked' ? 'warning' : 'secondary',
-            label: (row) => row.status === 'Blocked' ? 'Unblock' : 'Block'
+            name: (row) => row.status.toLowerCase() === 'blocked' ? 'unblock' : 'block',
+            type: (row) => row.status.toLowerCase() === 'blocked' ? 'warning' : 'secondary',
+            label: (row) => row.status.toLowerCase() === 'blocked' ? 'Unblock' : 'Block'
         }
     ];
 
@@ -263,7 +302,7 @@ const UserManagement = () => {
                     >
                         <option value="all">All Status</option>
                         <option value="active">Active</option>
-                        <option value="banned">Blocked</option>
+                        <option value="blocked">Blocked</option>
                     </select>
                 </div>
             </div>
@@ -291,7 +330,7 @@ const UserManagement = () => {
                 data={currentData}
                 actions={actions}
                 onAction={handleAction}
-                emptyMessage={`No ${activeTab} found matching your filters.`}
+                emptyMessage={loading ? 'Loading users...' : `No ${activeTab} found matching your filters.`}
             />
 
             {/* User Details Drawer */}

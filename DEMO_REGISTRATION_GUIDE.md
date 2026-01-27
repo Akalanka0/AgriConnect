@@ -12,18 +12,18 @@ This guide explains how to create demo farmer and instructor accounts using the 
 ## Available Demo IDs
 
 ### Farmer IDs
-- `DEMO-FARM-2026-001`
-- `DEMO-FARM-2026-002`
-- `DEMO-FARM-2026-003`
-- `DEMO-FARM-2026-004`
-- `DEMO-FARM-2026-005`
+- `FARM-2026-0001`
+- `FARM-2026-0002`
+- `FARM-2026-0003`
+- `FARM-2026-0004`
+- `FARM-2026-0005`
 
 ### Instructor IDs
-- `DEMO-INST-2026-001`
-- `DEMO-INST-2026-002`
-- `DEMO-INST-2026-003`
-- `DEMO-INST-2026-004`
-- `DEMO-INST-2026-005`
+- `INST-2026-00001`
+- `INST-2026-00002`
+- `INST-2026-00003`
+- `INST-2026-00004`
+- `INST-2026-00005`
 
 ## Registration Examples
 
@@ -36,7 +36,7 @@ This guide explains how to create demo farmer and instructor accounts using the 
   "role": "farmer",
   "nic": "123456789V",
   "phone": "0712345678",
-  "farmer_id": "DEMO-FARM-2026-001"
+  "farmer_id": "FARM-2026-0001"
 }
 ```
 
@@ -49,7 +49,7 @@ This guide explains how to create demo farmer and instructor accounts using the 
   "role": "instructor",
   "nic": "987654321V",
   "phone": "0718765432",
-  "instructor_id": "DEMO-INST-2026-001"
+  "instructor_id": "INST-2026-00001"
 }
 ```
 

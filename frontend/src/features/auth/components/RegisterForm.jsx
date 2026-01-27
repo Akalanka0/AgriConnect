@@ -28,8 +28,8 @@ const RegisterForm = ({
         };
 
         // Cycle through demo IDs
-        const farmerIds = ['DEMO-FARM-2026-0001'];
-        const instructorIds = ['DEMO-INST-2026-00001'];
+        const farmerIds = ['FARM-2025-0001'];
+        const instructorIds = ['INST-2026-0001'];
         
         // Use current time to cycle through IDs (changes every minute)
         const minuteIndex = 0; // Fixed to 0 since we only have one reusable ID now

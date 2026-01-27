@@ -80,8 +80,8 @@ const LoginForm = ({
                     </button>
                 </div>
                 <div className="demo-account">
-                    <div><span>Admin:</span> admin@example.com / admin123</div>
-                    <button className="copy-btn" onClick={() => fillCredentials('admin@example.com', 'admin123')} title="Auto-fill credentials">
+                    <div><span>Admin:</span> admin@agriconnect.lk / admin123</div>
+                    <button className="copy-btn" onClick={() => fillCredentials('admin@agriconnect.lk', 'admin123')} title="Auto-fill credentials">
                         <i className="fas fa-user-check"></i>
                     </button>
                 </div>

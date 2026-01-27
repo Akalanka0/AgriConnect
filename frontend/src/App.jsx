@@ -1,6 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastProvider as AdminToastProvider } from '@/features/admin/components/Toast';
-import '@/shared/styles/global.css';
 import { Home } from '@/features/home';
 import { Login } from '@/features/auth';
 import VerificationPage from '@/features/auth/pages/VerificationPage';
@@ -26,6 +25,7 @@ import {
   UserManagement,
   Engagement,
   Reports as AdminReports,
+  UserIdManagement,
   Settings as AdminSettings
 } from '@/features/admin';
 
@@ -68,6 +68,7 @@ export default function App() {
           <Route path="users" element={<UserManagement />} />
           <Route path="engagement" element={<Engagement />} />
           <Route path="reports" element={<AdminReports />} />
+          <Route path="ids" element={<UserIdManagement />} />
           <Route path="settings" element={<AdminSettings />} />
         </Route>
 

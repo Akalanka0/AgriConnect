@@ -1,10 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const InstructorSidebar = ({ isActive, onLogout }) => {
     const navigate = useNavigate();
-    const currentPath = window.location.pathname;
+    const location = useLocation();
+    const currentPath = location.pathname;
 
     const menuItems = [
         { path: '/instructor', icon: 'fas fa-home', text: 'Home', exact: true },

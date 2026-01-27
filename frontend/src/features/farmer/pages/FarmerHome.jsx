@@ -1,12 +1,20 @@
 import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import MessageModal from '@/shared/components/MessageModal';
-import InstructorModal from '@/shared/components/InstructorModal';
+import MessageModal from '../components/shared/MessageModal';
+import InstructorModal from '../components/shared/InstructorModal';
 
 const FarmerHome = () => {
     const { showToast } = useOutletContext();
     const [isInstructorModalOpen, setIsInstructorModalOpen] = useState(false);
     const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
+    const [selectedInstructor, setSelectedInstructor] = useState(null);
+
+    const availableInstructors = [
+        { id: 'INST-2026-0001', name: 'Rohan Silva', title: 'Agriculture Instructor', email: 'rohan.silva@agri.gov', phone: '071-1234567', division: 'Yaya 4, Rajanganaya', specialization: 'Sustainable Agriculture, Crop Management', yearsOfExperience: 8, qualifications: 'B.Sc. in Agriculture, Certified Crop Advisor', averageRating: 4.2 },
+        { id: 'INST-2026-0002', name: 'Upul Tharanga', title: 'Agriculture Instructor', email: 'upul.tharanga@agri.gov', phone: '077-9876543', division: 'Track 4, Vilachchiya', specialization: 'Pest & Disease Management, Soil Science', yearsOfExperience: 12, qualifications: 'M.Sc. in Agronomy, Ph.D. in Entomology', averageRating: 4.7 },
+        { id: 'INST-2026-0003', name: 'Kamala Perera', title: 'Agriculture Instructor', email: 'kamala.perera@agri.gov', phone: '075-5432109', division: 'Palugaswewa, Anuradhapura', specialization: 'Organic Farming, Water Management', yearsOfExperience: 5, qualifications: 'Diploma in Organic Agriculture, B.Sc. in Environmental Science', averageRating: 3.9 },
+        { id: 'INST-2026-0004', name: 'Nimal Fernando', title: 'Agriculture Instructor', email: 'nimal.fernando@agri.gov', phone: '070-1122334', division: 'Galenbindunuwewa, Polonnaruwa', specialization: 'Horticulture, Farm Mechanization', yearsOfExperience: 15, qualifications: 'B.Sc. in Agricultural Engineering, Certified Horticulturist', averageRating: 4.5 },
+    ];
 
     const handleMessageSubmit = () => {
         showToast('Message sent successfully to Rohan Silva!');
@@ -70,18 +78,46 @@ const FarmerHome = () => {
 
                 {/* Instructor Card */}
                 <div className="card instructor-card">
-                    <div className="instructor-avatar">RS</div>
-                    <div className="instructor-name">Rohan Silva</div>
-                    <div className="instructor-title">Agriculture Instructor</div>
-                    <button className="btn btn-primary instructor-btn" onClick={() => setIsInstructorModalOpen(true)}>
-                        Click Here
-                    </button>
+                    <div className="card-header">
+                        <div className="card-title">Instructors</div>
+                        <div className="card-icon"><i className="fas fa-chalkboard-teacher"></i></div>
+                    </div>
+                    <div className="card-content" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                        {availableInstructors.map((instructor, index) => (
+                            <div key={instructor.id}
+                                className="instructor-list-item"
+                                onClick={() => { setSelectedInstructor(instructor); setIsInstructorModalOpen(true); }}
+                                style={{
+                                    borderBottom: index !== availableInstructors.length - 1 ? '2px solid #e0e0e0' : 'none',
+                                    padding: '15px 0',
+                                    cursor: 'pointer',
+                                    textAlign: 'left',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'flex-start',
+                                    width: '100%'
+                                }}
+                            >
+                                <div className="instructor-list-name" style={{ fontSize: '1.1em', fontWeight: '600', marginBottom: '5px', color: '#2e7d32' }}>
+                                    {instructor.name}
+                                </div>
+                                <div className="instructor-list-details-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                    <div className="instructor-list-id" style={{ color: '#666', fontWeight: '500', fontSize: '0.9em' }}>
+                                        {instructor.id}
+                                    </div>
+                                    <button className="btn btn-primary instructor-list-btn" style={{ padding: '5px 15px', borderRadius: '15px', fontSize: '0.8em' }}>
+                                        View
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
                 {/* Send Message to Instructor Card */}
                 <div className="card" onClick={() => setIsMessageModalOpen(true)} style={{ cursor: 'pointer' }}>
                     <div className="card-header">
-                        <div className="card-title">Send Message to Instructor</div>
+                        <div className="card-title">Send Message</div>
                         <div className="card-icon"><i className="fas fa-comment-alt"></i></div>
                     </div>
                     <div className="card-content">
@@ -101,7 +137,7 @@ const FarmerHome = () => {
             </div>
 
             <MessageModal isOpen={isMessageModalOpen} onClose={() => setIsMessageModalOpen(false)} onSubmit={handleMessageSubmit} />
-            <InstructorModal isOpen={isInstructorModalOpen} onClose={() => setIsInstructorModalOpen(false)} onSubmit={handleRatingSubmit} />
+            <InstructorModal isOpen={isInstructorModalOpen} onClose={() => setIsInstructorModalOpen(false)} onSubmit={handleRatingSubmit} instructor={selectedInstructor} />
         </div>
     );
 };

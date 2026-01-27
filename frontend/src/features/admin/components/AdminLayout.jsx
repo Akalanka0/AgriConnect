@@ -149,9 +149,11 @@ const AdminLayout = () => {
                     </div>
                 </div>
 
-                <div className="page-content">
+                <div className="admin-content">
+                <ToastProvider>
                     <Outlet context={{ openNotificationsModal }} />
-                </div>
+                </ToastProvider>
+            </div>
             </div>
 
             {/* Notifications Modal */}

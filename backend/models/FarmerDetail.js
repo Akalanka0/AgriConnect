@@ -29,6 +29,18 @@ const FarmerDetail = sequelize.define('FarmerDetail', {
                 msg: 'Farmer ID is required'
             }
         }
+    },
+    district: {
+        type: DataTypes.STRING(50),
+        allowNull: true
+    },
+    business_area: {
+        type: DataTypes.STRING(100),
+        allowNull: true
+    },
+    instructor_division: {
+        type: DataTypes.STRING(100),
+        allowNull: true
     }
 }, {
     tableName: 'farmer_details',

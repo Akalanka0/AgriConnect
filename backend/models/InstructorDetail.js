@@ -33,6 +33,19 @@ const InstructorDetail = sequelize.define('InstructorDetail', {
                 msg: 'Instructor ID is required'
             }
         }
+    },
+    district: {
+        type: DataTypes.STRING(50),
+        allowNull: true
+    },
+    business_area: {
+        type: DataTypes.STRING(100),
+        allowNull: true
+    },
+    assigned_divisions: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        defaultValue: []
     }
 }, {
     tableName: 'instructor_details',

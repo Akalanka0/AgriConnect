@@ -1,11 +1,6 @@
 /* ===== RESET & VARIABLES ===== */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-:root {
+.home-page {
+  /* Variables */
   --primary-color: #2e7d32;
   --primary-dark: #1b5e20;
   --primary-light: #4caf50;
@@ -19,25 +14,27 @@
   --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.15);
   --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.15);
   --transition-smooth: all 0.3s ease;
-}
 
-html {
-  scroll-behavior: smooth;
-}
-
-body {
+  /* Base Styles */
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: var(--text-main);
   background: white;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
-}
-
-.home-page {
   width: 100%;
   overflow-x: hidden;
+  min-height: 100vh;
+}
+
+.home-page * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 /* ===== NAVBAR ===== */
