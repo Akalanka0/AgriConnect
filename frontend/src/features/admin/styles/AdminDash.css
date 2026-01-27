@@ -11,7 +11,7 @@
   - Toast: 3000
 */
 
-:root {
+.admin-dashboard {
   /* Variables */
   --sidebar-width: 250px;
   --header-height: 70px;
@@ -29,21 +29,76 @@
   --shadow-hover: 0 8px 15px rgba(0,0,0,0.15);
   --transition: all 0.3s ease;
   --gradient: linear-gradient(135deg, var(--primary), var(--primary-dark));
+
+  /* Migrated from index.css */
+  --font-primary: 'Poppins', 'Segoe UI', sans-serif;
+  --font-heading: 'Outfit', 'Segoe UI', sans-serif;
+  
+  --neutral-50: #ffffff;
+  --neutral-100: #f8f9fa;
+  --neutral-200: #e9ecef;
+  --neutral-300: #dee2e6;
+  --neutral-400: #ced4da;
+  --neutral-500: #adb5bd;
+  --neutral-600: #6c757d;
+  --neutral-700: #495057;
+  --neutral-800: #343a40;
+  --neutral-900: #212529;
+
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --success: #10b981;
+  --info: #3b82f6;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-glow: 0 0 15px rgba(46, 125, 50, 0.3);
 }
 
 .admin-dashboard {
-  /* Base Styles (formerly body) */
-  font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  /* Base Styles */
+  font-family: var(--font-primary);
   background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
   color: var(--dark);
   line-height: 1.6;
   
-  /* Layout (formerly .app-container) */
+  /* Layout */
   display: flex;
   min-height: 100vh;
   width: 100%;
   position: relative;
 }
+
+/* Scoped Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Scoped Utilities */
+.admin-dashboard .glass-panel {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: var(--shadow-lg);
+}
+
+.admin-dashboard .text-gradient {
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-image: linear-gradient(135deg, var(--primary), var(--primary-light));
+}
+
 
 .admin-dashboard * {
   box-sizing: border-box;

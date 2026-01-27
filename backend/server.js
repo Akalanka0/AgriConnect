@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
 import { testConnection } from './config/db.js';
 import { validateJWTSecret } from './utils/jwtUtils.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
@@ -46,6 +47,7 @@ testConnection().catch(err => {
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/', (req, res) => {
     res.send('AgriConnect API is running...');

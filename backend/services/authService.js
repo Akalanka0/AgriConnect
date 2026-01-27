@@ -123,10 +123,10 @@ export const registerUser = async (userData) => {
                 throw new Error('INVALID_FARMER_ID: Farmer ID not found');
             }
 
-            // Check if assigned (but allow DEMO-FARM-2026-0001 to be reassigned)
+            // Check if assigned (but allow FARM-2025-0001 to be reassigned)
             if (farmerDetail.user_id) {
                 // If it's the specific demo ID, we allow it. The previous owner (if any) will just lose access to this ID.
-                const isDemoFarmerId = userData.farmer_id.trim() === 'DEMO-FARM-2026-0001';
+                const isDemoFarmerId = userData.farmer_id.trim() === 'FARM-2025-0001';
                 
                 if (isDemoFarmerId) {
                     // It's fine, we will overwrite the user_id below.
@@ -151,7 +151,7 @@ export const registerUser = async (userData) => {
 
             if (existingInstructorId) {
                 // If it's the specific demo ID, we allow reassignment
-                const isDemoInstructorId = userData.instructor_id.trim() === 'DEMO-INST-2026-00001';
+                const isDemoInstructorId = userData.instructor_id.trim() === 'INST-2026-0001';
                 
                 if (isDemoInstructorId) {
                     // Update the existing record to point to the new user

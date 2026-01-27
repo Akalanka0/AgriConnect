@@ -3,6 +3,7 @@ import seedFarmers from './farmerSeeder.js';
 import seedTesterFarmer from './testerFarmerSeeder.js';
 import seedDemoIds from './demoIdsSeeder.js';
 import seedDemoAccounts from './demoAccountsSeeder.js';
+import seedMockData from './mockDataSeeder.js';
 import sequelize from '../config/db.js';
 
 const runSeeders = async () => {
@@ -15,6 +16,7 @@ const runSeeders = async () => {
         await seedTesterFarmer();
         await seedDemoIds();
         await seedDemoAccounts();
+        await seedMockData();
 
         console.log('🎉 All seeders ran successfully');
         process.exit(0);

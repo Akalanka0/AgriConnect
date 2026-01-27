@@ -1,19 +1,19 @@
-import { User, FarmerDetail } from '../models/index.js';
+import { User, FarmerDetail, InstructorDetail } from '../models/index.js';
 import bcrypt from 'bcryptjs';
 
 const seedDemoAccounts = async () => {
   try {
-    // Check if instructor user already exists
-    const instructorUser = await User.findOne({ where: { email: 'instructor@example.com' } });
+    // --- INSTRUCTOR ---
+    let instructorUser = await User.findOne({ where: { email: 'instructor@example.com' } });
     if (!instructorUser) {
       const hashedPassword = await bcrypt.hash('instructor123', 10);
-      await User.create({
+      instructorUser = await User.create({
         full_name: 'Instructor User',
         email: 'instructor@example.com',
         password: hashedPassword,
         role: 'instructor',
-        nic: '000000000V',
-        phone: '0000000000',
+        nic: '000000001V',
+        phone: '0000000001',
         status: 'active',
         email_verified: true
       });
@@ -23,55 +23,87 @@ const seedDemoAccounts = async () => {
         status: 'active',
         email_verified: true
       });
-      console.log('Instructor user already exists');
+      console.log('Instructor user already exists (updated status).');
     }
 
-    // Check if farmer user already exists
-    const farmerUser = await User.findOne({ where: { email: 'farmer@example.com' } });
+    // Ensure Instructor Detail
+    let instructorDetail = await InstructorDetail.findOne({ where: { user_id: instructorUser.id } });
+    if (!instructorDetail) {
+        const demoId = 'INST-2026-0001';
+        let detail = await InstructorDetail.findOne({ where: { instructor_id: demoId } });
+        
+        if (detail && detail.user_id === null) {
+            await detail.update({ user_id: instructorUser.id });
+            console.log(`Assigned available ${demoId} to instructor.`);
+        } else if (detail && detail.user_id !== null) {
+            console.log(`${demoId} is taken. Creating new detail.`);
+            await InstructorDetail.create({
+                user_id: instructorUser.id,
+                instructor_id: 'INST-DEMO-AUTO',
+                district: 'Anuradhapura',
+                business_area: 'Demo Zone',
+                assigned_divisions: ['Demo Div']
+            });
+        } else {
+            console.log(`${demoId} not found. Creating it.`);
+            await InstructorDetail.create({
+                user_id: instructorUser.id,
+                instructor_id: demoId,
+                district: 'Anuradhapura',
+                business_area: 'Demo Zone',
+                assigned_divisions: ['Demo Div']
+            });
+        }
+    } else {
+        console.log(`Instructor already has detail: ${instructorDetail.instructor_id}`);
+    }
+
+
+    // --- FARMER ---
+    let farmerUser = await User.findOne({ where: { email: 'farmer@example.com' } });
     if (!farmerUser) {
       const hashedPassword = await bcrypt.hash('farmer123', 10);
-      const createdFarmer = await User.create({
+      farmerUser = await User.create({
         full_name: 'Farmer User',
         email: 'farmer@example.com',
         password: hashedPassword,
         role: 'farmer',
-        nic: '000000000V',
-        phone: '0000000000',
+        nic: '000000002V',
+        phone: '0000000002',
         status: 'active',
         email_verified: true
       });
-      
-      // Assign farmer to an available farmer detail
-      const availableFarmerDetail = await FarmerDetail.findOne({ 
-        where: { user_id: null } 
-      });
-      if (availableFarmerDetail) {
-        await availableFarmerDetail.update({ user_id: createdFarmer.id });
-        console.log('Farmer user created and assigned to farmer ID:', availableFarmerDetail.farmer_id);
-      } else {
-        console.log('Farmer user created but no available farmer details found');
-      }
+      console.log('Farmer user created successfully!');
     } else {
         await farmerUser.update({
           status: 'active',
           email_verified: true
         });
-        
-        // Ensure farmer has a farmer detail assignment
-        const farmerDetail = await FarmerDetail.findOne({ 
-          where: { user_id: farmerUser.id } 
-        });
-        if (!farmerDetail) {
-          const availableDetail = await FarmerDetail.findOne({ 
-            where: { user_id: null } 
-          });
-          if (availableDetail) {
-            await availableDetail.update({ user_id: farmerUser.id });
-            console.log('Assigned existing farmer to farmer ID:', availableDetail.farmer_id);
-          }
+        console.log('Farmer user already exists (updated status).');
+    }
+
+    // Ensure Farmer Detail
+    let farmerDetail = await FarmerDetail.findOne({ where: { user_id: farmerUser.id } });
+    if (!farmerDetail) {
+        // Try to find an available one or create one
+        let detail = await FarmerDetail.findOne({ where: { user_id: null } });
+        if (detail) {
+            await detail.update({ user_id: farmerUser.id });
+            console.log(`Assigned available farmer ID ${detail.farmer_id} to farmer.`);
+        } else {
+             // Create one if none available
+             const demoId = 'FARM-DEMO-AUTO';
+             await FarmerDetail.create({
+                 user_id: farmerUser.id,
+                 farmer_id: demoId,
+                 district: 'Anuradhapura',
+                 business_area: 'Demo Area',
+                 instructor_division: 'Demo Div'
+             });
+             console.log(`Created new farmer detail ${demoId} for farmer.`);
         }
-        
-        console.log('Farmer user already exists');
+    } else {
+        console.log(`Farmer already has detail: ${farmerDetail.farmer_id}`);
     }
 
   } catch (error) {

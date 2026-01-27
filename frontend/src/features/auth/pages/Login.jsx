@@ -15,7 +15,7 @@ import {
   validatePhone,
   validateRoleId,
   checkPasswordStrength
-} from '@/shared/utils/validation';
+} from '@/features/auth/utils/validation';
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);

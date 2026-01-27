@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 
 // Portal Component for Modal
@@ -10,127 +10,84 @@ const Engagement = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedInstructor, setSelectedInstructor] = useState(null);
     const [selectedFarmer, setSelectedFarmer] = useState(null);
+    const [instructorEngagement, setInstructorEngagement] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState({
+        totalInstructors: 0,
+        totalFarmers: 0,
+        newRegistrations: 0,
+        totalActiveUsers: 0,
+        dailyActive: 0,
+        registrationTrend: [],
+        activityByRole: []
+    });
 
-    const instructorEngagement = [
-        {
-            id: 'INST001',
-            name: 'Rohan Silva',
-            nic: '198512345678',
-            phone: '077-1234567',
-            district: 'Anuradhapura',
-            businessArea: 'Padaviya',
-            divisions: ['Boganewa', 'Kumbukwewa'],
-            avatar: null,
-            averageRating: 4.8,
-            farmersCount: 5,
-            farmers: [
-                { id: 'FARM001', name: 'Sunil Perera', phone: '077-1234567', district: 'Anuradhapura', businessArea: 'Padaviya', instructorDivision: 'Boganewa' },
-                { id: 'FARM002', name: 'Kamala Fernando', phone: '071-9876543', district: 'Anuradhapura', businessArea: 'Padaviya', instructorDivision: 'Boganewa' },
-                { id: 'FARM003', name: 'Nimal Rathnayake', phone: '075-5555555', district: 'Anuradhapura', businessArea: 'Padaviya', instructorDivision: 'Kumbukwewa' },
-                { id: 'FARM004', name: 'Saman Kumara', phone: '076-1112222', district: 'Anuradhapura', businessArea: 'Padaviya', instructorDivision: 'Kumbukwewa' },
-                { id: 'FARM005', name: 'Ajith Weerasinghe', phone: '077-3334444', district: 'Anuradhapura', businessArea: 'Padaviya', instructorDivision: 'Boganewa' }
-            ],
-            reviews: [
-                { id: 1, farmer: 'Sunil Perera', rating: 5, comment: 'Very helpful advice on pest control.' },
-                { id: 2, farmer: 'Kamala Fernando', rating: 4, comment: 'Good guidance, visits regularly.' }
-            ]
-        },
-        {
-            id: 'INST002',
-            name: 'Priya Bandara',
-            nic: '199098765432',
-            phone: '071-9876543',
-            district: 'Anuradhapura',
-            businessArea: 'Rajanganaya',
-            divisions: ['Yaya 1', 'Yaya 2'],
-            avatar: null,
-            averageRating: 4.5,
-            farmersCount: 5,
-            farmers: [
-                { id: 'FARM006', name: 'Chitra Kumari', phone: '071-2223333', district: 'Anuradhapura', businessArea: 'Rajanganaya', instructorDivision: 'Yaya 1' },
-                { id: 'FARM007', name: 'Sarath Fonseka', phone: '077-4445555', district: 'Anuradhapura', businessArea: 'Rajanganaya', instructorDivision: 'Yaya 1' },
-                { id: 'FARM008', name: 'Malini De Silva', phone: '075-6667777', district: 'Anuradhapura', businessArea: 'Rajanganaya', instructorDivision: 'Yaya 2' },
-                { id: 'FARM009', name: 'Bandara Menike', phone: '070-1112222', district: 'Anuradhapura', businessArea: 'Rajanganaya', instructorDivision: 'Yaya 2' },
-                { id: 'FARM010', name: 'Jagath Pushpakumara', phone: '076-3334444', district: 'Anuradhapura', businessArea: 'Rajanganaya', instructorDivision: 'Yaya 1' }
-            ],
-            reviews: [
-                { id: 1, farmer: 'Chitra Kumari', rating: 5, comment: 'Excellent support during harvest.' }
-            ]
-        },
-        {
-            id: 'INST003',
-            name: 'Anura Wickramasinghe',
-            nic: '198855566677',
-            phone: '075-5556667',
-            district: 'Anuradhapura',
-            businessArea: 'Vahalkada',
-            divisions: ['Track 5', 'Track 6'],
-            avatar: null,
-            averageRating: 4.2,
-            farmersCount: 5,
-            farmers: [
-                { id: 'FARM011', name: 'Gunapala Herath', phone: '071-5556666', district: 'Anuradhapura', businessArea: 'Vahalkada', instructorDivision: 'Track 5' },
-                { id: 'FARM012', name: 'Siripala Gamage', phone: '077-7778888', district: 'Anuradhapura', businessArea: 'Vahalkada', instructorDivision: 'Track 5' },
-                { id: 'FARM013', name: 'Chandani Liyanage', phone: '075-8889999', district: 'Anuradhapura', businessArea: 'Vahalkada', instructorDivision: 'Track 6' },
-                { id: 'FARM014', name: 'Duminda Silva', phone: '070-2223333', district: 'Anuradhapura', businessArea: 'Vahalkada', instructorDivision: 'Track 6' },
-                { id: 'FARM015', name: 'Mahesh Senanayake', phone: '076-4445555', district: 'Anuradhapura', businessArea: 'Vahalkada', instructorDivision: 'Track 5' }
-            ],
-            reviews: []
-        },
-        {
-            id: 'INST004',
-            name: 'Kasun Jayasuriya',
-            nic: '199244455566',
-            phone: '070-7778888',
-            district: 'Anuradhapura',
-            businessArea: 'Medawachchiya',
-            divisions: ['Tulana 1', 'Tulana 2'],
-            avatar: null,
-            averageRating: 4.0,
-            farmersCount: 5,
-            farmers: [
-                { id: 'FARM016', name: 'Thilini Priyadarshani', phone: '071-6667777', district: 'Anuradhapura', businessArea: 'Medawachchiya', instructorDivision: 'Tulana 1' },
-                { id: 'FARM017', name: 'Ruwan Hettiarachchi', phone: '077-9990000', district: 'Anuradhapura', businessArea: 'Medawachchiya', instructorDivision: 'Tulana 1' },
-                { id: 'FARM018', name: 'Sanath Jayasuriya', phone: '075-1112222', district: 'Anuradhapura', businessArea: 'Medawachchiya', instructorDivision: 'Tulana 2' },
-                { id: 'FARM019', name: 'Upul Tharanga', phone: '070-3334444', district: 'Anuradhapura', businessArea: 'Medawachchiya', instructorDivision: 'Tulana 2' },
-                { id: 'FARM020', name: 'Damitha Abeyratne', phone: '076-5556666', district: 'Anuradhapura', businessArea: 'Medawachchiya', instructorDivision: 'Tulana 1' }
-            ],
-            reviews: [
-                { id: 1, farmer: 'Thilini Priyadarshani', rating: 4, comment: 'Responsive and knowledgeable.' }
-            ]
-        },
-        {
-            id: 'INST005',
-            name: 'Nimali Perera',
-            nic: '199511122233',
-            phone: '076-9990000',
-            district: 'Anuradhapura',
-            businessArea: 'Kebithigollewa',
-            divisions: ['Handagala', 'Kanugahawewa'],
-            avatar: null,
-            averageRating: 4.7,
-            farmersCount: 5,
-            farmers: [
-                { id: 'FARM021', name: 'Kanthi Perera', phone: '071-8889999', district: 'Anuradhapura', businessArea: 'Kebithigollewa', instructorDivision: 'Handagala' },
-                { id: 'FARM022', name: 'Nihal Fernando', phone: '077-2223333', district: 'Anuradhapura', businessArea: 'Kebithigollewa', instructorDivision: 'Handagala' },
-                { id: 'FARM023', name: 'Wasantha Kumar', phone: '075-4445555', district: 'Anuradhapura', businessArea: 'Kebithigollewa', instructorDivision: 'Kanugahawewa' },
-                { id: 'FARM024', name: 'Nayana Kumari', phone: '070-6667777', district: 'Anuradhapura', businessArea: 'Kebithigollewa', instructorDivision: 'Kanugahawewa' },
-                { id: 'FARM025', name: 'Ranjith Premadasa', phone: '076-8889999', district: 'Anuradhapura', businessArea: 'Kebithigollewa', instructorDivision: 'Handagala' }
-            ],
-            reviews: [
-                { id: 1, farmer: 'Kanthi Perera', rating: 5, comment: 'Best instructor we have had.' }
-            ]
-        }
-    ];
+    useEffect(() => {
+        const fetchEngagementData = async () => {
+            try {
+                const response = await fetch('/api/admin/engagement/instructors');
+                const result = await response.json();
+                if (result.success) {
+                    setInstructorEngagement(result.data);
+                    const totalInst = result.data.length;
+                    const totalFarm = result.data.reduce((acc, curr) => acc + curr.farmersCount, 0);
+                    setStats(prevStats => ({ ...prevStats, totalInstructors: totalInst, totalFarmers: totalFarm }));
+                }
+            } catch (error) {
+                console.error('Error fetching instructor engagement data:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        const fetchOverallStats = async () => {
+            try {
+                const response = await fetch('/api/admin/engagement');
+                const result = await response.json();
+                if (result.success) {
+                    setStats(prevStats => ({
+                        ...prevStats,
+                        newRegistrations: result.data.summary.newRegistrations,
+                        totalActiveUsers: result.data.summary.totalActiveUsers,
+                        dailyActive: result.data.summary.dailyActive,
+                        registrationTrend: result.data.trend,
+                        activityByRole: result.data.distribution
+                    }));
+                }
+            } catch (error) {
+                console.error('Error fetching overall engagement stats:', error);
+            }
+        };
+
+        fetchEngagementData();
+        fetchOverallStats();
+    }, []);
+
+
 
     const filteredInstructors = instructorEngagement.filter(instructor =>
         instructor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        instructor.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (instructor.displayId && instructor.displayId.toLowerCase().includes(searchTerm.toLowerCase())) ||
         instructor.farmers.some(farmer =>
             farmer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            farmer.id.toLowerCase().includes(searchTerm.toLowerCase())
+            (farmer.id && farmer.id.toLowerCase().includes(searchTerm.toLowerCase()))
         )
     );
+
+    if (loading) {
+        return (
+            <div className="page active" id="engagement">
+                <div className="page-title">
+                    <i className="fas fa-handshake"></i>
+                    <h2>Instructor-Farmer Engagement</h2>
+                </div>
+                <div className="no-results-container">
+                    <i className="fas fa-spinner fa-spin no-results-icon"></i>
+                    <p>Loading engagement data...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="page active" id="engagement">
@@ -174,7 +131,7 @@ const Engagement = () => {
                                 <div className="card-title card-header-flex">
                                     <div className="instructor-info">
                                         <span className="instructor-name">{instructor.name}</span>
-                                        <span className="instructor-id">({instructor.id})</span>
+                                        <span className="instructor-id">({instructor.displayId})</span>
                                     </div>
                                     <button
                                         className="btn btn-sm btn-primary btn-view-sm"
@@ -226,10 +183,18 @@ const Engagement = () => {
 
             <div className="engagement-stats-container">
                 <div className="engagement-card-inline">
-                    <div className="engagement-stat-value">5</div>
+                    <div className="engagement-stat-value">{stats.totalInstructors}</div>
                     <div className="engagement-stat-label">Total Instructors</div>
-                    <div className="engagement-stat-value">25</div>
+                    <div className="engagement-stat-value">{stats.totalFarmers}</div>
                     <div className="engagement-stat-label">Total Farmers</div>
+                </div>
+                <div className="engagement-card-inline">
+                    <div className="engagement-stat-value">{stats.newRegistrations}</div>
+                    <div className="engagement-stat-label">New Registrations (7 Days)</div>
+                    <div className="engagement-stat-value">{stats.totalActiveUsers}</div>
+                    <div className="engagement-stat-label">Total Active Users</div>
+                    <div className="engagement-stat-value">{stats.dailyActive}</div>
+                    <div className="engagement-stat-label">Daily Active Users (Est.)</div>
                 </div>
             </div>
 
@@ -263,7 +228,7 @@ const Engagement = () => {
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="instructor-id" style={{ marginBottom: '15px' }}>{selectedInstructor.id}</div>
+                                        <div className="instructor-id" style={{ marginBottom: '15px' }}>{selectedInstructor.displayId}</div>
 
                                         <div className="instructor-grid-details">
                                             <div>
@@ -371,8 +336,8 @@ const Engagement = () => {
                                                 <div className="info-value-md">{selectedFarmer.district}</div>
                                             </div>
                                             <div>
-                                                <div className="info-label-sm">Business Area</div>
-                                                <div className="info-value-md">{selectedFarmer.businessArea}</div>
+                                                <div className="info-label-sm">Location</div>
+                                                 <div className="info-value-md">{selectedFarmer.location}</div>
                                             </div>
                                             <div>
                                                 <div className="info-label-sm">Instructor Division</div>

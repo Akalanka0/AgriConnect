@@ -8,7 +8,8 @@ const InstructorReports = () => {
                 <h2>Reports & Analytics</h2>
             </div>
 
-            {/* Report Templates Card */}
+            {/* Report Templates Card - Temporarily Disabled for Presentation */}
+            {/* 
             <div className="card" style={{ marginBottom: '30px' }}>
                 <div className="table-header">
                     <div>Report Templates</div>
@@ -39,6 +40,7 @@ const InstructorReports = () => {
                     </div>
                 </div>
             </div>
+            */}
         </>
     );
 };

@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 
-const InstructorModal = ({ isOpen, onClose, onSubmit }) => {
+const InstructorModal = ({ isOpen, onClose, onSubmit, instructor }) => {
     const [rating, setRating] = useState(0);
+    const [ratingError, setRatingError] = useState('');
 
-    if (!isOpen) return null;
+    if (!isOpen || !instructor) return null;
 
     const handleSubmit = () => {
         if (rating === 0) {
-            alert('Please select a rating');
+            setRatingError('Please select a rating before submitting.');
             return;
         }
+        setRatingError('');
         onSubmit(rating);
         setRating(0);
     };
@@ -28,33 +30,44 @@ const InstructorModal = ({ isOpen, onClose, onSubmit }) => {
                     </button>
                 </div>
                 <div className="modal-content">
-                    <div className="instructor-avatar" style={{ margin: '0 auto 20px' }}>RS</div>
-                    <h3 style={{ textAlign: 'center', marginBottom: '20px', color: 'var(--primary-dark)' }}>Rohan Silva</h3>
+                    <div className="instructor-avatar" style={{ margin: '0 auto 20px' }}>{instructor.name.split(' ').map(n => n[0]).join('')}</div>
+                    <h3 style={{ textAlign: 'center', marginBottom: '20px', color: 'var(--primary-dark)' }}>{instructor.name}</h3>
 
                     <div className="form-group">
-                        <h4>Professional Information</h4>
-                        <div style={{ background: 'var(--light-gray)', padding: '15px', borderRadius: 'var(--border-radius)', marginTop: '10px' }}>
-                            <p><strong>Specialization:</strong> Sustainable Agriculture, Crop Management</p>
-                            <p><strong>Years of Experience:</strong> 8</p>
-                            <p><strong>Qualifications:</strong> B.Sc. in Agriculture, Certified Crop Advisor</p>
-                            <p><strong>Average Rating:</strong> 4.2/5</p>
+                        <h4>Contact Information</h4>
+                        <div style={{ background: 'var(--neutral-100)', padding: '15px', borderRadius: 'var(--border-radius)', marginTop: '10px' }}>
+                            <p><strong>ID:</strong> {instructor.id}</p>
+                            <p><strong>Email:</strong> {instructor.email}</p>
+                            <p><strong>Phone:</strong> {instructor.phone}</p>
+                            <p><strong>Division:</strong> {instructor.division}</p>
                         </div>
                     </div>
 
                     <div className="form-group">
-                        <h4>Rate Rohan Silva (Your Instructor)</h4>
+                        <h4>Professional Information</h4>
+                        <div style={{ background: 'var(--neutral-100)', padding: '15px', borderRadius: 'var(--border-radius)', marginTop: '10px' }}>
+                            <p><strong>Specialization:</strong> {instructor.specialization}</p>
+                            <p><strong>Years of Experience:</strong> {instructor.yearsOfExperience}</p>
+                            <p><strong>Qualifications:</strong> {instructor.qualifications}</p>
+                            <p><strong>Average Rating:</strong> {instructor.averageRating}/5</p>
+                        </div>
+                    </div>
+
+                    <div className="form-group">
+                        <h4>Rate {instructor.name} (Your Instructor)</h4>
                         <div className="rating-stars" id="ratingStars">
                             {[1, 2, 3, 4, 5].map(star => (
                                 <span
                                     key={star}
                                     className={`star ${rating >= star ? 'active' : ''}`}
-                                    onClick={() => setRating(star)}
+                                    onClick={() => { setRating(star); setRatingError(''); }}
                                     style={{ cursor: 'pointer', fontSize: '2em', color: rating >= star ? '#ffc107' : '#ddd' }}
                                 >
                                     ★
                                 </span>
                             ))}
                         </div>
+                        {ratingError && <p style={{ color: 'var(--danger)', textAlign: 'center', marginTop: '10px' }}>{ratingError}</p>}
                     </div>
 
                     <div className="form-group">
@@ -81,5 +94,17 @@ export default InstructorModal;
 InstructorModal.propTypes = {
     isOpen: PropTypes.bool.isRequired,
     onClose: PropTypes.func.isRequired,
-    onSubmit: PropTypes.func.isRequired
+    onSubmit: PropTypes.func.isRequired,
+    instructor: PropTypes.shape({
+        id: PropTypes.string.isRequired,
+        name: PropTypes.string.isRequired,
+        title: PropTypes.string.isRequired,
+        email: PropTypes.string.isRequired,
+        phone: PropTypes.string.isRequired,
+        division: PropTypes.string.isRequired,
+        specialization: PropTypes.string.isRequired,
+        yearsOfExperience: PropTypes.number.isRequired,
+        qualifications: PropTypes.string.isRequired,
+        averageRating: PropTypes.number.isRequired,
+    })
 };

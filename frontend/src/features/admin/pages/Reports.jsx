@@ -23,57 +23,58 @@ const Reports = () => {
         instructor: 'All',
         division: 'All',
         status: 'All',
-        format: 'PDF'
+        format: 'PDF',
+        reportName: ''
     });
 
     // Mock Data mirroring UserManagement.jsx
     const farmersData = [
-        { id: 'FARM001', name: 'Sunil Perera', email: 'sunil@example.com', district: 'Anuradhapura', location: 'Padaviya', division: 'Boganewa', instructor: 'Rohan Silva', status: 'Active' },
-        { id: 'FARM002', name: 'Kamala Fernando', email: 'kamala@example.com', district: 'Anuradhapura', location: 'Padaviya', division: 'Boganewa', instructor: 'Rohan Silva', status: 'Active' },
-        { id: 'FARM003', name: 'Nimal Rathnayake', email: 'nimal@example.com', district: 'Anuradhapura', location: 'Padaviya', division: 'Kumbukwewa', instructor: 'Rohan Silva', status: 'Active' },
-        { id: 'FARM004', name: 'Saman Kumara', email: 'saman@example.com', district: 'Anuradhapura', location: 'Padaviya', division: 'Kumbukwewa', instructor: 'Rohan Silva', status: 'Blocked' },
-        { id: 'FARM005', name: 'Ajith Weerasinghe', email: 'ajith@example.com', district: 'Anuradhapura', location: 'Padaviya', division: 'Boganewa', instructor: 'Rohan Silva', status: 'Active' },
+        { id: 'FARM-2025-0001', name: 'Sunil Perera', email: 'sunil@example.com', district: 'Anuradhapura', location: 'Padaviya', division: 'Boganewa', instructor: 'Rohan Silva', status: 'Active' },
+        { id: 'FARM-2025-0002', name: 'Kamala Fernando', email: 'kamala@example.com', district: 'Anuradhapura', location: 'Padaviya', division: 'Boganewa', instructor: 'Rohan Silva', status: 'Active' },
+        { id: 'FARM-2025-0003', name: 'Nimal Rathnayake', email: 'nimal@example.com', district: 'Anuradhapura', location: 'Padaviya', division: 'Kumbukwewa', instructor: 'Rohan Silva', status: 'Active' },
+        { id: 'FARM-2025-0004', name: 'Saman Kumara', email: 'saman@example.com', district: 'Anuradhapura', location: 'Padaviya', division: 'Kumbukwewa', instructor: 'Rohan Silva', status: 'Blocked' },
+        { id: 'FARM-2025-0005', name: 'Ajith Weerasinghe', email: 'ajith@example.com', district: 'Anuradhapura', location: 'Padaviya', division: 'Boganewa', instructor: 'Rohan Silva', status: 'Active' },
 
-        { id: 'FARM006', name: 'Chitra Kumari', email: 'chitra@example.com', district: 'Anuradhapura', location: 'Rajanganaya', division: 'Yaya 1', instructor: 'Priya Bandara', status: 'Active' },
-        { id: 'FARM007', name: 'Sarath Fonseka', email: 'sarath@example.com', district: 'Anuradhapura', location: 'Rajanganaya', division: 'Yaya 1', instructor: 'Priya Bandara', status: 'Active' },
-        { id: 'FARM008', name: 'Malini De Silva', email: 'malini@example.com', district: 'Anuradhapura', location: 'Rajanganaya', division: 'Yaya 2', instructor: 'Priya Bandara', status: 'Active' },
-        { id: 'FARM009', name: 'Bandara Menike', email: 'bandara@example.com', district: 'Anuradhapura', location: 'Rajanganaya', division: 'Yaya 2', instructor: 'Priya Bandara', status: 'Active' },
-        { id: 'FARM010', name: 'Jagath Pushpakumara', email: 'jagath@example.com', district: 'Anuradhapura', location: 'Rajanganaya', division: 'Yaya 1', instructor: 'Priya Bandara', status: 'Active' },
+        { id: 'FARM-2025-0006', name: 'Chitra Kumari', email: 'chitra@example.com', district: 'Anuradhapura', location: 'Rajanganaya', division: 'Yaya 1', instructor: 'Priya Bandara', status: 'Active' },
+        { id: 'FARM-2025-0007', name: 'Sarath Fonseka', email: 'sarath@example.com', district: 'Anuradhapura', location: 'Rajanganaya', division: 'Yaya 1', instructor: 'Priya Bandara', status: 'Active' },
+        { id: 'FARM-2025-0008', name: 'Malini De Silva', email: 'malini@example.com', district: 'Anuradhapura', location: 'Rajanganaya', division: 'Yaya 2', instructor: 'Priya Bandara', status: 'Active' },
+        { id: 'FARM-2025-0009', name: 'Bandara Menike', email: 'bandara@example.com', district: 'Anuradhapura', location: 'Rajanganaya', division: 'Yaya 2', instructor: 'Priya Bandara', status: 'Active' },
+        { id: 'FARM-2025-0010', name: 'Jagath Pushpakumara', email: 'jagath@example.com', district: 'Anuradhapura', location: 'Rajanganaya', division: 'Yaya 1', instructor: 'Priya Bandara', status: 'Active' },
 
-        { id: 'FARM011', name: 'Gunapala Herath', email: 'gunapala@example.com', district: 'Anuradhapura', location: 'Vahalkada', division: 'Track 5', instructor: 'Anura Wickramasinghe', status: 'Active' },
-        { id: 'FARM012', name: 'Siripala Gamage', email: 'siripala@example.com', district: 'Anuradhapura', location: 'Vahalkada', division: 'Track 5', instructor: 'Anura Wickramasinghe', status: 'Active' },
-        { id: 'FARM013', name: 'Chandani Liyanage', email: 'chandani@example.com', district: 'Anuradhapura', location: 'Vahalkada', division: 'Track 6', instructor: 'Anura Wickramasinghe', status: 'Active' },
-        { id: 'FARM014', name: 'Duminda Silva', email: 'duminda@example.com', district: 'Anuradhapura', location: 'Vahalkada', division: 'Track 6', instructor: 'Anura Wickramasinghe', status: 'Active' },
-        { id: 'FARM015', name: 'Mahesh Senanayake', email: 'mahesh@example.com', district: 'Anuradhapura', location: 'Vahalkada', division: 'Track 5', instructor: 'Anura Wickramasinghe', status: 'Active' },
+        { id: 'FARM-2025-0011', name: 'Gunapala Herath', email: 'gunapala@example.com', district: 'Anuradhapura', location: 'Vahalkada', division: 'Track 5', instructor: 'Anura Wickramasinghe', status: 'Active' },
+        { id: 'FARM-2025-0012', name: 'Siripala Gamage', email: 'siripala@example.com', district: 'Anuradhapura', location: 'Vahalkada', division: 'Track 5', instructor: 'Anura Wickramasinghe', status: 'Active' },
+        { id: 'FARM-2025-0013', name: 'Chandani Liyanage', email: 'chandani@example.com', district: 'Anuradhapura', location: 'Vahalkada', division: 'Track 6', instructor: 'Anura Wickramasinghe', status: 'Active' },
+        { id: 'FARM-2025-0014', name: 'Duminda Silva', email: 'duminda@example.com', district: 'Anuradhapura', location: 'Vahalkada', division: 'Track 6', instructor: 'Anura Wickramasinghe', status: 'Active' },
+        { id: 'FARM-2025-0015', name: 'Mahesh Senanayake', email: 'mahesh@example.com', district: 'Anuradhapura', location: 'Vahalkada', division: 'Track 5', instructor: 'Anura Wickramasinghe', status: 'Active' },
 
-        { id: 'FARM016', name: 'Thilini Priyadarshani', email: 'thilini@example.com', district: 'Anuradhapura', location: 'Medawachchiya', division: 'Tulana 1', instructor: 'Kasun Jayasuriya', status: 'Active' },
-        { id: 'FARM017', name: 'Ruwan Hettiarachchi', email: 'ruwan@example.com', district: 'Anuradhapura', location: 'Medawachchiya', division: 'Tulana 1', instructor: 'Kasun Jayasuriya', status: 'Active' },
-        { id: 'FARM018', name: 'Sanath Jayasuriya', email: 'sanath@example.com', district: 'Anuradhapura', location: 'Medawachchiya', division: 'Tulana 2', instructor: 'Kasun Jayasuriya', status: 'Active' },
-        { id: 'FARM019', name: 'Upul Tharanga', email: 'upul@example.com', district: 'Anuradhapura', location: 'Medawachchiya', division: 'Tulana 2', instructor: 'Kasun Jayasuriya', status: 'Active' },
-        { id: 'FARM020', name: 'Damitha Abeyratne', email: 'damitha@example.com', district: 'Anuradhapura', location: 'Medawachchiya', division: 'Tulana 1', instructor: 'Kasun Jayasuriya', status: 'Blocked' },
+        { id: 'FARM-2025-0016', name: 'Thilini Priyadarshani', email: 'thilini@example.com', district: 'Anuradhapura', location: 'Medawachchiya', division: 'Tulana 1', instructor: 'Kasun Jayasuriya', status: 'Active' },
+        { id: 'FARM-2025-0017', name: 'Ruwan Hettiarachchi', email: 'ruwan@example.com', district: 'Anuradhapura', location: 'Medawachchiya', division: 'Tulana 1', instructor: 'Kasun Jayasuriya', status: 'Active' },
+        { id: 'FARM-2025-0018', name: 'Sanath Jayasuriya', email: 'sanath@example.com', district: 'Anuradhapura', location: 'Medawachchiya', division: 'Tulana 2', instructor: 'Kasun Jayasuriya', status: 'Active' },
+        { id: 'FARM-2025-0019', name: 'Upul Tharanga', email: 'upul@example.com', district: 'Anuradhapura', location: 'Medawachchiya', division: 'Tulana 2', instructor: 'Kasun Jayasuriya', status: 'Active' },
+        { id: 'FARM-2025-0020', name: 'Damitha Abeyratne', email: 'damitha@example.com', district: 'Anuradhapura', location: 'Medawachchiya', division: 'Tulana 1', instructor: 'Kasun Jayasuriya', status: 'Blocked' },
 
-        { id: 'FARM021', name: 'Kanthi Perera', email: 'kanthi@example.com', district: 'Anuradhapura', location: 'Kebithigollewa', division: 'Handagala', instructor: 'Nimali Perera', status: 'Active' },
-        { id: 'FARM022', name: 'Nihal Fernando', email: 'nihal@example.com', district: 'Anuradhapura', location: 'Kebithigollewa', division: 'Handagala', instructor: 'Nimali Perera', status: 'Active' },
-        { id: 'FARM023', name: 'Wasantha Kumar', email: 'wasantha@example.com', district: 'Anuradhapura', location: 'Kebithigollewa', division: 'Kanugahawewa', instructor: 'Nimali Perera', status: 'Active' },
-        { id: 'FARM024', name: 'Nayana Kumari', email: 'nayana@example.com', district: 'Anuradhapura', location: 'Kebithigollewa', division: 'Kanugahawewa', instructor: 'Nimali Perera', status: 'Active' },
-        { id: 'FARM025', name: 'Ranjith Premadasa', email: 'ranjith@example.com', district: 'Anuradhapura', location: 'Kebithigollewa', division: 'Handagala', instructor: 'Nimali Perera', status: 'Active' }
+        { id: 'FARM-2025-0021', name: 'Kanthi Perera', email: 'kanthi@example.com', district: 'Anuradhapura', location: 'Kebithigollewa', division: 'Handagala', instructor: 'Nimali Perera', status: 'Active' },
+        { id: 'FARM-2025-0022', name: 'Nihal Fernando', email: 'nihal@example.com', district: 'Anuradhapura', location: 'Kebithigollewa', division: 'Handagala', instructor: 'Nimali Perera', status: 'Active' },
+        { id: 'FARM-2025-0023', name: 'Wasantha Kumar', email: 'wasantha@example.com', district: 'Anuradhapura', location: 'Kebithigollewa', division: 'Kanugahawewa', instructor: 'Nimali Perera', status: 'Active' },
+        { id: 'FARM-2025-0024', name: 'Nayana Kumari', email: 'nayana@example.com', district: 'Anuradhapura', location: 'Kebithigollewa', division: 'Kanugahawewa', instructor: 'Nimali Perera', status: 'Active' },
+        { id: 'FARM-2025-0025', name: 'Ranjith Premadasa', email: 'ranjith@example.com', district: 'Anuradhapura', location: 'Kebithigollewa', division: 'Handagala', instructor: 'Nimali Perera', status: 'Active' }
     ];
 
     const instructorsData = [
-        { id: 'INST001', name: 'Rohan Silva', email: 'rohan@example.com', district: 'Anuradhapura', businessArea: 'Padaviya', farmersCount: 5, status: 'Active' },
-        { id: 'INST002', name: 'Priya Bandara', email: 'priya@example.com', district: 'Anuradhapura', businessArea: 'Rajanganaya', farmersCount: 5, status: 'Active' },
-        { id: 'INST003', name: 'Anura Wickramasinghe', email: 'anura@example.com', district: 'Anuradhapura', businessArea: 'Vahalkada', farmersCount: 5, status: 'Active' },
-        { id: 'INST004', name: 'Kasun Jayasuriya', email: 'kasun@example.com', district: 'Anuradhapura', businessArea: 'Medawachchiya', farmersCount: 5, status: 'Active' },
-        { id: 'INST005', name: 'Nimali Perera', email: 'nimali@example.com', district: 'Anuradhapura', businessArea: 'Kebithigollewa', farmersCount: 5, status: 'Active' }
+        { id: 'INST-2026-0001', name: 'Rohan Silva', email: 'rohan@example.com', district: 'Anuradhapura', businessArea: 'Padaviya', farmersCount: 5, status: 'Active' },
+        { id: 'INST-2026-0002', name: 'Priya Bandara', email: 'priya@example.com', district: 'Anuradhapura', businessArea: 'Rajanganaya', farmersCount: 5, status: 'Active' },
+        { id: 'INST-2026-0003', name: 'Anura Wickramasinghe', email: 'anura@example.com', district: 'Anuradhapura', businessArea: 'Vahalkada', farmersCount: 5, status: 'Active' },
+        { id: 'INST-2026-0004', name: 'Kasun Jayasuriya', email: 'kasun@example.com', district: 'Anuradhapura', businessArea: 'Medawachchiya', farmersCount: 5, status: 'Active' },
+        { id: 'INST-2026-0005', name: 'Nimali Perera', email: 'nimali@example.com', district: 'Anuradhapura', businessArea: 'Kebithigollewa', farmersCount: 5, status: 'Active' }
     ];
 
     // Mock Data mirroring Engagement.jsx
     const engagementData = [
-        { id: 'INST001', name: 'Rohan Silva', businessArea: 'Padaviya', divisions: 'Boganewa, Kumbukwewa', farmersCount: 5, rating: 4.8 },
-        { id: 'INST002', name: 'Priya Bandara', businessArea: 'Rajanganaya', divisions: 'Yaya 1, Yaya 2', farmersCount: 5, rating: 4.5 },
-        { id: 'INST003', name: 'Anura Wickramasinghe', businessArea: 'Vahalkada', divisions: 'Track 5, Track 6', farmersCount: 5, rating: 4.2 },
-        { id: 'INST004', name: 'Kasun Jayasuriya', businessArea: 'Medawachchiya', divisions: 'Tulana 1, Tulana 2', farmersCount: 5, rating: 4.0 },
-        { id: 'INST005', name: 'Nimali Perera', businessArea: 'Kebithigollewa', divisions: 'Handagala, Kanugahawewa', farmersCount: 5, rating: 4.7 }
+        { id: 'INST-2026-0001', name: 'Rohan Silva', businessArea: 'Padaviya', divisions: 'Boganewa, Kumbukwewa', farmersCount: 5, rating: 4.8 },
+        { id: 'INST-2026-0002', name: 'Priya Bandara', businessArea: 'Rajanganaya', divisions: 'Yaya 1, Yaya 2', farmersCount: 5, rating: 4.5 },
+        { id: 'INST-2026-0003', name: 'Anura Wickramasinghe', businessArea: 'Vahalkada', divisions: 'Track 5, Track 6', farmersCount: 5, rating: 4.2 },
+        { id: 'INST-2026-0004', name: 'Kasun Jayasuriya', businessArea: 'Medawachchiya', divisions: 'Tulana 1, Tulana 2', farmersCount: 5, rating: 4.0 },
+        { id: 'INST-2026-0005', name: 'Nimali Perera', businessArea: 'Kebithigollewa', divisions: 'Handagala, Kanugahawewa', farmersCount: 5, rating: 4.7 }
     ];
 
     // Filter Handlers
@@ -179,7 +180,7 @@ const Reports = () => {
         } else if (filters.method === 'instructor' && filters.instructor !== 'All') {
             filteredData = filteredData.filter(f => f.instructor === filters.instructor);
         } else if (filters.method === 'division' && filters.division !== 'All') {
-            filteredData = filteredData.filter(f => f.division === filters.division);
+            filteredData = filteredData.filter(f => f.instructorDivision === filters.division);
         }
 
         const columns = ['ID', 'Name', 'Email', 'District', 'Business Area', 'Assigned Instructor', 'Status'];
@@ -214,7 +215,7 @@ const Reports = () => {
         }
 
         const columns = ['Instructor ID', 'Name', 'Business Area', 'Divisions', 'Assigned Farmers', 'Avg Rating'];
-        const data = filteredData.map(e => [e.id, e.name, e.businessArea, e.divisions, e.farmersCount, e.rating > 0 ? e.rating : 'N/A']);
+        const data = filteredData.map(e => [e.id, e.name, e.businessArea, Array.isArray(e.divisions) ? e.divisions.join(', ') : e.divisions, e.farmersCount, e.rating > 0 ? e.rating : 'N/A']);
         generatePDF('Engagement Report', 'Instructor-Farmer Engagement Analysis', columns, data, 'agriconnect_engagement_report');
     };
 
@@ -268,7 +269,7 @@ const Reports = () => {
                     </div>
                     <div className="card-content">
                         <p className="card-description-text">
-                            Analysis of instructor performance, including farmer assignment loads, covered divisions, and farmer satisfaction ratings.
+                            Analysis of instructor performance, including farmer assignment loads, covered divisions, and farmer ratings.
                         </p>
 
                         <button className="btn btn-primary btn-full-width" onClick={() => openFilterModal('engagement')}>
@@ -297,19 +298,19 @@ const Reports = () => {
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td>User Management</td>
+                                    <td>User Management: Farmers</td>
                                     <td>Farmers List Q4</td>
                                     <td>2023-10-28</td>
                                     <td><span className="status-badge status-resolved">Success</span></td>
                                 </tr>
                                 <tr>
-                                    <td>Engagement</td>
+                                    <td>Instructor-Farmer Engagement</td>
                                     <td>Monthly Performance</td>
                                     <td>2023-10-25</td>
                                     <td><span className="status-badge status-resolved">Success</span></td>
                                 </tr>
                                 <tr>
-                                    <td>User Management</td>
+                                    <td>User Management: Instructors</td>
                                     <td>Instructors Audit</td>
                                     <td>2023-10-15</td>
                                     <td><span className="status-badge status-resolved">Success</span></td>
@@ -335,6 +336,18 @@ const Reports = () => {
                                 <p className="filter-description">
                                     Select filters for <strong>{currentReportType === 'farmers' ? 'Farmers' : currentReportType === 'instructors' ? 'Instructors' : 'Engagement'}</strong> report.
                                 </p>
+
+                                <div className="admin-form-group">
+                                    <label>Report Name</label>
+                                    <input
+                                        type="text"
+                                        className="admin-form-control"
+                                        name="reportName"
+                                        value={filters.reportName}
+                                        onChange={handleFilterChange}
+                                        placeholder="Enter report name"
+                                    />
+                                </div>
 
                                 {currentReportType === 'farmers' && (
                                     <>

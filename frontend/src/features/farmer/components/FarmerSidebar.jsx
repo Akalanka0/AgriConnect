@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { NavLink } from 'react-router-dom';
-import '@/features/farmer/styles/FarmerDash.css';
+import '@/features/farmer/styles/FarmerCore.css';
 
 const FarmerSidebar = ({ isActive, onLogout }) => {
     const menuItems = [

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import FarmerSidebar from './FarmerSidebar';
-import '@/features/farmer/styles/FarmerDash.css';
+import '@/features/farmer/styles/FarmerCore.css';
 
 const FarmerLayout = () => {
     const [isSidebarActive, setIsSidebarActive] = useState(false);
@@ -33,7 +33,7 @@ const FarmerLayout = () => {
     };
 
     return (
-        <div className="app-container theme-farmer theme-green">
+        <div className="app-container theme-farmer">
             <FarmerSidebar isActive={isSidebarActive} onLogout={handleLogout} />
 
             <div className={`main-content ${isSidebarActive ? 'sidebar-active' : ''}`} id="mainContent">

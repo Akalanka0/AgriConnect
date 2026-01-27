@@ -22,7 +22,7 @@ const StatusBadge = ({ status, type }) => {
         if (['pending', 'in_progress', 'review'].includes(lowerStatus)) {
             return 'badge-warning';
         }
-        if (['banned', 'rejected', 'suspended', 'failed'].includes(lowerStatus)) {
+        if (['banned', 'rejected', 'suspended', 'failed', 'blocked', 'using'].includes(lowerStatus)) {
             return 'badge-danger';
         }
         return 'badge-info';
