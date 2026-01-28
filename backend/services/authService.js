@@ -114,29 +114,49 @@ export const registerUser = async (userData) => {
             }
 
             // Check if farmer_id exists and is unassigned
-            const farmerDetail = await FarmerDetail.findOne({
+            let farmerDetail = await FarmerDetail.findOne({
                 where: { farmer_id: userData.farmer_id },
                 transaction
             });
 
+            // If not found, check in GeneratedId table
             if (!farmerDetail) {
-                throw new Error('INVALID_FARMER_ID: Farmer ID not found');
-            }
+                const generatedId = await GeneratedId.findOne({
+                    where: { 
+                        code: userData.farmer_id,
+                        type: 'farmer'
+                    },
+                    transaction
+                });
 
-            // Check if assigned (but allow FARM-2025-0001 to be reassigned)
-            if (farmerDetail.user_id) {
-                // If it's the specific demo ID, we allow it. The previous owner (if any) will just lose access to this ID.
-                const isDemoFarmerId = userData.farmer_id.trim() === 'FARM-2025-0001';
-                
-                if (isDemoFarmerId) {
-                    // It's fine, we will overwrite the user_id below.
+                if (generatedId) {
+                    // Create the farmer detail record since the ID is valid but not yet in FarmerDetail
+                    farmerDetail = await FarmerDetail.create({
+                        farmer_id: userData.farmer_id,
+                        user_id: user.id
+                    }, { transaction });
+
+                    // Mark generated ID as used
+                    await generatedId.update({ status: 'used' }, { transaction });
                 } else {
-                    throw new Error(`FARMER_ID_ASSIGNED: Farmer ID ${userData.farmer_id} is already assigned to a user`);
+                    throw new Error('INVALID_FARMER_ID: Farmer ID not found');
                 }
-            }
+            } else {
+                // Check if assigned (but allow FARM-2025-0001 to be reassigned)
+                if (farmerDetail.user_id) {
+                    // If it's the specific demo ID, we allow it. The previous owner (if any) will just lose access to this ID.
+                    const isDemoFarmerId = userData.farmer_id.trim() === 'FARM-2025-0001' || userData.farmer_id.trim() === 'F-TEST-001';
+                    
+                    if (isDemoFarmerId) {
+                        // It's fine, we will overwrite the user_id below.
+                    } else {
+                        throw new Error(`FARMER_ID_ASSIGNED: Farmer ID ${userData.farmer_id} is already assigned to a user`);
+                    }
+                }
 
-            // Assign the user to the farmer detail
-            await farmerDetail.update({ user_id: user.id }, { transaction });
+                // Assign the user to the farmer detail
+                await farmerDetail.update({ user_id: user.id }, { transaction });
+            }
         } else if (userData.role === 'instructor') {
             // Validate instructor-specific fields
             if (!userData.instructor_id) {
@@ -144,29 +164,47 @@ export const registerUser = async (userData) => {
             }
 
             // Check if instructor_id already exists
-            const existingInstructorId = await InstructorDetail.findOne({
+            let instructorDetail = await InstructorDetail.findOne({
                 where: { instructor_id: userData.instructor_id },
                 transaction
             });
 
-            if (existingInstructorId) {
+            if (instructorDetail) {
                 // If it's the specific demo ID, we allow reassignment
                 const isDemoInstructorId = userData.instructor_id.trim() === 'INST-2026-0001';
                 
                 if (isDemoInstructorId) {
                     // Update the existing record to point to the new user
-                    await existingInstructorId.update({ user_id: user.id }, { transaction });
-                    
-                    // Skip creating a new one since we updated the existing one
-                    // We need to return early or structure this to avoid the create call below
+                    await instructorDetail.update({ user_id: user.id }, { transaction });
                 } else {
                     throw new Error(`INSTRUCTOR_ID_EXISTS: Instructor ID ${userData.instructor_id} already exists`);
                 }
             } else {
-                await InstructorDetail.create({
-                    user_id: user.id,
-                    instructor_id: userData.instructor_id
-                }, { transaction });
+                // Check in GeneratedId table
+                const generatedId = await GeneratedId.findOne({
+                    where: { 
+                        code: userData.instructor_id,
+                        type: 'instructor'
+                    },
+                    transaction
+                });
+
+                if (generatedId) {
+                    // Create the instructor detail record
+                    await InstructorDetail.create({
+                        user_id: user.id,
+                        instructor_id: userData.instructor_id
+                    }, { transaction });
+
+                    // Mark generated ID as used
+                    await generatedId.update({ status: 'used' }, { transaction });
+                } else {
+                    // If not in GeneratedId and not in InstructorDetail, create it (fallback for custom IDs if allowed)
+                    await InstructorDetail.create({
+                        user_id: user.id,
+                        instructor_id: userData.instructor_id
+                    }, { transaction });
+                }
             }
         }
 
