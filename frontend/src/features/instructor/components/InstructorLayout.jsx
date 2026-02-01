@@ -49,7 +49,7 @@ const InstructorLayout = () => {
         if (pathname.includes('farmers')) return 'Farmer Management';
         if (pathname.includes('crop-plans')) return 'Crop Plan Management';
         if (pathname.includes('pest-management')) return 'Pest & Disease Management';
-        if (pathname.includes('reports')) return 'Reports & Analytics';
+        if (pathname.includes('reports')) return 'Reports';
         if (pathname.includes('schedule')) return 'Schedule & Availability';
         if (pathname.includes('settings')) return 'Settings';
         return 'Dashboard';
