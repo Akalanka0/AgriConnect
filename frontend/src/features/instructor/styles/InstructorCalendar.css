@@ -1,6 +1,6 @@
-/* InstructorCalendar.css */
+/* InstructorCalendar.css - Scoped to .theme-instructor */
 
-.instructor-calendar-card {
+.theme-instructor .instructor-calendar-card {
     background: #ffffff;
     border-radius: 16px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
@@ -12,7 +12,7 @@
     margin-bottom: 24px;
 }
 
-.instructor-calendar-header {
+.theme-instructor .instructor-calendar-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -21,7 +21,7 @@
     border-bottom: 1px solid #f1f4f8;
 }
 
-.instructor-calendar-title {
+.theme-instructor .instructor-calendar-title {
     font-size: 1.25rem;
     font-weight: 700;
     color: #1b5e20;
@@ -30,17 +30,17 @@
     gap: 12px;
 }
 
-.instructor-calendar-title i {
+.theme-instructor .instructor-calendar-title i {
     color: #2e7d32;
     font-size: 1.4rem;
 }
 
-.instructor-calendar-nav {
+.theme-instructor .instructor-calendar-nav {
     display: flex;
     gap: 10px;
 }
 
-.instructor-nav-btn {
+.theme-instructor .instructor-nav-btn {
     width: 40px;
     height: 40px;
     border-radius: 12px;
@@ -54,7 +54,7 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.instructor-nav-btn:hover {
+.theme-instructor .instructor-nav-btn:hover {
     background: #2e7d32;
     color: #ffffff;
     border-color: #2e7d32;
@@ -62,12 +62,12 @@
     box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2);
 }
 
-.instructor-calendar-body {
+.theme-instructor .instructor-calendar-body {
     padding: 24px;
     background: #fcfdfe;
 }
 
-.instructor-calendar-grid-header {
+.theme-instructor .instructor-calendar-grid-header {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     margin-bottom: 15px;
@@ -75,7 +75,7 @@
     padding-bottom: 10px;
 }
 
-.instructor-calendar-grid-header div {
+.theme-instructor .instructor-calendar-grid-header div {
     padding: 8px;
     font-weight: 700;
     font-size: 0.85rem;
@@ -85,13 +85,13 @@
     text-align: center;
 }
 
-.instructor-calendar-days {
+.theme-instructor .instructor-calendar-days {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 10px;
 }
 
-.instructor-calendar-day {
+.theme-instructor .instructor-calendar-day {
     background: #ffffff;
     min-height: 120px;
     padding: 12px;
@@ -104,29 +104,29 @@
     box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
 
-.instructor-calendar-day:hover:not(.not-current) {
+.theme-instructor .instructor-calendar-day:hover:not(.not-current) {
     border-color: #4caf50;
     transform: translateY(-4px);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.06);
     z-index: 2;
 }
 
-.instructor-calendar-day.not-current {
+.theme-instructor .instructor-calendar-day.not-current {
     background: #f8fafc;
     border: 1px solid transparent;
     opacity: 0.6;
 }
 
-.instructor-calendar-day.not-current .instructor-day-num {
+.theme-instructor .instructor-calendar-day.not-current .instructor-day-num {
     color: #cbd5e1;
 }
 
-.instructor-calendar-day.is-today {
+.theme-instructor .instructor-calendar-day.is-today {
     background: #f0fdf4;
     border-color: #86efac;
 }
 
-.instructor-day-num {
+.theme-instructor .instructor-day-num {
     font-size: 1rem;
     font-weight: 700;
     color: #334155;
@@ -140,13 +140,13 @@
     transition: all 0.2s;
 }
 
-.instructor-calendar-day.is-today .instructor-day-num {
+.theme-instructor .instructor-calendar-day.is-today .instructor-day-num {
     background: #2e7d32;
     color: #ffffff;
     box-shadow: 0 4px 10px rgba(46, 125, 50, 0.3);
 }
 
-.instructor-meeting-tags {
+.theme-instructor .instructor-meeting-tags {
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -156,15 +156,14 @@
     scrollbar-width: none;
 }
 
-.instructor-meeting-tags::-webkit-scrollbar {
+.theme-instructor .instructor-meeting-tags::-webkit-scrollbar {
     display: none;
 }
 
-.instructor-meeting-tag {
+.theme-instructor .instructor-meeting-tag {
     font-size: 0.72rem;
     padding: 4px 8px;
     background: #ffffff;
-    color: #1b5e20;
     border-radius: 8px;
     border: 1px solid #e2e8f0;
     border-left: 4px solid #2e7d32;
@@ -173,34 +172,45 @@
     text-overflow: ellipsis;
     font-weight: 600;
     box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    transition: all 0.2s ease;
 }
 
-.instructor-meeting-tag:hover {
-    background: #f1f5f9;
+.theme-instructor .instructor-meeting-tag:hover {
+    background: #f8fafc;
+    transform: translateX(2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.06);
+}
+
+.theme-instructor .request-item-hover:hover {
+    background-color: #f8fafc;
+}
+
+.theme-instructor .request-item-hover {
+    border-radius: 12px;
 }
 
 /* Responsive adjustments */
 @media (max-width: 1200px) {
-    .instructor-calendar-day {
+    .theme-instructor .instructor-calendar-day {
         min-height: 100px;
         padding: 8px;
     }
 }
 
 @media (max-width: 768px) {
-    .instructor-calendar-days {
+    .theme-instructor .instructor-calendar-days {
         gap: 5px;
     }
-    .instructor-calendar-day {
+    .theme-instructor .instructor-calendar-day {
         min-height: 80px;
         padding: 5px;
     }
-    .instructor-day-num {
+    .theme-instructor .instructor-day-num {
         width: 28px;
         height: 28px;
         font-size: 0.85rem;
     }
-    .instructor-meeting-tag {
+    .theme-instructor .instructor-meeting-tag {
         font-size: 0.65rem;
         padding: 2px 4px;
     }

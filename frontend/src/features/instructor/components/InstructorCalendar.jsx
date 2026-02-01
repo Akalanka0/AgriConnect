@@ -69,8 +69,20 @@ const InstructorCalendar = ({ meetings }) => {
 
     const getMeetingsForDate = (date) => {
         const dateString = date.toISOString().split('T')[0];
-        // For instructors, we show accepted meetings on the calendar
-        return meetings.filter(m => m.meetingDate === dateString && m.status === 'accepted');
+        // Show accepted, pending and reschedule meetings on the instructor calendar
+        return meetings.filter(m => 
+            m.meetingDate === dateString && 
+            (m.status === 'accepted' || m.status === 'pending' || m.status === 'reschedule')
+        );
+    };
+
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'accepted': return '#2e7d32'; // Green
+            case 'pending': return '#3b82f6';  // Blue
+            case 'reschedule': return '#f59e0b'; // Amber
+            default: return '#94a3b8';
+        }
     };
 
     const monthNames = [
@@ -117,8 +129,14 @@ const InstructorCalendar = ({ meetings }) => {
                                 <div className="instructor-day-num">{dayObj.day}</div>
                                 <div className="instructor-meeting-tags">
                                     {dayMeetings.map(m => (
-                                        <div key={m.id} className="instructor-meeting-tag" title={`${m.meetingTime} - ${m.meetingTitle}`}>
-                                            {m.meetingTime} {m.meetingTitle}
+                                        <div 
+                                            key={m.id} 
+                                            className="instructor-meeting-tag" 
+                                            title={`${m.meetingTime} - ${m.meetingTitle} (${m.division || 'No Division'}) [${m.status}]`}
+                                            style={{ borderLeftColor: getStatusColor(m.status), color: getStatusColor(m.status) }}
+                                        >
+                                            <span style={{ fontWeight: '800' }}>{m.meetingTime}</span> {m.meetingTitle} 
+                                            <span style={{ fontSize: '0.65rem', opacity: 0.8, display: 'block' }}>{m.division}</span>
                                         </div>
                                     ))}
                                 </div>

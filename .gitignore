@@ -71,6 +71,11 @@ typings/
 # nuxt.js build output
 .nuxt
 
+# vite build output
+dist/
+dist-ssr/
+*.local
+
 # gatsby files
 .cache/
 public/
@@ -116,4 +121,6 @@ uploads/
 storage/
 tmp/
 temp/
+
+presentation
 

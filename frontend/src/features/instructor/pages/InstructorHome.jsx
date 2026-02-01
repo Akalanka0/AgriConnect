@@ -79,36 +79,32 @@ const InstructorHome = () => {
                         <div className="card-icon"><i className="fas fa-cloud-sun"></i></div>
                     </div>
                     <div className="card-content">
-                        <div className="weather-info" style={{ textAlign: 'center', padding: '15px' }}>
-                            <div style={{ fontSize: '2.5em', color: 'var(--primary)', marginBottom: '10px' }}>
+                        <div className="weather-card-container">
+                            <div className="weather-icon-large">
                                 <i className="fas fa-sun" style={{ color: '#ff9800' }}></i>
                             </div>
-                            <div style={{ fontSize: '1.8em', fontWeight: 'bold', color: 'var(--primary-dark)', marginBottom: '5px' }}>
+                            <div className="weather-temp-large">
                                 28°C
                             </div>
-                            <div style={{ color: 'var(--gray)', marginBottom: '15px' }}>Sunny</div>
+                            <div className="weather-status-text">Sunny</div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '15px' }}>
+                            <div className="weather-details-grid">
                                 <div>
-                                    <div style={{ fontSize: '0.9em', color: 'var(--gray)' }}>Humidity</div>
-                                    <div style={{ fontWeight: 'bold' }}>65%</div>
+                                    <div className="weather-detail-label">Humidity</div>
+                                    <div className="weather-detail-value">65%</div>
                                 </div>
                                 <div>
-                                    <div style={{ fontSize: '0.9em', color: 'var(--gray)' }}>Rainfall</div>
-                                    <div style={{ fontWeight: 'bold' }}>0 mm</div>
+                                    <div className="weather-detail-label">Rainfall</div>
+                                    <div className="weather-detail-value">0 mm</div>
                                 </div>
                                 <div>
-                                    <div style={{ fontSize: '0.9em', color: 'var(--gray)' }}>Wind</div>
-                                    <div style={{ fontWeight: 'bold' }}>12 km/h</div>
+                                    <div className="weather-detail-label">Wind</div>
+                                    <div className="weather-detail-value">12 km/h</div>
                                 </div>
                                 <div>
-                                    <div style={{ fontSize: '0.9em', color: 'var(--gray)' }}>Forecast</div>
-                                    <div style={{ fontWeight: 'bold' }}>Clear</div>
+                                    <div className="weather-detail-label">UV Index</div>
+                                    <div className="weather-detail-value">High</div>
                                 </div>
-                            </div>
-
-                            <div style={{ marginTop: '15px', fontSize: '0.8em', color: 'var(--gray)' }}>
-                                Last updated: Today, 2:30 PM
                             </div>
                         </div>
                     </div>
