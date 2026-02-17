@@ -2,7 +2,8 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '@/features/auth/styles/Login.css';
 
-// Sub-components
+// Components
+import { useToast } from '@/features/admin/components/Toast';
 import AuthLayout from '@/features/auth/components/AuthLayout';
 import LoginForm from '@/features/auth/components/LoginForm';
 import RegisterForm from '@/features/auth/components/RegisterForm';
@@ -18,10 +19,10 @@ import {
 } from '@/features/auth/utils/validation';
 
 const Login = () => {
+  const { showToast } = useToast();
   const [isLogin, setIsLogin] = useState(true);
   const [role, setRole] = useState('farmer');
   const [showPassword, setShowPassword] = useState({});
-  const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [resetEmailError, setResetEmailError] = useState('');
@@ -55,11 +56,6 @@ const Login = () => {
 
   const [errors, setErrors] = useState({});
 
-  const showNotification = useCallback((message, type = 'success') => {
-    setNotification({ show: true, message, type });
-    setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 3000);
-  }, []);
-
   // Check backend connection on mount
   useEffect(() => {
     const checkConnection = async () => {
@@ -69,18 +65,18 @@ const Login = () => {
         const data = await response.json();
         console.log('Backend connection status:', data);
         if (response.ok) {
-          showNotification('Connected to backend successfully', 'success');
+          showToast('Connected to backend successfully', 'success');
         } else {
             console.error('Backend returned error:', data);
         }
       } catch (error) {
         console.error('Backend connection failed:', error);
-        showNotification('Cannot connect to backend server', 'error');
+        showToast('Cannot connect to backend server', 'error');
       }
     };
     
     checkConnection();
-  }, [showNotification]);
+  }, [showToast]);
 
   useEffect(() => {
     const savedUsername = localStorage.getItem('agriConnectUsername');
@@ -139,8 +135,7 @@ const Login = () => {
         // Store JWT token and user info
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-
-        showNotification('Login successful! Redirecting...', 'success');
+        showToast('Login successful! Redirecting...', 'success');
         setTimeout(() => {
           // Redirect based on role from backend response
           if (data.user.role === 'admin') navigate('/admin');
@@ -149,18 +144,18 @@ const Login = () => {
         }, 800);
       } else {
         if (data.message && data.message.includes('ACCOUNT_NOT_VERIFIED')) {
-          showNotification('Account not verified. Please check your email.', 'error');
+          showToast('Account not verified. Please check your email.', 'error');
           setTimeout(() => {
             navigate(`/verify?email=${encodeURIComponent(loginData.username)}`);
           }, 1000);
         } else {
           const errorMessage = data.error?.message || data.message || 'Login failed. Please try again.';
-          showNotification(errorMessage, 'error');
+          showToast(errorMessage, 'error');
         }
       }
     } catch (error) {
       console.error('Login error:', error);
-      showNotification('Network error. Please try again later.', 'error');
+      showToast('Network error. Please try again later.', 'error');
     } finally {
       setLoading(false);
     }
@@ -222,7 +217,7 @@ const Login = () => {
       const data = await response.json();
 
       if (response.ok) {
-        showNotification('Account created successfully! Please verify your email.', 'success');
+        showToast('Account created successfully! Please verify your email.', 'success');
         setRegisterData({
           fullName: '', email: '', nic: '', phone: '',
           farmerId: '', instructorId: '', password: '', confirmPassword: ''
@@ -232,11 +227,11 @@ const Login = () => {
         }, 800);
       } else {
         const errorMessage = data.error?.message || data.message || 'Registration failed. Please try again.';
-        showNotification(errorMessage, 'error');
+        showToast(errorMessage, 'error');
       }
     } catch (error) {
       console.error('Registration error:', error);
-      showNotification('Network error. Please try again later.', 'error');
+      showToast('Network error. Please try again later.', 'error');
     } finally {
       setLoading(false);
     }
@@ -270,14 +265,14 @@ const Login = () => {
       const data = await response.json();
 
       if (response.ok) {
-        showNotification(data.message, 'success');
+        showToast(data.message, 'success');
         setResetStep('otp'); // Move to OTP step
       } else {
-        showNotification(data.message || 'Failed to send reset email.', 'error');
+        showToast(data.message || 'Failed to send reset email.', 'error');
       }
     } catch (error) {
       console.error('Forgot password error:', error);
-      showNotification('Network error. Please try again later.', 'error');
+      showToast('Network error. Please try again later.', 'error');
     } finally {
       setResetLoading(false);
     }
@@ -305,7 +300,7 @@ const Login = () => {
       const data = await response.json();
 
       if (response.ok) {
-        showNotification('OTP Verified! Create your new password.', 'success');
+        showToast('OTP Verified! Create your new password.', 'success');
         setResetStep('password');
         setResetEmailError('');
       } else {
@@ -347,7 +342,7 @@ const Login = () => {
       const data = await response.json();
 
       if (response.ok) {
-        showNotification('Password updated successfully!', 'success');
+        showToast('Password updated successfully!', 'success');
         setShowForgotModal(false);
         setResetStep('email');
         setResetEmail('');
@@ -388,16 +383,11 @@ const Login = () => {
     setLoginData(prev => ({ ...prev, username, password }));
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setErrors({});
-    showNotification('Credentials auto-filled! You can now sign in.', 'success');
+    showToast('Credentials auto-filled! You can now sign in.', 'success');
   };
 
   return (
     <div className="login-container">
-      <div className={`notification ${notification.show ? 'show' : ''} ${notification.type}`}>
-        <i className={`fas ${notification.type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'}`}></i>
-        <span>{notification.message}</span>
-      </div>
-
       <ForgotPasswordModal
         showForgotModal={showForgotModal}
         setShowForgotModal={setShowForgotModal}

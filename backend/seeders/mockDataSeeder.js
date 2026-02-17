@@ -23,64 +23,72 @@ const seedMockData = async () => {
         // --- Hierarchy Definition ---
         const hierarchy = [
             {
-                businessArea: 'Nuwaragam Palatha Zone',
+                zone: 'Nuwaragam Palatha',
                 instructors: [
                     {
                         name: 'Chamara Perera',
                         divisions: [
-                            { name: 'Nuwaragam Palatha Central', villages: ['Pothanegama', 'Saliyapura'] },
-                            { name: 'Nuwaragam Palatha East', villages: ['Nachchaduwa', 'Hidogama'] },
-                            { name: 'Mihintale', villages: ['Mihintale Town', 'Doradeka'] }
+                            { name: 'Nachchaduwa', villages: ['Pothanegama', 'Saliyapura', 'Isurumuniyagama'] },
+                            { name: 'Hidogama', villages: ['Nachchaduwa', 'Hidogama', 'Parasangaswewa'] }
                         ]
                     },
                     {
                         name: 'Nimali Jayasinghe',
                         divisions: [
-                            { name: 'Mahavilachchiya', villages: ['Mahavilachchiya', 'Pemaduwa'] },
-                            { name: 'Tantirimale', villages: ['Tantirimale', 'Oyamaduwa'] },
-                            { name: 'Nochchiyagama', villages: ['Nochchiyagama Town', 'Pahala Maragahawewa'] }
+                            { name: 'Galnewa', villages: ['Mahavilachchiya', 'Pemaduwa', 'Kiralogama'] }
                         ]
                     }
                 ]
             },
             {
-                businessArea: 'Kekirawa Zone',
+                zone: 'Kekirawa',
                 instructors: [
                     {
                         name: 'Ruwan Silva',
                         divisions: [
-                            { name: 'Kekirawa', villages: ['Kekirawa Town', 'Madatugama'] },
-                            { name: 'Ipalogama', villages: ['Ipalogama', 'Kagama'] },
-                            { name: 'Palagala', villages: ['Palagala', 'Negampaha'] }
+                            { name: 'Kekirawa', villages: ['Kekirawa Town', 'Madatugama', 'Kala Wewa'] },
+                            { name: 'Ipalogama', villages: ['Ipalogama', 'Kagama', 'Usgala'] },
+                            { name: 'Palagala', villages: ['Palagala', 'Negampaha', 'Andiyagala'] }
                         ]
                     },
                     {
                         name: 'Kumari Dissanayake',
                         divisions: [
-                            { name: 'Thirappane', villages: ['Thirappane', 'Muriyakadawala'] },
-                            { name: 'Maradankadawala', villages: ['Maradankadawala', 'Galkulama'] },
-                            { name: 'Galnewa', villages: ['Galnewa', 'Bulnewa'] }
+                            { name: 'Thirappane', villages: ['Thirappane', 'Muriyakadawala', 'Galkadawala'] },
+                            { name: 'Maradankadawala', villages: ['Maradankadawala', 'Galkulama', 'Maminiyawa'] },
+                            { name: 'Galnewa', villages: ['Galnewa', 'Bulnewa', 'Andarawewa'] }
                         ]
                     }
                 ]
             },
             {
-                businessArea: 'Huruluwewa Zone',
+                zone: 'Huruluwewa',
                 instructors: [
                     {
                         name: 'Pradeep Bandara',
                         divisions: [
-                            { name: 'Galenbindunuwewa', villages: ['Galenbindunuwewa', 'Huruluwewa'] },
-                            { name: 'Kahatagasdigiliya', villages: ['Kahatagasdigiliya Town', 'Rathmalgahawewa'] },
-                            { name: 'Horowpothana', villages: ['Horowpothana Town', 'Kapugollewa'] }
+                            { name: 'Galenbindunuwewa', villages: ['Galenbindunuwewa', 'Huruluwewa', 'Yakalla'] },
+                            { name: 'Kahatagasdigiliya', villages: ['Kahatagasdigiliya Town', 'Rathmalgahawewa', 'Turuwila'] },
+                            { name: 'Horowpothana', villages: ['Horowpothana Town', 'Kapugollewa', 'Weeracholapura'] }
                         ]
                     },
                     {
                         name: 'Tharindu Rajapaksa',
                         divisions: [
-                            { name: 'Kebithigollewa', villages: ['Kebithigollewa', 'Yakalla'] },
-                            { name: 'Padaviya', villages: ['Padaviya', 'Parakramapura'] },
-                            { name: 'Rambewa', villages: ['Rambewa', 'Kallanchiya'] }
+                            { name: 'Kebithigollewa', villages: ['Kebithigollewa', 'Wahalkada', 'Kanugahawewa'] },
+                            { name: 'Padaviya', villages: ['Padaviya', 'Parakramapura', 'Boganewa'] },
+                            { name: 'Rambewa', villages: ['Rambewa', 'Kallanchiya', 'Puhudivula'] }
+                        ]
+                    }
+                ]
+            },
+            {
+                zone: 'Nuwaragam Palatha',
+                instructors: [
+                    {
+                        name: 'Sunil Hettiarachchi',
+                        divisions: [
+                            { name: 'Kanadara', villages: ['Medawachchiya Town', 'Ethakada', 'Poonewa'] }
                         ]
                     }
                 ]
@@ -88,7 +96,7 @@ const seedMockData = async () => {
         ];
 
         const adminNames = [
-            'Kamal Seneviratne', 'Dilhani Ekanayake', 'Suresh Ratnayake'
+            'Kamal Seneviratne', 'Dilhani Ekanayake', 'Suresh Ratnayake', 'Priyantha Kumara'
         ];
 
         const farmerNames = [
@@ -98,7 +106,11 @@ const seedMockData = async () => {
             'Nishantha Herath', 'Mahesh Gunaratne', 'Udaya Gamage', 'Sujith Rohana', 
             'Chandana Liyanage', 'Amila Sampath', 'Nuwan Pradeep', 'Gayan Asanka', 
             'Thilini Sewwandi', 'Ishara Maduwanthi', 'Priyadarshani De Silva', 'Kasun Kalhara', 
-            'Lahiru Thirimanne', 'Dimuth Karunaratne', 'Wanindu Hasaranga', 'Dasun Shanaka'
+            'Lahiru Thirimanne', 'Dimuth Karunaratne', 'Wanindu Hasaranga', 'Dasun Shanaka',
+            'Angelo Mathews', 'Kusal Perera', 'Dhananjaya De Silva', 'Pathum Nissanka',
+            'Maheesh Theekshana', 'Asalanka Charith', 'Avishka Fernando', 'Bhanuka Rajapaksa',
+            'Chamika Karunaratne', 'Dushmantha Chameera', 'Jeffrey Vandersay', 'Lahiru Kumara',
+            'Praveen Jayawickrama', 'Ramesh Mendis', 'Sadeera Samarawickrama', 'Lakshan Sandakan'
         ];
 
         // --- Clear existing mock data to prevent duplicates ---
@@ -115,8 +127,8 @@ const seedMockData = async () => {
                 email: superAdminEmail,
                 password: hashedPassword,
                 role: 'admin',
-                nic: '198001010010',
-                phone: '0710000001',
+                nic: '198001010099', // Changed from 10 to 99 to avoid clash
+                phone: '0710000099',
                 status: 'active',
                 email_verified: true
             });
@@ -170,7 +182,7 @@ const seedMockData = async () => {
                         user_id: instructor.id,
                         instructor_id: instIdCode,
                         district: district,
-                        business_area: area.businessArea,
+                        zone: area.zone,
                         assigned_divisions: assignedDivisionNames // Storing as JSON/Array
                     });
                     
@@ -180,7 +192,7 @@ const seedMockData = async () => {
                         year: year,
                         status: 'used'
                     });
-                    console.log(`Instructor ${instData.name} created (Area: ${area.businessArea}).`);
+                    console.log(`Instructor ${instData.name} created (Area: ${area.zone}).`);
                 }
 
                 // Distribute Farmers among this instructor's divisions
@@ -219,7 +231,7 @@ const seedMockData = async () => {
                             user_id: farmer.id,
                             farmer_id: farmIdCode,
                             district: district,
-                            business_area: randomVillage, // Using Village as 'location'
+                            zone: randomVillage, // Using Village as 'location'
                             instructor_division: assignedDivision.name
                         });
 

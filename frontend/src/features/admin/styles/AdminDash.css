@@ -104,6 +104,74 @@
   box-sizing: border-box;
 }
 
+/* Modal Styles - Scoped to admin-dashboard */
+.admin-dashboard .modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  backdrop-filter: blur(4px);
+}
+
+.admin-dashboard .modal-overlay.active {
+  display: flex;
+}
+
+.admin-dashboard .modal {
+  background: white;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+  animation: modalIn 0.3s ease-out;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.admin-dashboard .modal-header {
+  padding: 20px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-dashboard .modal-title {
+  font-size: 1.25em;
+  font-weight: 600;
+  color: var(--primary-dark);
+  display: flex;
+  align-items: center;
+}
+
+.admin-dashboard .modal-close {
+  background: none;
+  border: none;
+  font-size: 1.2em;
+  color: #666;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.admin-dashboard .modal-close:hover {
+  color: var(--danger);
+}
+
+.admin-dashboard .modal-content {
+  padding: 20px;
+}
+
 /* Sidebar */
 .admin-sidebar {
   width: var(--sidebar-width);
@@ -687,6 +755,29 @@
 
 .farmers-list-container {
   flex: 1;
+  max-height: 250px;
+  overflow-y: auto;
+  padding-right: 8px;
+  margin: 10px 0;
+}
+
+/* Custom Scrollbar for farmers list */
+.farmers-list-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.farmers-list-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.farmers-list-container::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 10px;
+}
+
+.farmers-list-container::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-light);
 }
 
 .farmer-list-item {
@@ -717,20 +808,6 @@
   cursor: pointer;
 }
 
-.more-farmers-text {
-  padding: 10px 0;
-  color: #7f8c8d;
-  font-size: 0.9rem;
-  font-style: italic;
-  text-align: center;
-}
-
-.btn-view-all {
-  width: 100%;
-  margin-top: 15px;
-  justify-content: center;
-}
-
 .no-results-container {
   grid-column: 1 / -1;
   text-align: center;
@@ -742,35 +819,6 @@
   font-size: 2rem;
   margin-bottom: 15px;
   opacity: 0.5;
-}
-
-.engagement-stats-container {
-  margin-top: 30px;
-  padding: 20px;
-  background: white;
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow);
-  text-align: center;
-}
-
-.engagement-card-inline {
-  display: inline-block;
-  padding: 15px 30px;
-}
-
-.engagement-stat-value {
-  font-size: 2em;
-  font-weight: bold;
-  color: var(--primary);
-}
-
-.engagement-stat-label {
-  color: var(--gray);
-  margin-bottom: 15px;
-}
-
-.engagement-stat-label:last-child {
-  margin-bottom: 0;
 }
 
 .modal-content-constrained {
@@ -1041,8 +1089,12 @@
   gap: 10px;
 }
 
-.page-title i {
+.page-title > i {
   color: var(--primary);
+}
+
+.page-title .btn i {
+  color: inherit;
 }
 
 /* Dashboard Grid Layouts */
@@ -1093,6 +1145,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
+  overflow: hidden; /* Ensure content respects rounded corners */
 }
 
 .card:hover {
@@ -1105,7 +1158,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 25px; /* Increased margin to prevent overlap */
   padding-bottom: 0;
   border-bottom: none;
 }
@@ -1115,19 +1168,22 @@
   font-weight: 700;
   color: var(--primary-dark);
   letter-spacing: -0.01em;
+  flex: 1; /* Allow title to take available space */
+  margin-right: 10px;
 }
 
 .card-icon {
-  width: 48px;
-  height: 48px;
+  width: 44px; /* Slightly smaller icon */
+  height: 44px;
   background: rgba(93, 64, 55, 0.08);
-  border-radius: 14px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--primary);
-  font-size: 1.3em;
+  font-size: 1.2em;
   transition: all 0.3s ease;
+  flex-shrink: 0; /* Prevent icon from shrinking */
 }
 
 .card:hover .card-icon {
@@ -1139,22 +1195,43 @@
 .card-content {
   color: var(--gray);
   flex: 1;
+  overflow: hidden;
+  position: relative;
+  padding-top: 5px; /* Added space at the top of content */
 }
 
 .card-list {
   list-style: none;
   position: relative;
-  padding-left: 24px;
+  padding-left: 30px; /* Increased for better timeline alignment */
 }
 
-.card-list::before {
-  content: '';
-  position: absolute;
-  left: 9px;
-  top: 10px;
-  bottom: 10px;
-  width: 2px;
-  background: #f0f0f0;
+.activities-list {
+  max-height: 250px;
+  overflow-y: auto;
+  overflow-x: hidden; /* Ensure horizontal clipping */
+  padding-right: 10px;
+  padding-top: 10px; /* Space from header */
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-light) #f1f1f1;
+}
+
+.activities-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.activities-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.activities-list::-webkit-scrollbar-thumb {
+  background: var(--primary-light);
+  border-radius: 10px;
+}
+
+.activities-list::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
 }
 
 .card-list li {
@@ -1170,7 +1247,7 @@
 .card-list li::before {
   content: '';
   position: absolute;
-  left: -24px;
+  left: -23px; /* Center is at 15px (30 padding - 23 left + 8 radius) */
   top: 50%;
   transform: translateY(-50%);
   width: 10px;
@@ -1206,11 +1283,36 @@
   white-space: nowrap;
 }
 
+/* Generic Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--primary-light);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-light) #f1f1f1;
+}
+
 /* Quick Actions */
 .quick-actions-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 15px;
+  width: 100%;
 }
 
 .quick-action-item {
@@ -1218,14 +1320,17 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 20px;
+  gap: 8px;
+  padding: 15px 10px;
   background: #f8f9fa;
   border-radius: 12px;
   cursor: pointer;
   transition: var(--transition);
   border: 1px solid transparent;
   text-align: center;
+  min-height: 110px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .quick-action-item:hover {
@@ -1237,16 +1342,19 @@
 
 .quick-action-item i {
   color: var(--primary);
-  font-size: 1.8em;
+  font-size: 1.5em;
   width: auto;
   text-align: center;
-  margin-bottom: 5px;
+  margin-bottom: 2px;
 }
 
 .quick-action-item span {
   font-weight: 600;
   color: var(--dark);
-  font-size: 0.9em;
+  font-size: 0.85em;
+  line-height: 1.2;
+  word-wrap: break-word;
+  max-width: 100%;
 }
 
 /* Send Message Card Special Styling */
@@ -1980,7 +2088,7 @@ input:checked + .slider:before {
 }
 
 /* Toast Notification */
-.toast {
+.admin-dashboard .legacy-toast {
   position: fixed;
   bottom: 20px;
   right: 20px;

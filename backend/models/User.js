@@ -50,12 +50,12 @@ const User = sequelize.define('User', {
         }
     },
     role: {
-        type: DataTypes.ENUM('admin', 'farmer', 'instructor'),
+        type: DataTypes.ENUM('admin', 'Super Admin', 'farmer', 'instructor'),
         allowNull: false,
         validate: {
             isIn: {
-                args: [['admin', 'farmer', 'instructor']],
-                msg: 'Role must be admin, farmer, or instructor'
+                args: [['admin', 'Super Admin', 'farmer', 'instructor']],
+                msg: 'Role must be admin, Super Admin, farmer, or instructor'
             }
         }
     },
@@ -92,9 +92,13 @@ const User = sequelize.define('User', {
         }
     },
     status: {
-        type: DataTypes.ENUM('active', 'inactive', 'suspended'),
+        type: DataTypes.ENUM('active', 'blocked', 'suspended'),
         defaultValue: 'active',
         allowNull: false
+    },
+    profile_picture: {
+        type: DataTypes.STRING(255),
+        allowNull: true
     },
     email_verified: {
         type: DataTypes.BOOLEAN,
@@ -113,6 +117,11 @@ const User = sequelize.define('User', {
         type: DataTypes.STRING(255),
         allowNull: true,
         comment: 'Original email for demo accounts (stores actual email before timestamp modification)'
+    },
+    avatar: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        defaultValue: null
     }
 }, {
     tableName: 'users',

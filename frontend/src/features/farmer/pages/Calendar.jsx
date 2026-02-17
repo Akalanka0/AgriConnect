@@ -51,7 +51,7 @@ const FarmerCalendar = ({ meetings }) => {
         const dateString = date.toISOString().split('T')[0];
         return meetings.filter(m => 
             m.meetingDate === dateString && 
-            (m.status === 'accepted' || m.status === 'pending')
+            (m.status === 'accepted' || m.status === 'pending' || m.status === 'reschedule')
         );
     };
 
@@ -98,7 +98,7 @@ const FarmerCalendar = ({ meetings }) => {
                                     {dayMeetings.map(m => (
                                         <div 
                                             key={m.id} 
-                                            className={`calendar-meeting-tag tag-${m.status}`} 
+                                            className={`calendar-meeting-tag tag-${m.status === 'reschedule' ? 'pending' : m.status}`} 
                                             title={`${m.status.toUpperCase()}: ${m.meetingTime} - ${m.meetingTitle} (${m.division || 'No Division'})`}
                                         >
                                             <span className="tag-status-dot"></span>
@@ -169,12 +169,9 @@ const Calendar = () => {
     const { showToast } = useOutletContext();
     const todayStr = new Date().toISOString().split('T')[0];
 
-    // Initialize meetings: load user data from localStorage but ALWAYS add fresh mock data
-    const [meetings, setMeetings] = useState(() => {
-        const saved = localStorage.getItem('agri_meetings');
-        const userMeetings = saved ? JSON.parse(saved).filter(m => !String(m.id).startsWith('mock-')) : [];
-        return [...INITIAL_MOCK_MEETINGS, ...userMeetings];
-    });
+    const [meetings, setMeetings] = useState(INITIAL_MOCK_MEETINGS);
+    const [isLoading, setIsLoading] = useState(true);
+    const [profileData, setProfileData] = useState(null);
 
     const [meetingForm, setMeetingForm] = useState({
         meetingTitle: '',
@@ -185,30 +182,81 @@ const Calendar = () => {
         division: ''
     });
 
-    const [availableDivisions] = useState(['Kebithigollewa', 'Padaviya', 'Rambewa']); // Mock available divisions for the farmer
-
+    const [availableDivisions, setAvailableDivisions] = useState([]); 
+    const [locations, setLocations] = useState([]);
     const [cancellingMeetingId, setCancellingMeetingId] = useState(null);
     const [cancelReason, setCancelReason] = useState('');
     const [viewingMeetingId, setViewingMeetingId] = useState(null);
 
-    useEffect(() => {
-        const loadMeetings = () => {
-            const saved = localStorage.getItem('agri_meetings');
-            if (saved) {
-                const userMeetings = JSON.parse(saved).filter(m => !String(m.id).startsWith('mock-'));
-                setMeetings(prev => {
-                    // Keep mock meetings from current state (which might have session-level changes)
-                    const currentMocks = prev.filter(m => String(m.id).startsWith('mock-'));
-                    return [...currentMocks, ...userMeetings];
-                });
+    const fetchMeetings = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('/api/farmer/meetings', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const result = await response.json();
+            if (result.success) {
+                // Combine mock and real meetings
+                setMeetings([...INITIAL_MOCK_MEETINGS, ...result.data]);
             }
-        };
+        } catch (error) {
+            console.error('Error fetching meetings:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-        const interval = setInterval(loadMeetings, 5000);
+    const fetchProfile = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('/api/farmer/profile', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const result = await response.json();
+            if (result.success) {
+                setProfileData(result.data);
+                
+                // Get divisions from locations
+                if (result.data.locations && result.data.locations.length > 0) {
+                    setLocations(result.data.locations);
+                    const divisions = result.data.locations
+                        .map(loc => loc.instructorDivision)
+                        .filter(Boolean);
+                    
+                    // Remove duplicates
+                    const uniqueDivisions = [...new Set(divisions)];
+                    setAvailableDivisions(uniqueDivisions);
+
+                    // Set default division to the first location's division
+                    if (uniqueDivisions.length > 0) {
+                        setMeetingForm(prev => ({ 
+                            ...prev, 
+                            division: uniqueDivisions[0] 
+                        }));
+                    }
+                } else if (result.data.instructor_division) {
+                    // Fallback to profile-level division if no locations
+                    setAvailableDivisions([result.data.instructor_division]);
+                    setMeetingForm(prev => ({ 
+                        ...prev, 
+                        division: result.data.instructor_division 
+                    }));
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching profile:', error);
+        }
+    };
+
+    useEffect(() => {
+        fetchMeetings();
+        fetchProfile();
+        
+        const interval = setInterval(fetchMeetings, 10000);
         return () => clearInterval(interval);
     }, []);
 
-    const handleMeetingSubmit = () => {
+    const handleMeetingSubmit = async () => {
         const now = new Date();
         const currentTodayStr = now.toISOString().split('T')[0];
         const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -232,31 +280,38 @@ const Calendar = () => {
             }
         }
 
-        const newMeeting = {
-            id: Date.now(),
-            ...meetingForm,
-            status: 'pending',
-            requestedBy: 'farmer',
-            farmerId: 'FARM-2026-0001',
-            createdAt: new Date().toISOString()
-        };
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('/api/farmer/meetings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(meetingForm)
+            });
 
-        const updatedMeetings = [...meetings, newMeeting];
-        setMeetings(updatedMeetings);
-        
-        // Save ONLY user meetings to localStorage
-        const userMeetingsOnly = updatedMeetings.filter(m => !String(m.id).startsWith('mock-'));
-        localStorage.setItem('agri_meetings', JSON.stringify(userMeetingsOnly));
-        
-        showToast('Meeting request sent successfully!');
-        setMeetingForm({
-            meetingTitle: '',
-            meetingDate: todayStr,
-            meetingTime: '',
-            meetingDuration: '30',
-            meetingNotes: '',
-            division: ''
-        });
+            const result = await response.json();
+            if (result.success) {
+                showToast('Meeting request sent successfully!');
+                fetchMeetings();
+                // Add window event to trigger dashboard refresh
+                window.dispatchEvent(new Event('farmerActivityLogged'));
+                setMeetingForm({
+                    meetingTitle: '',
+                    meetingDate: todayStr,
+                    meetingTime: '',
+                    meetingDuration: '30',
+                    meetingNotes: '',
+                    division: meetingForm.division
+                });
+            } else {
+                showToast(result.error?.message || 'Failed to request meeting', 'error');
+            }
+        } catch (error) {
+            console.error('Error requesting meeting:', error);
+            showToast('An error occurred while requesting meeting', 'error');
+        }
     };
 
     const handleCancelRequest = (meetingId) => {
@@ -264,29 +319,64 @@ const Calendar = () => {
         setCancelReason('');
     };
 
-    const confirmCancel = (meetingId) => {
+    const confirmCancel = async (meetingId) => {
         if (!cancelReason.trim()) {
             showToast('Please provide a reason for cancellation', 'error');
             return;
         }
 
-        const updatedMeetings = meetings.map(m => {
-            if (m.id === meetingId) {
-                return { ...m, status: 'cancelled', cancelReason: cancelReason };
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`/api/farmer/meetings/${meetingId}/cancel`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ reason: cancelReason })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                showToast('Meeting request cancelled');
+                fetchMeetings();
+                setCancellingMeetingId(null);
+                setCancelReason('');
+            } else {
+                showToast(result.error?.message || 'Failed to cancel meeting', 'error');
             }
-            return m;
-        });
-        
-        // Update session state
-        setMeetings(updatedMeetings);
-        
-        // Persist only user-created meetings. Mock meetings reset on refresh.
-        const userMeetingsOnly = updatedMeetings.filter(m => !String(m.id).startsWith('mock-'));
-        localStorage.setItem('agri_meetings', JSON.stringify(userMeetingsOnly));
-        
-        setCancellingMeetingId(null);
-        setCancelReason('');
-        showToast('Meeting request cancelled');
+        } catch (error) {
+            console.error('Error cancelling meeting:', error);
+            showToast('An error occurred while cancelling meeting', 'error');
+        }
+    };
+
+    const handleAcceptReschedule = async (meeting) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`/api/farmer/meetings/${meeting.id}/accept-reschedule`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    meetingDate: meeting.suggestedDate,
+                    meetingTime: meeting.suggestedTime
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                showToast('Reschedule accepted successfully!');
+                fetchMeetings();
+            } else {
+                showToast(result.error?.message || 'Failed to accept reschedule', 'error');
+            }
+        } catch (error) {
+            console.error('Error accepting reschedule:', error);
+            showToast('An error occurred while accepting reschedule', 'error');
+        }
     };
 
     const getStatusBadge = (status) => {
@@ -318,7 +408,7 @@ const Calendar = () => {
                     border: '1px solid #e2e8f0'
                 }}>
                     <i className="fas fa-id-badge" style={{ marginRight: '8px' }}></i>
-                    ID: FARM-2026-0001
+                    ID: {profileData?.farmer_id || 'Loading...'}
                 </div>
             </div>
 
@@ -347,16 +437,24 @@ const Calendar = () => {
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label>Instructor Division</label>
+                                    <label>Select Land Location</label>
                                     <select 
                                         className="form-control"
                                         value={meetingForm.division}
                                         onChange={(e) => setMeetingForm({ ...meetingForm, division: e.target.value })}
                                     >
-                                        <option value="">Select Division</option>
-                                        {availableDivisions.map(div => (
-                                            <option key={div} value={div}>{div}</option>
-                                        ))}
+                                        <option value="">Select Location</option>
+                                        {locations.length > 0 ? (
+                                            locations.map((loc, idx) => (
+                                                <option key={idx} value={loc.instructorDivision}>
+                                                    {loc.name || `Land ${idx + 1}`} ({loc.instructorDivision})
+                                                </option>
+                                            ))
+                                        ) : (
+                                            availableDivisions.map(div => (
+                                                <option key={div} value={div}>{div}</option>
+                                            ))
+                                        )}
                                     </select>
                                 </div>
                                 <div className="form-group">
@@ -513,7 +611,16 @@ const Calendar = () => {
                                                                 >
                                                                     <i className="fas fa-eye"></i> View
                                                                 </button>
-                                                                {meeting.status !== 'cancelled' ? (
+                                                                {meeting.status === 'reschedule' && (
+                                                                    <button 
+                                                                        className="btn btn-sm btn-success"
+                                                                        onClick={() => handleAcceptReschedule(meeting)}
+                                                                        title="Accept Reschedule"
+                                                                    >
+                                                                        <i className="fas fa-check"></i> Accept
+                                                                    </button>
+                                                                )}
+                                                                {meeting.status !== 'cancelled' && meeting.status !== 'declined' ? (
                                                                     <button 
                                                                         className="btn btn-sm btn-outline-danger"
                                                                         onClick={() => handleCancelRequest(meeting.id)}

@@ -1,13 +1,24 @@
 import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Ensure env vars are loaded
+dotenv.config({ path: path.join(__dirname, '../.env') });
 
 // Gmail SMTP configuration
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.GMAIL_EMAIL,
-    pass: process.env.GMAIL_APP_PASSWORD
-  }
-});
+const createTransporter = () => {
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.GMAIL_EMAIL,
+      pass: process.env.GMAIL_APP_PASSWORD
+    }
+  });
+};
 
 /**
  * Send verification email
@@ -59,7 +70,8 @@ export const sendVerificationEmail = async (to, verificationToken, fullName) => 
         </div>
       `
     };
-
+    
+    const transporter = createTransporter();
     await transporter.sendMail(mailOptions);
     console.log(`✅ Verification email sent to ${to}`);
     return { success: true, message: 'Verification email sent successfully' };
@@ -117,7 +129,8 @@ export const sendPasswordResetEmail = async (to, resetCode, fullName) => {
         </div>
       `
     };
-
+    
+    const transporter = createTransporter();
     await transporter.sendMail(mailOptions);
     console.log(`✅ Password reset email sent to ${to}`);
     return { success: true, message: 'Password reset email sent successfully' };
@@ -127,12 +140,78 @@ export const sendPasswordResetEmail = async (to, resetCode, fullName) => {
   }
 };
 
+/**
+ * Send admin invitation email
+ * @param {string} to - Recipient email
+ * @param {string} fullName - New admin's name
+ * @param {string} tempPassword - Temporary password
+ */
+export const sendAdminInvitationEmail = async (to, fullName, tempPassword) => {
+  try {
+    if (!process.env.GMAIL_EMAIL || !process.env.GMAIL_APP_PASSWORD) {
+      throw new Error('Missing Gmail SMTP configuration. Set GMAIL_EMAIL and GMAIL_APP_PASSWORD in backend/.env');
+    }
+    
+    const mailOptions = {
+      from: process.env.GMAIL_EMAIL,
+      to: to,
+      subject: 'AgriConnect - Admin Invitation',
+      html: `
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
+          <div style="background: linear-gradient(135deg, #5d4037, #3e2723); padding: 30px; border-radius: 10px; text-align: center; color: white;">
+            <h1 style="margin: 0; font-size: 28px;">👑 AgriConnect Admin</h1>
+            <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Welcome to the Management Team</p>
+          </div>
+          
+          <div style="background: #f9f9f9; padding: 30px; border-radius: 10px; margin: 20px 0;">
+            <h2 style="color: #333; margin-top: 0;">Hello ${fullName}!</h2>
+            <p style="color: #666; line-height: 1.6;">
+              You have been invited to join the AgriConnect administration team. Your account has been created
+              and you can now log in using the credentials below.
+            </p>
+
+            <div style="background: white; border-left: 4px solid #5d4037; padding: 20px; margin: 20px 0;">
+              <p style="margin: 5px 0;"><strong>Email:</strong> ${to}</p>
+              <p style="margin: 5px 0;"><strong>Temporary Password:</strong> ${tempPassword}</p>
+            </div>
+
+            <p style="color: #d84315; font-size: 14px; font-weight: bold;">
+              Please change your password immediately after your first login for security purposes.
+            </p>
+
+            <div style="text-align: center; margin-top: 30px;">
+              <a href="${process.env.FRONTEND_URL}/login" 
+                 style="background: #5d4037; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                Log In to Dashboard
+              </a>
+            </div>
+          </div>
+          
+          <div style="text-align: center; color: #999; font-size: 12px; margin-top: 30px;">
+            <p>This is an automated invitation. If you were not expecting this, please contact the system administrator.</p>
+            <p>&copy; 2026 AgriConnect. All rights reserved.</p>
+          </div>
+        </div>
+      `
+    };
+    
+    const transporter = createTransporter();
+    await transporter.sendMail(mailOptions);
+    console.log(`✅ Admin invitation email sent to ${to}`);
+    return { success: true, message: 'Admin invitation email sent successfully' };
+  } catch (error) {
+    console.error('❌ Error sending admin invitation email:', error);
+    throw new Error('Failed to send admin invitation email');
+  }
+};
+
 // Test email configuration
 export const testEmailService = async () => {
   try {
     if (!process.env.GMAIL_EMAIL || !process.env.GMAIL_APP_PASSWORD) {
       throw new Error('Missing Gmail SMTP configuration. Set GMAIL_EMAIL and GMAIL_APP_PASSWORD in backend/.env');
     }
+    const transporter = createTransporter();
     await transporter.verify();
     console.log('✅ Gmail SMTP service is ready to send emails');
     return true;

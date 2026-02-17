@@ -3,53 +3,136 @@ import { useOutletContext } from 'react-router-dom';
 
 const Activities = () => {
     const { showToast } = useOutletContext();
+    const [activities, setActivities] = useState([]);
+    const [availableLocations, setAvailableLocations] = useState([]);
+    const [availableCrops, setAvailableCrops] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [activityForm, setActivityForm] = useState({
         activityType: '',
         activityCrop: '',
         instructorDivision: '',
-        activityDate: '',
+        fieldLocation: '',
+        activityDate: new Date().toISOString().split('T')[0],
         activityNotes: ''
     });
 
-    // Mock Data for Farmer Locations (Instructor Divisions)
-    const availableLocations = [
-        {
-            id: 1,
-            businessArea: 'Rajanganaya',
-            instructorDivision: 'Yaya 4',
-            instructorName: 'Piyadasa Silva',
-            instructorId: 'INST-2026-0001'
-        },
-        {
-            id: 2,
-            businessArea: 'Vilachchiya',
-            instructorDivision: 'Track 4',
-            instructorName: 'Upul Tharanga',
-            instructorId: 'INST-2026-0002'
+    // Fetch activities and profile data
+    const fetchData = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            
+            // Fetch activities
+            const actRes = await fetch('/api/farmer/activities', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const actData = await actRes.json();
+            if (actRes.ok && actData.success) {
+                setActivities(actData.data);
+            }
+
+            // Fetch profile for locations
+            const profRes = await fetch('/api/farmer/profile', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const profData = await profRes.json();
+            if (profRes.ok && profData.success) {
+                let locations = profData.data.locations;
+                if (typeof locations === 'string') {
+                    try {
+                        locations = JSON.parse(locations);
+                    } catch (e) {
+                        locations = [];
+                    }
+                }
+                setAvailableLocations(Array.isArray(locations) ? locations : []);
+            }
+
+            // Fetch crops from database
+            const cropsRes = await fetch('/api/farmer/crop-calendars', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const cropsData = await cropsRes.json();
+            if (cropsRes.ok && cropsData.success) {
+                setAvailableCrops(cropsData.data || []);
+            }
+        } catch (error) {
+            console.error('Error fetching data:', error);
+            showToast('Failed to load data', 'error');
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
 
     useEffect(() => {
-        setActivityForm(prev => ({
-            ...prev,
-            activityDate: new Date().toISOString().split('T')[0]
-        }));
+        fetchData();
     }, []);
 
-    const handleActivitySubmit = () => {
+    const handleActivitySubmit = async () => {
         if (!activityForm.activityType || !activityForm.activityCrop || !activityForm.activityDate) {
             showToast('Please fill in all required fields', 'error');
             return;
         }
 
-        showToast('Activity logged successfully!');
-        setActivityForm({
-            activityType: '',
-            activityCrop: '',
-            instructorDivision: '',
-            activityDate: new Date().toISOString().split('T')[0],
-            activityNotes: ''
-        });
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/farmer/activities', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    activity_type: activityForm.activityType,
+                    crop: activityForm.activityCrop,
+                    activity_date: activityForm.activityDate,
+                    notes: activityForm.activityNotes,
+                    fieldLocation: activityForm.fieldLocation,
+                    instructorDivision: activityForm.instructorDivision
+                })
+            });
+
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast('Activity logged successfully!');
+                setActivityForm({
+                    activityType: '',
+                    activityCrop: '',
+                    instructorDivision: '',
+                    fieldLocation: '',
+                    activityDate: new Date().toISOString().split('T')[0],
+                    activityNotes: ''
+                });
+                fetchData(); // Refresh list
+            } else {
+                showToast(data.error?.message || 'Failed to log activity', 'error');
+            }
+        } catch (error) {
+            console.error('Error submitting activity:', error);
+            showToast('Failed to log activity', 'error');
+        }
+    };
+
+    const handleDeleteActivity = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this activity?')) return;
+
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`/api/farmer/activities/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast('Activity deleted successfully');
+                fetchData(); // Refresh list
+            } else {
+                showToast(data.error?.message || 'Failed to delete activity', 'error');
+            }
+        } catch (error) {
+            console.error('Error deleting activity:', error);
+            showToast('Failed to delete activity', 'error');
+        }
     };
 
     return (
@@ -90,9 +173,11 @@ const Activities = () => {
                                 onChange={(e) => setActivityForm({ ...activityForm, activityCrop: e.target.value })}
                             >
                                 <option value="">Select crop</option>
-                                <option value="rice">Rice</option>
-                                <option value="vegetables">Vegetables</option>
-                                <option value="corn">Corn</option>
+                                {availableCrops.map((crop) => (
+                                    <option key={crop.id} value={crop.name}>
+                                        {crop.name}
+                                    </option>
+                                ))}
                                 <option value="other">Other</option>
                             </select>
                         </div>
@@ -110,9 +195,9 @@ const Activities = () => {
                                 }}
                             >
                                 <option value="">Select division</option>
-                                {availableLocations.map(loc => (
-                                    <option key={loc.id} value={`${loc.businessArea} - ${loc.instructorDivision}`}>
-                                        {loc.businessArea} - {loc.instructorDivision}
+                                {availableLocations.map((loc, idx) => (
+                                    <option key={idx} value={`${loc.zone} - ${loc.instructorDivision}`}>
+                                        {loc.zone} - {loc.instructorDivision}
                                     </option>
                                 ))}
                             </select>
@@ -158,33 +243,35 @@ const Activities = () => {
                     </div>
                     <div className="card-content">
                         <div className="activities-list">
-                            {[
-                                { type: 'Irrigation', crop: 'Rice Paddy', location: 'Field A', instructorDivision: 'Rajanganaya - Yaya 4', date: '2025-10-05', details: 'Completed irrigation for rice paddy field. Applied 2 inches of water.' },
-                                { type: 'Pest Control', crop: 'Vegetables', location: 'Field B', instructorDivision: 'Vilachchiya - Track 4', date: '2025-10-03', details: 'Applied organic pesticide for aphid control in vegetable garden.' },
-                                { type: 'Fertilizing', crop: 'Corn', location: 'Field C', instructorDivision: 'Rajanganaya - Yaya 4', date: '2025-10-01', details: 'Applied NPK fertilizer to corn field. Used 50kg per acre.' },
-                                { type: 'Planting', crop: 'Tomatoes', location: 'Field D', instructorDivision: 'Vilachchiya - Track 4', date: '2025-09-28', details: 'Planted tomato seedlings. Spacing: 2 feet between plants.' }
-                            ].map((activity, index) => (
-                                <div className="activity-item" key={index}>
-                                    <div className="activity-info">
-                                        <div className="activity-header">
-                                            <h4>{activity.type}</h4>
+                            {loading ? (
+                                <div style={{ textAlign: 'center', padding: '20px' }}>Loading activities...</div>
+                            ) : activities.length > 0 ? (
+                                activities.map((activity) => (
+                                    <div className="activity-item" key={activity.id}>
+                                        <div className="activity-info">
+                                            <div className="activity-header">
+                                                <h4>{activity.type.charAt(0).toUpperCase() + activity.type.slice(1)}</h4>
+                                            </div>
+                                            <div className="activity-details">
+                                                <p><strong>Crop:</strong> {activity.crop}</p>
+                                                {activity.location && <p><strong>Location:</strong> {activity.location}</p>}
+                                                {activity.instructor_division && <p><strong>Instructor Division:</strong> {activity.instructor_division}</p>}
+                                                <p>{activity.notes}</p>
+                                            </div>
                                         </div>
-                                        <div className="activity-details">
-                                            <p><strong>Crop:</strong> {activity.crop}</p>
-                                            <p><strong>Location:</strong> {activity.location}</p>
-                                            <p><strong>Instructor Division:</strong> {activity.instructorDivision}</p>
-                                            <p>{activity.details}</p>
-                                        </div>
-                                    </div>
-                                    <div className="activity-side">
-                                        <span className="activity-date">{activity.date}</span>
-                                        <div className="activity-actions">
-                                            <button className="btn btn-primary">View</button>
-                                            <button className="btn btn-secondary">Delete</button>
+                                        <div className="activity-side">
+                                            <span className="activity-date">{new Date(activity.date).toLocaleDateString()}</span>
+                                            <div className="activity-actions">
+                                                <button className="btn btn-secondary" onClick={() => handleDeleteActivity(activity.id)}>Delete</button>
+                                            </div>
                                         </div>
                                     </div>
+                                ))
+                            ) : (
+                                <div style={{ textAlign: 'center', color: '#666', padding: '20px' }}>
+                                    No activities logged yet
                                 </div>
-                            ))}
+                            )}
                         </div>
                     </div>
                 </div>

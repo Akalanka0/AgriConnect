@@ -1,400 +1,439 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
+import '../../../admin/styles/AdminDash.css'; // Import admin modal styles
+
+// Instructor-specific modal overrides
+const instructorModalStyles = `
+  .theme-instructor .admin-modal {
+    background: rgba(0, 0, 0, 0.45) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+  }
+  
+  .theme-instructor .admin-modal-content {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15) !important;
+  }
+  
+  .theme-instructor .admin-modal-header {
+    background: rgba(248, 249, 250, 0.5) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+  }
+  
+  .theme-instructor .admin-modal-footer {
+    background: rgba(248, 249, 250, 0.5) !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.05) !important;
+  }
+  
+  .theme-instructor .admin-form-control {
+    background: rgba(255, 255, 255, 0.5) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    color: var(--neutral-800) !important;
+  }
+  
+  .theme-instructor .admin-form-control:focus {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.1) !important;
+  }
+  
+  .theme-instructor .btn-send {
+    background: linear-gradient(135deg, var(--primary), #1565c0) !important;
+    box-shadow: 0 4px 15px rgba(21, 101, 192, 0.3) !important;
+  }
+  
+  .theme-instructor .btn-send:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 25px rgba(21, 101, 192, 0.4) !important;
+    filter: brightness(1.1) !important;
+  }
+  
+  .theme-instructor .user-selection-container {
+    background: rgba(255, 255, 255, 0.3) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    border-radius: 16px !important;
+    padding: 16px !important;
+    backdrop-filter: blur(5px) !important;
+  }
+  
+  .theme-instructor .farmer-search-container {
+    position: relative !important;
+    margin-bottom: 12px !important;
+  }
+  
+  .theme-instructor .search-icon {
+    position: absolute !important;
+    left: 15px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    color: var(--primary) !important;
+    opacity: 0.6 !important;
+  }
+  
+  .theme-instructor .farmer-search-container .admin-form-control {
+    padding-left: 45px !important;
+  }
+  
+  .theme-instructor .select-all-container {
+    padding: 8px 12px !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+    margin-bottom: 8px !important;
+  }
+  
+  .theme-instructor .farmer-list {
+    max-height: 180px !important;
+    overflow-y: auto !important;
+    padding: 4px !important;
+  }
+  
+  .theme-instructor .user-checkbox-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    padding: 8px 12px !important;
+    border-radius: 10px !important;
+    transition: all 0.2s !important;
+    cursor: pointer !important;
+    margin-bottom: 4px !important;
+  }
+  
+  .theme-instructor .user-checkbox-item:hover {
+    background: rgba(21, 101, 192, 0.08) !important;
+  }
+  
+  .theme-instructor .user-checkbox-item input[type="checkbox"] {
+    width: 16px !important;
+    height: 16px !important;
+    cursor: pointer !important;
+  }
+  
+  .theme-instructor .user-checkbox-item span {
+    flex: 1 !important;
+    font-size: 0.92em !important;
+    color: var(--neutral-800) !important;
+  }
+`;
 
 const InstructorMessageModal = ({ isOpen, onClose, onSubmit }) => {
     const [formData, setFormData] = useState({
-        recipientType: 'farmer',
-        recipientIds: [], // Changed from recipientId to recipientIds
+        recipient_type: 'farmers', // Backend ENUM: 'all', 'farmers', 'instructors', 'select'
+        recipient_ids: [], // We'll handle multiple recipients by mapping to individual rows in the backend
         subject: '',
         content: '',
         attachment: null
     });
 
+    const [farmers, setFarmers] = useState([]);
+    const [isLoadingFarmers, setIsLoadingFarmers] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    
-    // Mock Farmer List (In real app, this would be fetched or passed as prop)
-    const mockFarmers = [
-        { id: 'FARM-001', name: 'Sunil Perera' },
-        { id: 'FARM-002', name: 'Kamal Gunaratne' },
-        { id: 'FARM-003', name: 'Nimal Siripala' },
-        { id: 'FARM-004', name: 'Wimal Weerawansa' },
-        { id: 'FARM-005', name: 'Bandula Gunawardena' }
-    ];
 
     const fileInputRef = useRef(null);
     const [isSending, setIsSending] = useState(false);
 
-    if (!isOpen) return null;
+    // Inject instructor-specific modal styles
+    useEffect(() => {
+        if (isOpen) {
+            // Create style element
+            const styleElement = document.createElement('style');
+            styleElement.id = 'instructor-modal-styles';
+            styleElement.textContent = instructorModalStyles;
+            document.head.appendChild(styleElement);
 
-    const filteredFarmers = mockFarmers.filter(f => 
-        f.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        f.id.toLowerCase().includes(searchTerm.toLowerCase())
+            // Cleanup function
+            return () => {
+                const existingStyle = document.getElementById('instructor-modal-styles');
+                if (existingStyle) {
+                    document.head.removeChild(existingStyle);
+                }
+            };
+        }
+    }, [isOpen]);
+
+    const filteredFarmers = farmers.filter(f =>
+        f.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        f.displayId.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const toggleFarmerSelection = (farmerId) => {
+    const toggleFarmerSelection = (id) => {
         setFormData(prev => {
-            const isSelected = prev.recipientIds.includes(farmerId);
-            const newIds = isSelected 
-                ? prev.recipientIds.filter(id => id !== farmerId)
-                : [...prev.recipientIds, farmerId];
-            return { ...prev, recipientIds: newIds };
+            const recipient_ids = prev.recipient_ids.includes(id)
+                ? prev.recipient_ids.filter(rid => rid !== id)
+                : [...prev.recipient_ids, id];
+            return { ...prev, recipient_ids };
         });
     };
 
     const toggleSelectAll = () => {
-        setFormData(prev => {
-            const allFilteredIds = filteredFarmers.map(f => f.id);
-            const areAllSelected = allFilteredIds.every(id => prev.recipientIds.includes(id));
-            
-            let newIds;
-            if (areAllSelected) {
-                // Remove all filtered IDs
-                newIds = prev.recipientIds.filter(id => !allFilteredIds.includes(id));
-            } else {
-                // Add all filtered IDs that aren't already there
-                newIds = [...new Set([...prev.recipientIds, ...allFilteredIds])];
-            }
-            return { ...prev, recipientIds: newIds };
-        });
+        const allFilteredIds = filteredFarmers.map(f => f.id);
+        const areAllSelected = allFilteredIds.every(id => formData.recipient_ids.includes(id));
+
+        if (areAllSelected) {
+            setFormData(prev => ({
+                ...prev,
+                recipient_ids: prev.recipient_ids.filter(id => !allFilteredIds.includes(id))
+            }));
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                recipient_ids: Array.from(new Set([...prev.recipient_ids, ...allFilteredIds]))
+            }));
+        }
     };
 
     const handleFileSelect = (e) => {
         const file = e.target.files[0];
         if (file) {
+            // Check file size (10MB limit)
+            if (file.size > 10 * 1024 * 1024) {
+                alert('File size exceeds 10MB limit');
+                return;
+            }
             setFormData({ ...formData, attachment: file });
         }
     };
 
-    const removeAttachment = (e) => {
-        e.stopPropagation();
+    const removeAttachment = () => {
         setFormData({ ...formData, attachment: null });
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
-    const handleSubmit = async (e) => {
-        if (e) e.preventDefault();
-        
-        if (!formData.subject || !formData.content || (formData.recipientType === 'farmer' && formData.recipientIds.length === 0)) {
-            alert('Please fill in all required fields and select at least one recipient');
+    const handleSubmit = async () => {
+        if (!formData.subject.trim() || !formData.content.trim()) {
+            alert('Please fill in both subject and message fields');
+            return;
+        }
+
+        if (formData.recipient_type === 'farmers' && formData.recipient_ids.length === 0) {
+            alert('Please select at least one farmer recipient');
             return;
         }
 
         setIsSending(true);
-        // Simulate network delay for better UX
-        await new Promise(resolve => setTimeout(resolve, 1000));
 
-        onSubmit(formData);
-        setFormData({ 
-            recipientType: 'farmer',
-            recipientIds: [],
-            subject: '', 
-            content: '', 
-            attachment: null 
-        });
-        setIsSending(false);
-        onClose();
+        const data = new FormData();
+        data.append('subject', formData.subject);
+        data.append('content', formData.content);
+        
+        if (formData.recipient_type === 'farmers') {
+            data.append('recipient_type', 'select');
+            data.append('recipient_ids', JSON.stringify(formData.recipient_ids));
+        } else {
+            data.append('recipient_type', formData.recipient_type);
+        }
+
+        if (formData.attachment) {
+            data.append('attachment', formData.attachment);
+        }
+
+        try {
+            await onSubmit(data);
+            setFormData({
+                recipient_type: 'farmers',
+                recipient_ids: [],
+                subject: '',
+                content: '',
+                attachment: null
+            });
+            onClose();
+        } catch (error) {
+            console.error('Failed to send message:', error);
+        } finally {
+            setIsSending(false);
+        }
     };
 
-    return (
+    useEffect(() => {
+        let isMounted = true;
+        
+        const fetchFarmers = async () => {
+            if (!isMounted) return;
+            try {
+                const res = await fetch('/api/instructor/farmers', {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                const data = await res.json();
+                if (data.success && isMounted) {
+                    setFarmers(data.data.map(f => ({
+                        id: f.id,
+                        name: f.name,
+                        displayId: f.displayId || `FARM-${f.id.toString().padStart(4, '0')}`
+                    })));
+                }
+            } catch (error) {
+                if (isMounted) console.error('Error fetching farmers:', error);
+            } finally {
+                if (isMounted) setIsLoadingFarmers(false);
+            }
+        };
+        
+        if (isOpen) fetchFarmers();
+        
+        return () => {
+            isMounted = false;
+        };
+    }, [isOpen]);
+
+    return createPortal(
         <div className="theme-instructor">
-            <div className="instructor-modal show" onClick={(e) => e.target.className.includes('instructor-modal') && onClose()}>
-                <div className="instructor-modal-content" style={{ maxWidth: '600px' }}>
-                    <div className="instructor-modal-header">
-                        <div className="instructor-modal-title" style={{ display: 'flex', alignItems: 'center' }}>
-                            <div style={{
-                                width: '40px', height: '40px', borderRadius: '50%',
-                                background: 'var(--primary-light)', display: 'flex',
-                                alignItems: 'center', justifyContent: 'center', color: 'white',
-                                marginRight: '15px'
-                            }}>
-                                <i className="fas fa-paper-plane"></i>
-                            </div>
-                            Send Message
-                        </div>
-                        <button className="instructor-close" onClick={onClose} style={{ background: 'none', border: 'none' }}>
+            <div
+                className="admin-modal active"
+                id="instructorMessageModal"
+                onClick={(e) => e.target === e.currentTarget && onClose()}
+            >
+                <div className="admin-modal-content">
+                    <div className="admin-modal-header">
+                        <div className="admin-modal-title">Send New Message</div>
+                        <button className="admin-modal-close-round" onClick={onClose}>
                             <i className="fas fa-times"></i>
                         </button>
                     </div>
 
-                    <div className="instructor-modal-body">
-                        <div className="form-group">
-                            <label style={{ fontWeight: '600', color: 'var(--primary-dark)', display: 'block', marginBottom: '8px' }}>Send to:</label>
-                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                                <select
-                                    className="form-control"
-                                    value={formData.recipientType}
-                                    onChange={(e) => setFormData({ ...formData, recipientType: e.target.value })}
-                                    style={{
-                                        padding: '12px 15px',
-                                        paddingLeft: '45px',
-                                        paddingRight: '40px',
-                                        borderRadius: '10px',
-                                        border: '2px solid #bbdefb',
-                                        backgroundColor: '#f5f9ff',
-                                        color: 'var(--primary-dark)',
-                                        fontWeight: '600',
-                                        cursor: 'pointer',
-                                        appearance: 'none',
-                                        width: '100%',
-                                        transition: 'all 0.3s ease',
-                                        boxShadow: '0 2px 4px rgba(21, 101, 192, 0.05)'
-                                    }}
-                                >
-                                    <option value="farmer">Registered Farmers</option>
-                                    <option value="admin">System Administrators</option>
-                                </select>
-                                <div style={{
-                                    position: 'absolute',
-                                    left: '15px',
-                                    top: '50%',
-                                    transform: 'translateY(-50%)',
-                                    width: '24px',
-                                    display: 'flex',
-                                    justifyContent: 'center',
-                                    color: 'var(--primary)',
-                                    pointerEvents: 'none',
-                                    fontSize: '1.1em'
-                                }}>
-                                    <i className={formData.recipientType === 'farmer' ? 'fas fa-users' : 'fas fa-user-shield'}></i>
-                                </div>
-                                <div style={{
-                                    position: 'absolute',
-                                    right: '15px',
-                                    top: '50%',
-                                    transform: 'translateY(-50%)',
-                                    color: 'var(--primary)',
-                                    pointerEvents: 'none',
-                                    fontSize: '0.8em',
-                                    opacity: 0.7
-                                }}>
-                                    <i className="fas fa-chevron-down"></i>
-                                </div>
-                            </div>
+                    <div className="admin-modal-body custom-scrollbar">
+                        <div className="admin-form-group">
+                            <label htmlFor="recipientType">Send to:</label>
+                            <select
+                                id="recipientType"
+                                className="admin-form-control"
+                                value={formData.recipient_type}
+                                onChange={(e) => setFormData({ ...formData, recipient_type: e.target.value })}
+                            >
+                                <option value="farmers">Registered Farmers</option>
+                                <option value="admin">System Administrators</option>
+                            </select>
                         </div>
 
-                        {formData.recipientType === 'farmer' && (
-                            <div className="form-group" style={{ marginBottom: '15px' }}>
-                                <label style={{ fontWeight: '600', color: 'var(--gray)', display: 'block', marginBottom: '8px' }}>
-                                    Recipients ({formData.recipientIds.length} selected):
-                                </label>
-                                
-                                <div style={{ 
-                                    border: '1px solid #ddd', 
-                                    borderRadius: '8px', 
-                                    padding: '10px',
-                                    backgroundColor: '#fff'
-                                }}>
+                        {formData.recipient_type === 'farmers' && (
+                            <div className="admin-form-group" id="farmerSelectionModal">
+                                <label>Recipients ({formData.recipient_ids.length} selected):</label>
+                                <div className="user-selection-container custom-scrollbar">
                                     {/* Search Input */}
-                                    <div style={{ position: 'relative', marginBottom: '10px' }}>
+                                    <div className="farmer-search-container">
                                         <input
                                             type="text"
-                                            className="form-control"
+                                            className="admin-form-control"
                                             placeholder="Search farmers..."
                                             value={searchTerm}
                                             onChange={(e) => setSearchTerm(e.target.value)}
-                                            style={{ padding: '8px 12px 8px 35px', fontSize: '0.9em', borderRadius: '6px' }}
                                         />
-                                        <i className="fas fa-search" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#999', fontSize: '0.9em' }}></i>
+                                        <i className="fas fa-search search-icon"></i>
                                     </div>
 
                                     {/* Select All */}
-                                    <div style={{ 
-                                        padding: '5px 10px', 
-                                        borderBottom: '1px solid #eee', 
-                                        marginBottom: '5px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '10px'
-                                    }}>
-                                        <input 
-                                            type="checkbox" 
-                                            id="select-all" 
-                                            checked={filteredFarmers.length > 0 && filteredFarmers.every(f => formData.recipientIds.includes(f.id))}
-                                            onChange={toggleSelectAll}
-                                            style={{ cursor: 'pointer' }}
-                                        />
-                                        <label htmlFor="select-all" style={{ fontWeight: '600', cursor: 'pointer', fontSize: '0.9em', margin: 0 }}>
-                                            Select All Filtered
+                                    <div className="select-all-container">
+                                        <label className="user-checkbox-item">
+                                            <input
+                                                type="checkbox"
+                                                checked={filteredFarmers.length > 0 && filteredFarmers.every(f => formData.recipient_ids.includes(f.id))}
+                                                onChange={toggleSelectAll}
+                                            />
+                                            <span>Select All Filtered ({filteredFarmers.length})</span>
                                         </label>
                                     </div>
 
                                     {/* Farmer List */}
-                                    <div style={{ maxHeight: '150px', overflowY: 'auto', padding: '5px' }}>
+                                    <div className="farmer-list">
                                         {filteredFarmers.length > 0 ? filteredFarmers.map(farmer => (
-                                            <div key={farmer.id} style={{ 
-                                                display: 'flex', 
-                                                alignItems: 'center', 
-                                                gap: '10px', 
-                                                padding: '6px 10px',
-                                                borderRadius: '4px',
-                                                transition: 'background 0.2s',
-                                                backgroundColor: formData.recipientIds.includes(farmer.id) ? '#f0f7ff' : 'transparent'
-                                            }}>
-                                                <input 
-                                                    type="checkbox" 
-                                                    id={`farmer-${farmer.id}`}
-                                                    checked={formData.recipientIds.includes(farmer.id)}
+                                            <label key={farmer.id} className="user-checkbox-item">
+                                                <input
+                                                    type="checkbox"
+                                                    value={farmer.id}
+                                                    checked={formData.recipient_ids.includes(farmer.id)}
                                                     onChange={() => toggleFarmerSelection(farmer.id)}
-                                                    style={{ cursor: 'pointer' }}
                                                 />
-                                                <label htmlFor={`farmer-${farmer.id}`} style={{ cursor: 'pointer', fontSize: '0.9em', margin: 0, flex: 1 }}>
-                                                    <span style={{ fontWeight: '500' }}>{farmer.name}</span>
-                                                    <span style={{ color: '#666', fontSize: '0.85em', marginLeft: '8px' }}>({farmer.id})</span>
-                                                </label>
-                                            </div>
+                                                <span>{farmer.name} ({farmer.displayId})</span>
+                                            </label>
                                         )) : (
-                                            <div style={{ textAlign: 'center', padding: '15px', color: '#999', fontSize: '0.9em' }}>
-                                                No farmers found
-                                            </div>
+                                            <p style={{ padding: '10px', color: '#666' }}>No farmers found</p>
                                         )}
                                     </div>
                                 </div>
                             </div>
                         )}
 
-                        <div className="form-group" style={{ marginBottom: '15px' }}>
-                            <label htmlFor="messageSubject" style={{ fontWeight: '600', color: 'var(--gray)', display: 'block', marginBottom: '8px' }}>Subject:</label>
+                        <div className="admin-form-group">
+                            <label htmlFor="messageSubject">Subject:</label>
                             <input
                                 type="text"
-                                className="form-control"
                                 id="messageSubject"
-                                placeholder="Enter message subject"
+                                className="admin-form-control"
+                                placeholder="What is this regarding?"
                                 value={formData.subject}
                                 onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                                style={{ padding: '12px', width: '100%', borderRadius: '8px', border: '1px solid #ddd' }}
                             />
                         </div>
 
-                        <div className="form-group" style={{ marginBottom: '15px' }}>
-                            <label htmlFor="messageContent" style={{ fontWeight: '600', color: 'var(--gray)', display: 'block', marginBottom: '8px' }}>Message:</label>
+                        <div className="admin-form-group">
+                            <label htmlFor="messageContent">Message Content:</label>
                             <textarea
-                                className="form-control"
                                 id="messageContent"
-                                rows="5"
+                                className="admin-form-control"
+                                rows="6"
                                 placeholder="Type your message here..."
                                 value={formData.content}
                                 onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                                style={{ padding: '12px', resize: 'vertical', minHeight: '100px', width: '100%', borderRadius: '8px', border: '1px solid #ddd' }}
-                            />
+                            ></textarea>
                         </div>
 
-                        <div className="form-group" style={{ marginBottom: '5px' }}>
-                            <label style={{ fontWeight: '600', color: 'var(--gray)', display: 'block', marginBottom: '8px' }}>Attachment:</label>
-
-                            {!formData.attachment ? (
-                                <div
-                                    onClick={() => fileInputRef.current.click()}
-                                    style={{
-                                        border: '2px dashed #bbdefb',
-                                        borderRadius: '8px',
-                                        padding: '20px',
-                                        textAlign: 'center',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.3s ease',
-                                        backgroundColor: '#f8fbfe'
-                                    }}
-                                    onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.backgroundColor = '#e3f2fd'; }}
-                                    onMouseOut={(e) => { e.currentTarget.style.borderColor = '#bbdefb'; e.currentTarget.style.backgroundColor = '#f8fbfe'; }}
-                                >
-                                    <div style={{ fontSize: '1.5em', color: 'var(--primary)', marginBottom: '8px' }}>
-                                        <i className="fas fa-cloud-upload-alt"></i>
-                                    </div>
-                                    <div style={{ fontWeight: '500', color: 'var(--dark)', fontSize: '0.9em' }}>Click to upload file or drag and drop</div>
-                                    <div style={{ fontSize: '0.75em', color: 'var(--gray)', marginTop: '4px' }}>Maximum file size: 10MB</div>
-                                    <input
-                                        type="file"
-                                        ref={fileInputRef}
-                                        style={{ display: 'none' }}
-                                        onChange={handleFileSelect}
-                                    />
+                        <div className="admin-form-group">
+                            <label>Attachment:</label>
+                            <div
+                                className="file-upload-zone"
+                                onClick={() => fileInputRef.current.click()}
+                            >
+                                <div className="upload-icon-wrapper">
+                                    <i className="fas fa-cloud-upload-alt"></i>
                                 </div>
-                            ) : (
-                                <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    padding: '12px',
-                                    background: '#f0f7ff',
-                                    borderRadius: '8px',
-                                    border: '1px solid #bbdefb'
-                                }}>
-                                    <div style={{
-                                        width: '35px', height: '35px', background: 'white', borderRadius: '6px',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        color: 'var(--primary)', fontSize: '1.1em', marginRight: '12px',
-                                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-                                    }}>
+                                <div className="upload-text-primary">Add attachment</div>
+                                <div className="upload-text-secondary">Images, PDF or Documents (Max 10MB)</div>
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    style={{ display: 'none' }}
+                                    onChange={handleFileSelect}
+                                />
+                            </div>
+                            {formData.attachment && (
+                                <div className="file-info-card">
+                                    <div className="file-icon">
                                         <i className="fas fa-file-alt"></i>
                                     </div>
-                                    <div style={{ flex: 1, overflow: 'hidden' }}>
-                                        <div style={{ fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '0.9em' }}>
-                                            {formData.attachment.name}
-                                        </div>
-                                        <div style={{ fontSize: '0.75em', color: 'var(--gray)' }}>
-                                            {(formData.attachment.size / 1024).toFixed(1)} KB
-                                        </div>
+                                    <div className="file-details">
+                                        <span className="file-name">{formData.attachment.name}</span>
+                                        <span className="file-size">{(formData.attachment.size / 1024).toFixed(1)} KB</span>
                                     </div>
-                                    <button
-                                        onClick={removeAttachment}
-                                        style={{
-                                            background: 'none',
-                                            border: 'none',
-                                            color: '#ef4444',
-                                            cursor: 'pointer',
-                                            padding: '5px',
-                                            fontSize: '1em'
-                                        }}
-                                    >
-                                        <i className="fas fa-times"></i>
+                                    {formData.attachment.type.startsWith('image/') && (
+                                        <div className="file-preview">
+                                            <img
+                                                src={URL.createObjectURL(formData.attachment)}
+                                                alt="Preview"
+                                            />
+                                        </div>
+                                    )}
+                                    <button type="button" className="btn-remove-file" onClick={removeAttachment}>
+                                        <i className="fas fa-trash-alt"></i>
                                     </button>
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    <div className="instructor-modal-footer">
-                        <button 
-                            type="button" 
-                            className="btn btn-secondary" 
-                            onClick={onClose}
-                            style={{ padding: '10px 20px', borderRadius: '8px', fontWeight: '600' }}
-                        >
-                            Cancel
-                        </button>
-                        <button 
-                            type="button" 
-                            className="btn btn-primary" 
-                            onClick={handleSubmit}
-                            disabled={isSending}
-                            style={{ 
-                                padding: '10px 25px', 
-                                borderRadius: '8px', 
-                                fontWeight: '600',
-                                background: 'var(--primary)',
-                                color: 'white',
-                                border: 'none',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                cursor: isSending ? 'not-allowed' : 'pointer',
-                                opacity: isSending ? 0.7 : 1
-                            }}
-                        >
+                    <div className="admin-modal-footer">
+                        <button className="btn btn-secondary" onClick={onClose} disabled={isSending}>Cancel</button>
+                        <button className="btn btn-send" onClick={handleSubmit} disabled={isSending}>
                             {isSending ? (
-                                <>
-                                    <i className="fas fa-spinner fa-spin"></i>
-                                    Sending...
-                                </>
+                                <><i className="fas fa-spinner fa-spin"></i> Sending Message...</>
                             ) : (
-                                <>
-                                    <i className="fas fa-paper-plane"></i>
-                                    Send Message
-                                </>
+                                <><i className="fas fa-paper-plane"></i> Send Message</>
                             )}
                         </button>
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

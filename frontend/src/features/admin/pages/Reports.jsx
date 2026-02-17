@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { useToast } from '../components/Toast';
 
 // Portal Component for Modals
@@ -10,16 +10,25 @@ const ModalPortal = ({ children }) => {
 };
 
 const Reports = () => {
+    // Helper to format zone names (remove "Zone" suffix if present)
+    const formatZoneName = (name) => {
+        if (!name) return '-';
+        // More robust removal: handle trailing spaces and case-insensitive "Zone"
+        return name.toString().replace(/\s+Zone\s*$/i, '').trim();
+    };
+
     const { showToast } = useToast();
     const [isGenerating, setIsGenerating] = useState(false);
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+    const abortControllerRef = useRef(false);
+
     const [currentReportType, setCurrentReportType] = useState('farmers');
     const [filters, setFilters] = useState({
-        method: 'businessArea', // Default selection
+        method: 'zone', // Default selection
         startDate: '',
         endDate: '',
         district: 'All',
-        businessArea: 'All',
+        zone: 'All',
         instructor: 'All',
         division: 'All',
         status: 'All',
@@ -29,52 +38,45 @@ const Reports = () => {
 
     // Mock Data mirroring UserManagement.jsx
     const farmersData = [
-        { id: 'FARM-2025-0001', name: 'Sunil Perera', email: 'sunil@example.com', district: 'Anuradhapura', location: 'Padaviya', division: 'Boganewa', instructor: 'Rohan Silva', status: 'Active' },
-        { id: 'FARM-2025-0002', name: 'Kamala Fernando', email: 'kamala@example.com', district: 'Anuradhapura', location: 'Padaviya', division: 'Boganewa', instructor: 'Rohan Silva', status: 'Active' },
-        { id: 'FARM-2025-0003', name: 'Nimal Rathnayake', email: 'nimal@example.com', district: 'Anuradhapura', location: 'Padaviya', division: 'Kumbukwewa', instructor: 'Rohan Silva', status: 'Active' },
-        { id: 'FARM-2025-0004', name: 'Saman Kumara', email: 'saman@example.com', district: 'Anuradhapura', location: 'Padaviya', division: 'Kumbukwewa', instructor: 'Rohan Silva', status: 'Blocked' },
-        { id: 'FARM-2025-0005', name: 'Ajith Weerasinghe', email: 'ajith@example.com', district: 'Anuradhapura', location: 'Padaviya', division: 'Boganewa', instructor: 'Rohan Silva', status: 'Active' },
+        { id: 'FARM-2025-0001', name: 'Sunil Perera', email: 'sunil@example.com', district: 'Anuradhapura', location: formatZoneName('Nuwaragam Palatha'), division: 'Nuwaragam Palatha Central', instructor: 'Chamara Perera', status: 'Active' },
+        { id: 'FARM-2025-0002', name: 'Kamala Fernando', email: 'kamala@example.com', district: 'Anuradhapura', location: formatZoneName('Nuwaragam Palatha'), division: 'Nuwaragam Palatha Central', instructor: 'Chamara Perera', status: 'Active' },
+        { id: 'FARM-2025-0003', name: 'Nimal Rathnayake', email: 'nimal@example.com', district: 'Anuradhapura', location: formatZoneName('Nuwaragam Palatha'), division: 'Nuwaragam Palatha East', instructor: 'Chamara Perera', status: 'Active' },
+        { id: 'FARM-2025-0004', name: 'Saman Kumara', email: 'saman@example.com', district: 'Anuradhapura', location: formatZoneName('Nuwaragam Palatha'), division: 'Nuwaragam Palatha East', instructor: 'Chamara Perera', status: 'Blocked' },
+        { id: 'FARM-2025-0005', name: 'Ajith Weerasinghe', email: 'ajith@example.com', district: 'Anuradhapura', location: formatZoneName('Nuwaragam Palatha'), division: 'Mihintale', instructor: 'Chamara Perera', status: 'Active' },
 
-        { id: 'FARM-2025-0006', name: 'Chitra Kumari', email: 'chitra@example.com', district: 'Anuradhapura', location: 'Rajanganaya', division: 'Yaya 1', instructor: 'Priya Bandara', status: 'Active' },
-        { id: 'FARM-2025-0007', name: 'Sarath Fonseka', email: 'sarath@example.com', district: 'Anuradhapura', location: 'Rajanganaya', division: 'Yaya 1', instructor: 'Priya Bandara', status: 'Active' },
-        { id: 'FARM-2025-0008', name: 'Malini De Silva', email: 'malini@example.com', district: 'Anuradhapura', location: 'Rajanganaya', division: 'Yaya 2', instructor: 'Priya Bandara', status: 'Active' },
-        { id: 'FARM-2025-0009', name: 'Bandara Menike', email: 'bandara@example.com', district: 'Anuradhapura', location: 'Rajanganaya', division: 'Yaya 2', instructor: 'Priya Bandara', status: 'Active' },
-        { id: 'FARM-2025-0010', name: 'Jagath Pushpakumara', email: 'jagath@example.com', district: 'Anuradhapura', location: 'Rajanganaya', division: 'Yaya 1', instructor: 'Priya Bandara', status: 'Active' },
+        { id: 'FARM-2025-0006', name: 'Chitra Kumari', email: 'chitra@example.com', district: 'Anuradhapura', location: formatZoneName('Kekirawa'), division: 'Kekirawa', instructor: 'Ruwan Silva', status: 'Active' },
+        { id: 'FARM-2025-0007', name: 'Sarath Fonseka', email: 'sarath@example.com', district: 'Anuradhapura', location: formatZoneName('Kekirawa'), division: 'Ipalogama', instructor: 'Ruwan Silva', status: 'Active' },
+        { id: 'FARM-2025-0008', name: 'Malini De Silva', email: 'malini@example.com', district: 'Anuradhapura', location: formatZoneName('Kekirawa'), division: 'Palagala', instructor: 'Ruwan Silva', status: 'Active' },
+        { id: 'FARM-2025-0009', name: 'Bandara Menike', email: 'bandara@example.com', district: 'Anuradhapura', location: formatZoneName('Kekirawa'), division: 'Thirappane', instructor: 'Kumari Dissanayake', status: 'Active' },
+        { id: 'FARM-2025-0010', name: 'Jagath Pushpakumara', email: 'jagath@example.com', district: 'Anuradhapura', location: formatZoneName('Kekirawa'), division: 'Maradankadawala', instructor: 'Kumari Dissanayake', status: 'Active' },
 
-        { id: 'FARM-2025-0011', name: 'Gunapala Herath', email: 'gunapala@example.com', district: 'Anuradhapura', location: 'Vahalkada', division: 'Track 5', instructor: 'Anura Wickramasinghe', status: 'Active' },
-        { id: 'FARM-2025-0012', name: 'Siripala Gamage', email: 'siripala@example.com', district: 'Anuradhapura', location: 'Vahalkada', division: 'Track 5', instructor: 'Anura Wickramasinghe', status: 'Active' },
-        { id: 'FARM-2025-0013', name: 'Chandani Liyanage', email: 'chandani@example.com', district: 'Anuradhapura', location: 'Vahalkada', division: 'Track 6', instructor: 'Anura Wickramasinghe', status: 'Active' },
-        { id: 'FARM-2025-0014', name: 'Duminda Silva', email: 'duminda@example.com', district: 'Anuradhapura', location: 'Vahalkada', division: 'Track 6', instructor: 'Anura Wickramasinghe', status: 'Active' },
-        { id: 'FARM-2025-0015', name: 'Mahesh Senanayake', email: 'mahesh@example.com', district: 'Anuradhapura', location: 'Vahalkada', division: 'Track 5', instructor: 'Anura Wickramasinghe', status: 'Active' },
+        { id: 'FARM-2025-0011', name: 'Gunapala Herath', email: 'gunapala@example.com', district: 'Anuradhapura', location: formatZoneName('Huruluwewa'), division: 'Galenbindunuwewa', instructor: 'Pradeep Bandara', status: 'Active' },
+        { id: 'FARM-2025-0012', name: 'Siripala Gamage', email: 'siripala@example.com', district: 'Anuradhapura', location: formatZoneName('Huruluwewa'), division: 'Kahatagasdigiliya', instructor: 'Pradeep Bandara', status: 'Active' },
+        { id: 'FARM-2025-0013', name: 'Chandani Liyanage', email: 'chandani@example.com', district: 'Anuradhapura', location: formatZoneName('Huruluwewa'), division: 'Horowpothana', instructor: 'Pradeep Bandara', status: 'Active' },
+        { id: 'FARM-2025-0014', name: 'Duminda Silva', email: 'duminda@example.com', district: 'Anuradhapura', location: formatZoneName('Huruluwewa'), division: 'Kebithigollewa', instructor: 'Tharindu Rajapaksa', status: 'Active' },
+        { id: 'FARM-2025-0015', name: 'Mahesh Senanayake', email: 'mahesh@example.com', district: 'Anuradhapura', location: formatZoneName('Huruluwewa'), division: 'Padaviya', instructor: 'Tharindu Rajapaksa', status: 'Active' },
 
-        { id: 'FARM-2025-0016', name: 'Thilini Priyadarshani', email: 'thilini@example.com', district: 'Anuradhapura', location: 'Medawachchiya', division: 'Tulana 1', instructor: 'Kasun Jayasuriya', status: 'Active' },
-        { id: 'FARM-2025-0017', name: 'Ruwan Hettiarachchi', email: 'ruwan@example.com', district: 'Anuradhapura', location: 'Medawachchiya', division: 'Tulana 1', instructor: 'Kasun Jayasuriya', status: 'Active' },
-        { id: 'FARM-2025-0018', name: 'Sanath Jayasuriya', email: 'sanath@example.com', district: 'Anuradhapura', location: 'Medawachchiya', division: 'Tulana 2', instructor: 'Kasun Jayasuriya', status: 'Active' },
-        { id: 'FARM-2025-0019', name: 'Upul Tharanga', email: 'upul@example.com', district: 'Anuradhapura', location: 'Medawachchiya', division: 'Tulana 2', instructor: 'Kasun Jayasuriya', status: 'Active' },
-        { id: 'FARM-2025-0020', name: 'Damitha Abeyratne', email: 'damitha@example.com', district: 'Anuradhapura', location: 'Medawachchiya', division: 'Tulana 1', instructor: 'Kasun Jayasuriya', status: 'Blocked' },
-
-        { id: 'FARM-2025-0021', name: 'Kanthi Perera', email: 'kanthi@example.com', district: 'Anuradhapura', location: 'Kebithigollewa', division: 'Handagala', instructor: 'Nimali Perera', status: 'Active' },
-        { id: 'FARM-2025-0022', name: 'Nihal Fernando', email: 'nihal@example.com', district: 'Anuradhapura', location: 'Kebithigollewa', division: 'Handagala', instructor: 'Nimali Perera', status: 'Active' },
-        { id: 'FARM-2025-0023', name: 'Wasantha Kumar', email: 'wasantha@example.com', district: 'Anuradhapura', location: 'Kebithigollewa', division: 'Kanugahawewa', instructor: 'Nimali Perera', status: 'Active' },
-        { id: 'FARM-2025-0024', name: 'Nayana Kumari', email: 'nayana@example.com', district: 'Anuradhapura', location: 'Kebithigollewa', division: 'Kanugahawewa', instructor: 'Nimali Perera', status: 'Active' },
-        { id: 'FARM-2025-0025', name: 'Ranjith Premadasa', email: 'ranjith@example.com', district: 'Anuradhapura', location: 'Kebithigollewa', division: 'Handagala', instructor: 'Nimali Perera', status: 'Active' }
+        { id: 'FARM-2025-0016', name: 'Thilini Priyadarshani', email: 'thilini@example.com', district: 'Anuradhapura', location: formatZoneName('Medawachchiya'), division: 'Medawachchiya', instructor: 'Sunil Hettiarachchi', status: 'Active' },
+        { id: 'FARM-2025-0017', name: 'Ruwan Hettiarachchi', email: 'ruwan@example.com', district: 'Anuradhapura', location: formatZoneName('Medawachchiya'), division: 'Kanadara', instructor: 'Sunil Hettiarachchi', status: 'Active' },
+        { id: 'FARM-2025-0018', name: 'Sanath Jayasuriya', email: 'sanath@example.com', district: 'Anuradhapura', location: formatZoneName('Medawachchiya'), division: 'Medawachchiya', instructor: 'Sunil Hettiarachchi', status: 'Active' }
     ];
 
     const instructorsData = [
-        { id: 'INST-2026-0001', name: 'Rohan Silva', email: 'rohan@example.com', district: 'Anuradhapura', businessArea: 'Padaviya', farmersCount: 5, status: 'Active' },
-        { id: 'INST-2026-0002', name: 'Priya Bandara', email: 'priya@example.com', district: 'Anuradhapura', businessArea: 'Rajanganaya', farmersCount: 5, status: 'Active' },
-        { id: 'INST-2026-0003', name: 'Anura Wickramasinghe', email: 'anura@example.com', district: 'Anuradhapura', businessArea: 'Vahalkada', farmersCount: 5, status: 'Active' },
-        { id: 'INST-2026-0004', name: 'Kasun Jayasuriya', email: 'kasun@example.com', district: 'Anuradhapura', businessArea: 'Medawachchiya', farmersCount: 5, status: 'Active' },
-        { id: 'INST-2026-0005', name: 'Nimali Perera', email: 'nimali@example.com', district: 'Anuradhapura', businessArea: 'Kebithigollewa', farmersCount: 5, status: 'Active' }
+        { id: 'INST-2026-0001', name: 'Chamara Perera', email: 'chamara@example.com', district: 'Anuradhapura', zone: formatZoneName('Nuwaragam Palatha'), farmersCount: 5, status: 'Active' },
+        { id: 'INST-2026-0002', name: 'Nimali Jayasinghe', email: 'nimali.j@example.com', district: 'Anuradhapura', zone: formatZoneName('Nuwaragam Palatha'), farmersCount: 0, status: 'Active' },
+        { id: 'INST-2026-0003', name: 'Ruwan Silva', email: 'ruwan@example.com', district: 'Anuradhapura', zone: formatZoneName('Kekirawa'), farmersCount: 3, status: 'Active' },
+        { id: 'INST-2026-0004', name: 'Kumari Dissanayake', email: 'kumari@example.com', district: 'Anuradhapura', zone: formatZoneName('Kekirawa'), farmersCount: 2, status: 'Active' },
+        { id: 'INST-2026-0005', name: 'Pradeep Bandara', email: 'pradeep@example.com', district: 'Anuradhapura', zone: formatZoneName('Huruluwewa'), farmersCount: 3, status: 'Active' },
+        { id: 'INST-2026-0006', name: 'Tharindu Rajapaksa', email: 'tharindu@example.com', district: 'Anuradhapura', zone: formatZoneName('Huruluwewa'), farmersCount: 2, status: 'Active' },
+        { id: 'INST-2026-0007', name: 'Sunil Hettiarachchi', email: 'sunil.h@example.com', district: 'Anuradhapura', zone: formatZoneName('Medawachchiya'), farmersCount: 3, status: 'Active' }
     ];
 
     // Mock Data mirroring Engagement.jsx
     const engagementData = [
-        { id: 'INST-2026-0001', name: 'Rohan Silva', businessArea: 'Padaviya', divisions: 'Boganewa, Kumbukwewa', farmersCount: 5, rating: 4.8 },
-        { id: 'INST-2026-0002', name: 'Priya Bandara', businessArea: 'Rajanganaya', divisions: 'Yaya 1, Yaya 2', farmersCount: 5, rating: 4.5 },
-        { id: 'INST-2026-0003', name: 'Anura Wickramasinghe', businessArea: 'Vahalkada', divisions: 'Track 5, Track 6', farmersCount: 5, rating: 4.2 },
-        { id: 'INST-2026-0004', name: 'Kasun Jayasuriya', businessArea: 'Medawachchiya', divisions: 'Tulana 1, Tulana 2', farmersCount: 5, rating: 4.0 },
-        { id: 'INST-2026-0005', name: 'Nimali Perera', businessArea: 'Kebithigollewa', divisions: 'Handagala, Kanugahawewa', farmersCount: 5, rating: 4.7 }
+        { id: 'INST-2026-0001', name: 'Chamara Perera', zone: formatZoneName('Nuwaragam Palatha'), divisions: 'Central, East, Mihintale', farmersCount: 5, rating: 4.8 },
+        { id: 'INST-2026-0003', name: 'Ruwan Silva', zone: formatZoneName('Kekirawa'), divisions: 'Kekirawa, Ipalogama, Palagala', farmersCount: 3, rating: 4.5 },
+        { id: 'INST-2026-0005', name: 'Pradeep Bandara', zone: formatZoneName('Huruluwewa'), divisions: 'Galenbindunuwewa, Kahatagasdigiliya, Horowpothana', farmersCount: 3, rating: 4.2 },
+        { id: 'INST-2026-0007', name: 'Sunil Hettiarachchi', zone: formatZoneName('Medawachchiya'), divisions: 'Medawachchiya, Kanadara', farmersCount: 3, rating: 4.7 }
     ];
 
     // Filter Handlers
@@ -84,7 +86,16 @@ const Reports = () => {
     };
 
     const closeFilterModal = () => {
+        if (isGenerating) {
+            handleCancelGeneration();
+        }
         setIsFilterModalOpen(false);
+    };
+
+    const handleCancelGeneration = () => {
+        abortControllerRef.current = true;
+        setIsGenerating(false);
+        showToast('Report generation cancelled', 'info');
     };
 
     const handleFilterChange = (e) => {
@@ -102,22 +113,34 @@ const Reports = () => {
         }
 
         setIsGenerating(true);
+        abortControllerRef.current = false;
         showToast(`Preparing ${currentReportType} report...`, 'info');
 
-        // Simulate minor processing delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Simulate a small delay to allow cancellation
+        await new Promise(resolve => setTimeout(resolve, 1500));
 
-        if (currentReportType === 'farmers') {
-            handleFarmersReport();
-        } else if (currentReportType === 'instructors') {
-            handleInstructorsReport();
-        } else if (currentReportType === 'engagement') {
-            handleEngagementReport();
+        if (abortControllerRef.current) return;
+
+        try {
+            if (currentReportType === 'farmers') {
+                handleFarmersReport();
+            } else if (currentReportType === 'instructors') {
+                handleInstructorsReport();
+            } else if (currentReportType === 'engagement') {
+                handleEngagementReport();
+            }
+
+            if (!abortControllerRef.current) {
+                showToast('Report generated successfully!', 'success');
+                setIsFilterModalOpen(false);
+            }
+        } catch (error) {
+            if (!abortControllerRef.current) {
+                showToast('Error generating report', 'error');
+            }
+        } finally {
+            setIsGenerating(false);
         }
-
-        setIsGenerating(false);
-        showToast('Report generated successfully!', 'success');
-        closeFilterModal();
     };
 
     // PDF Generation Function
@@ -142,7 +165,7 @@ const Reports = () => {
         doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 46);
 
         // Table
-        doc.autoTable({
+        autoTable(doc, {
             startY: 55,
             head: [columns],
             body: data,
@@ -154,15 +177,35 @@ const Reports = () => {
 
         // Footer
         const pageCount = doc.internal.getNumberOfPages();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+
         for (let i = 1; i <= pageCount; i++) {
             doc.setPage(i);
             doc.setFontSize(8);
             doc.setTextColor(150);
-            doc.text('AgriConnect Admin System - Confidential Report', 14, doc.internal.pageSize.height - 10);
-            doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.width - 20, doc.internal.pageSize.height - 10, { align: 'right' });
+            doc.text('AgriConnect Admin System - Confidential Report', 14, pageHeight - 10);
+            doc.text(`Page ${i} of ${pageCount}`, pageWidth - 20, pageHeight - 10, { align: 'right' });
         }
 
         doc.save(`${filename}.pdf`);
+    };
+
+    const generateCSV = (columns, data, filename) => {
+        const csvContent = [
+            columns.join(','),
+            ...data.map(row => row.map(cell => `"${cell}"`).join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `${filename}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     // Report Handlers
@@ -175,17 +218,23 @@ const Reports = () => {
         }
 
         // Filter by Method
-        if (filters.method === 'businessArea' && filters.businessArea !== 'All') {
-            filteredData = filteredData.filter(f => f.location === filters.businessArea);
+        if (filters.method === 'zone' && filters.zone !== 'All') {
+            filteredData = filteredData.filter(f => f.location === filters.zone);
         } else if (filters.method === 'instructor' && filters.instructor !== 'All') {
             filteredData = filteredData.filter(f => f.instructor === filters.instructor);
         } else if (filters.method === 'division' && filters.division !== 'All') {
-            filteredData = filteredData.filter(f => f.instructorDivision === filters.division);
+            filteredData = filteredData.filter(f => f.division === filters.division);
         }
 
-        const columns = ['ID', 'Name', 'Email', 'District', 'Business Area', 'Assigned Instructor', 'Status'];
+        const columns = ['ID', 'Name', 'Email', 'District', 'Zone', 'Assigned Instructor', 'Status'];
         const data = filteredData.map(f => [f.id, f.name, f.email, f.district, f.location, f.instructor, f.status]);
-        generatePDF('User Management Report', 'Registered Farmers List', columns, data, 'agriconnect_farmers_report');
+        const filename = filters.reportName ? filters.reportName.replace(/\s+/g, '_').toLowerCase() : 'agriconnect_farmers_report';
+        
+        if (filters.format === 'CSV') {
+            generateCSV(columns, data, filename);
+        } else {
+            generatePDF('User Management Report', 'Registered Farmers List', columns, data, filename);
+        }
     };
 
     const handleInstructorsReport = () => {
@@ -196,27 +245,39 @@ const Reports = () => {
             filteredData = filteredData.filter(i => i.status === filters.status);
         }
 
-        // Filter by Business Area
-        if (filters.businessArea !== 'All') {
-            filteredData = filteredData.filter(i => i.businessArea === filters.businessArea);
+        // Filter by Zone
+        if (filters.zone !== 'All') {
+            filteredData = filteredData.filter(i => i.zone === filters.zone);
         }
 
-        const columns = ['ID', 'Name', 'Email', 'District', 'Business Area', 'Farmers Count', 'Status'];
-        const data = filteredData.map(i => [i.id, i.name, i.email, i.district, i.businessArea, i.farmersCount, i.status]);
-        generatePDF('User Management Report', 'Registered Instructors List', columns, data, 'agriconnect_instructors_report');
+        const columns = ['ID', 'Name', 'Email', 'District', 'Zone', 'Farmers Count', 'Status'];
+        const data = filteredData.map(i => [i.id, i.name, i.email, i.district, i.zone, i.farmersCount, i.status]);
+        const filename = filters.reportName ? filters.reportName.replace(/\s+/g, '_').toLowerCase() : 'agriconnect_instructors_report';
+        
+        if (filters.format === 'CSV') {
+            generateCSV(columns, data, filename);
+        } else {
+            generatePDF('User Management Report', 'Registered Instructors List', columns, data, filename);
+        }
     };
 
     const handleEngagementReport = () => {
         let filteredData = engagementData;
 
-        // Filter by Business Area
-        if (filters.businessArea !== 'All') {
-            filteredData = filteredData.filter(e => e.businessArea === filters.businessArea);
+        // Filter by Zone
+        if (filters.zone !== 'All') {
+            filteredData = filteredData.filter(e => e.zone === filters.zone);
         }
 
-        const columns = ['Instructor ID', 'Name', 'Business Area', 'Divisions', 'Assigned Farmers', 'Avg Rating'];
-        const data = filteredData.map(e => [e.id, e.name, e.businessArea, Array.isArray(e.divisions) ? e.divisions.join(', ') : e.divisions, e.farmersCount, e.rating > 0 ? e.rating : 'N/A']);
-        generatePDF('Engagement Report', 'Instructor-Farmer Engagement Analysis', columns, data, 'agriconnect_engagement_report');
+        const columns = ['Instructor ID', 'Name', 'Zone', 'Divisions', 'Assigned Farmers', 'Avg Rating'];
+        const data = filteredData.map(e => [e.id, e.name, e.zone, Array.isArray(e.divisions) ? e.divisions.join(', ') : e.divisions, e.farmersCount, e.rating > 0 ? e.rating : 'N/A']);
+        const filename = filters.reportName ? filters.reportName.replace(/\s+/g, '_').toLowerCase() : 'agriconnect_engagement_report';
+        
+        if (filters.format === 'CSV') {
+            generateCSV(columns, data, filename);
+        } else {
+            generatePDF('Engagement Report', 'Instructor-Farmer Engagement Analysis', columns, data, filename);
+        }
     };
 
     return (
@@ -235,7 +296,7 @@ const Reports = () => {
                     </div>
                     <div className="card-content">
                         <p className="card-description-text">
-                            Comprehensive list of all registered farmers, including their business areas, assigned instructors, and account status.
+                            Comprehensive list of all registered farmers, including their zones, assigned instructors, and account status.
                         </p>
 
                         <button className="btn btn-primary btn-full-width" onClick={() => openFilterModal('farmers')}>
@@ -252,7 +313,7 @@ const Reports = () => {
                     </div>
                     <div className="card-content">
                         <p className="card-description-text">
-                            Detailed report on agricultural instructors, their operating districts, business areas, and farmer assignment counts.
+                            Detailed report on agricultural instructors, their operating districts, zones, and farmer assignment counts.
                         </p>
 
                         <button className="btn btn-primary btn-full-width" onClick={() => openFilterModal('instructors')}>
@@ -359,25 +420,25 @@ const Reports = () => {
                                                 value={filters.method}
                                                 onChange={handleFilterChange}
                                             >
-                                                <option value="businessArea">Business Area</option>
+                                                <option value="zone">Zone</option>
                                                 <option value="instructor">Assigned Instructor</option>
                                                 <option value="division">Instructor Division</option>
                                             </select>
                                         </div>
 
-                                        {filters.method === 'businessArea' && (
+                                        {filters.method === 'zone' && (
                                             <div className="admin-form-group">
-                                                <label>Business Area</label>
+                                                <label>Zone</label>
                                                 <select
                                                     className="admin-form-control"
-                                                    name="businessArea"
-                                                    value={filters.businessArea}
+                                                    name="zone"
+                                                    value={filters.zone}
                                                     onChange={handleFilterChange}
                                                 >
-                                                    <option value="All">All Areas</option>
-                                                    <option value="Padaviya">Padaviya</option>
-                                                    <option value="Rajanganaya">Rajanganaya</option>
-                                                    <option value="Vahalkada">Vahalkada</option>
+                                                    <option value="All">All Zones</option>
+                                                    {[...new Set(farmersData.map(f => f.location))].sort().map(zone => (
+                                                        <option key={zone} value={zone}>{zone}</option>
+                                                    ))}
                                                 </select>
                                             </div>
                                         )}
@@ -392,9 +453,9 @@ const Reports = () => {
                                                     onChange={handleFilterChange}
                                                 >
                                                     <option value="All">All Instructors</option>
-                                                    <option value="Rohan Silva">Rohan Silva</option>
-                                                    <option value="Priya Bandara">Priya Bandara</option>
-                                                    <option value="Anura Wickramasinghe">Anura Wickramasinghe</option>
+                                                    {[...new Set(farmersData.map(f => f.instructor))].sort().map(inst => (
+                                                        <option key={inst} value={inst}>{inst}</option>
+                                                    ))}
                                                 </select>
                                             </div>
                                         )}
@@ -409,10 +470,9 @@ const Reports = () => {
                                                     onChange={handleFilterChange}
                                                 >
                                                     <option value="All">All Divisions</option>
-                                                    <option value="Boganewa">Boganewa</option>
-                                                    <option value="Kumbukwewa">Kumbukwewa</option>
-                                                    <option value="Yaya 1">Yaya 1</option>
-                                                    <option value="Yaya 2">Yaya 2</option>
+                                                    {[...new Set(farmersData.map(f => f.division))].sort().map(div => (
+                                                        <option key={div} value={div}>{div}</option>
+                                                    ))}
                                                 </select>
                                             </div>
                                         )}
@@ -421,34 +481,34 @@ const Reports = () => {
 
                                 {currentReportType === 'instructors' && (
                                     <div className="admin-form-group">
-                                        <label>Business Area</label>
+                                        <label>Zone</label>
                                         <select
                                             className="admin-form-control"
-                                            name="businessArea"
-                                            value={filters.businessArea}
+                                            name="zone"
+                                            value={filters.zone}
                                             onChange={handleFilterChange}
                                         >
-                                            <option value="All">All Areas</option>
-                                            <option value="Padaviya">Padaviya</option>
-                                            <option value="Rajanganaya">Rajanganaya</option>
-                                            <option value="Vahalkada">Vahalkada</option>
+                                            <option value="All">All Zones</option>
+                                            {[...new Set(instructorsData.map(i => i.zone))].sort().map(zone => (
+                                                <option key={zone} value={zone}>{zone}</option>
+                                            ))}
                                         </select>
                                     </div>
                                 )}
 
                                 {currentReportType === 'engagement' && (
                                     <div className="admin-form-group">
-                                        <label>Business Area</label>
+                                        <label>Zone</label>
                                         <select
                                             className="admin-form-control"
-                                            name="businessArea"
-                                            value={filters.businessArea}
+                                            name="zone"
+                                            value={filters.zone}
                                             onChange={handleFilterChange}
                                         >
-                                            <option value="All">All Areas</option>
-                                            <option value="Padaviya">Padaviya</option>
-                                            <option value="Rajanganaya">Rajanganaya</option>
-                                            <option value="Vahalkada">Vahalkada</option>
+                                            <option value="All">All Zones</option>
+                                            {[...new Set(engagementData.map(e => e.zone))].sort().map(zone => (
+                                                <option key={zone} value={zone}>{zone}</option>
+                                            ))}
                                         </select>
                                     </div>
                                 )}
@@ -498,14 +558,14 @@ const Reports = () => {
                                                     </select>
                                                 </div>
                                                 <div>
-                                                    <label>Business Area</label>
+                                                    <label>Zone</label>
                                                     <select
                                                         className="admin-form-control"
-                                                        name="businessArea"
-                                                        value={filters.businessArea}
+                                                        name="zone"
+                                                        value={filters.zone}
                                                         onChange={handleFilterChange}
                                                     >
-                                                        <option value="All">All Areas</option>
+                                                        <option value="All">All Zones</option>
                                                         <option value="Padaviya">Padaviya</option>
                                                         <option value="Rajanganaya">Rajanganaya</option>
                                                         <option value="Vahalkada">Vahalkada</option>
@@ -536,44 +596,41 @@ const Reports = () => {
                                 <div className="admin-form-group">
                                     <label>Export Format</label>
                                     <div className="export-format-group">
-                                        {['farmers', 'instructors', 'engagement'].includes(currentReportType) ? (
-                                            <div className="pdf-format-label">
-                                                <i className="fas fa-file-pdf" style={{ color: '#e74c3c' }}></i> PDF Document
-                                            </div>
-                                        ) : (
-                                            <>
-                                                <label className="format-radio-label">
-                                                    <input
-                                                        type="radio"
-                                                        name="format"
-                                                        value="PDF"
-                                                        checked={filters.format === 'PDF'}
-                                                        onChange={handleFilterChange}
-                                                    />
-                                                    <i className="fas fa-file-pdf" style={{ color: '#e74c3c' }}></i> PDF Document
-                                                </label>
-                                                <label className="format-radio-label">
-                                                    <input
-                                                        type="radio"
-                                                        name="format"
-                                                        value="Excel"
-                                                        checked={filters.format === 'Excel'}
-                                                        onChange={handleFilterChange}
-                                                    />
-                                                    <i className="fas fa-file-excel" style={{ color: '#27ae60' }}></i> Excel Spreadsheet
-                                                </label>
-                                            </>
-                                        )}
+                                        <label className="format-radio-label">
+                                            <input
+                                                type="radio"
+                                                name="format"
+                                                value="PDF"
+                                                checked={filters.format === 'PDF'}
+                                                onChange={handleFilterChange}
+                                            />
+                                            <i className="fas fa-file-pdf" style={{ color: '#e74c3c' }}></i> PDF Document
+                                        </label>
+                                        <label className="format-radio-label">
+                                            <input
+                                                type="radio"
+                                                name="format"
+                                                value="CSV"
+                                                checked={filters.format === 'CSV'}
+                                                onChange={handleFilterChange}
+                                            />
+                                            <i className="fas fa-file-excel" style={{ color: '#27ae60' }}></i> CSV Spreadsheet
+                                        </label>
                                     </div>
                                 </div>
 
                                 <div className="admin-modal-footer">
-                                    <button className="btn btn-secondary" onClick={closeFilterModal} disabled={isGenerating}>Cancel</button>
+                                    <button 
+                                        className={`btn ${isGenerating ? 'btn-danger' : 'btn-secondary'}`} 
+                                        onClick={closeFilterModal}
+                                    >
+                                        {isGenerating ? 'Stop Generation' : 'Cancel'}
+                                    </button>
                                     <button className="btn btn-send" onClick={handleGenerateReport} disabled={isGenerating}>
                                         {isGenerating ? (
                                             <><i className="fas fa-spinner fa-spin"></i> Generating...</>
                                         ) : (
-                                            <><i className="fas fa-file-pdf"></i> Generate & Download</>
+                                            <><i className={filters.format === 'PDF' ? "fas fa-file-pdf" : "fas fa-file-excel"}></i> Generate & Download</>
                                         )}
                                     </button>
                                 </div>

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import StatusBadge from '../components/StatusBadge';
 import { useToast } from '../components/Toast';
@@ -11,6 +11,9 @@ const ModalPortal = ({ children }) => {
 };
 
 const Settings = () => {
+    // API Base
+    const API_BASE = '/api/admin';
+
     // State for Profile Settings
     const [profile, setProfile] = useState({
         name: 'Super Admin',
@@ -35,11 +38,9 @@ const Settings = () => {
     });
 
     // State for Admin Management (Super Admin Only)
-    const [admins, setAdmins] = useState([
-        { id: 1, name: 'Super Admin', email: 'admin@agriconnect.lk', role: 'Super Admin', status: 'Active', lastActive: 'Now' },
-        { id: 2, name: 'Kasun Perera', email: 'kasun@agriconnect.lk', role: 'Admin', status: 'Active', lastActive: '2 hours ago' },
-        { id: 3, name: 'Nimal Silva', email: 'nimal@agriconnect.lk', role: 'Admin', status: 'Pending', lastActive: 'Never' }
-    ]);
+    const [admins, setAdmins] = useState([]);
+    const [loadingAdmins, setLoadingAdmins] = useState(false);
+    const [selectedFile, setSelectedFile] = useState(null);
 
     const [isAddAdminModalOpen, setIsAddAdminModalOpen] = useState(false);
     const [newAdmin, setNewAdmin] = useState({ name: '', email: '' });
@@ -56,43 +57,242 @@ const Settings = () => {
         name: ''
     });
 
+    // Fetch Admins
+    const fetchAdmins = async () => {
+        setLoadingAdmins(true);
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE}/users?role=admin`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                // Map backend data to frontend format
+                const mappedAdmins = data.data.map(admin => ({
+                    id: admin.id,
+                    name: admin.full_name,
+                    email: admin.email,
+                    role: admin.email === 'admin@agriconnect.lk' ? 'Super Admin' : (admin.role === 'admin' ? 'Admin' : admin.role),
+                    status: admin.status.charAt(0).toUpperCase() + admin.status.slice(1),
+                    lastActive: 'Recently' // Placeholder for last active
+                }));
+                setAdmins(mappedAdmins);
+            } else {
+                showToast(data.error?.message || 'Failed to fetch admins', 'error');
+            }
+        } catch (error) {
+            console.error('Error fetching admins:', error);
+            showToast('Failed to connect to server', 'error');
+        } finally {
+            setLoadingAdmins(false);
+        }
+    };
+
+    // Fetch System Settings
+    const fetchSystemSettings = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE}/settings`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const data = await response.json();
+            if (data.success) {
+                setSystemConfig(prev => ({
+                    ...prev,
+                    ...data.data
+                }));
+            }
+        } catch (error) {
+            console.error('Error fetching system settings:', error);
+        }
+    };
+
+    useEffect(() => {
+        // Load real user data from localStorage
+        const userData = localStorage.getItem('user');
+        if (userData) {
+            try {
+                const user = JSON.parse(userData);
+                setProfile({
+                    name: user.full_name || 'Admin User',
+                    email: user.email || 'admin@agriconnect.lk',
+                    role: user.role === 'admin' ? 'Super Admin' : user.role,
+                    avatar: user.avatar || null
+                });
+            } catch (e) {
+                console.error('Error parsing user data:', e);
+            }
+        }
+        fetchAdmins();
+        fetchSystemSettings();
+    }, []);
+
     // Handlers
     const handleProfileUpdate = async (e) => {
         e.preventDefault();
+        
+        if (!selectedFile) {
+            showToast('No changes to save', 'info');
+            return;
+        }
+
         setIsUpdatingProfile(true);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        showToast('Profile updated successfully!', 'success');
-        setIsUpdatingProfile(false);
+        try {
+            const token = localStorage.getItem('token');
+            const formData = new FormData();
+            formData.append('avatar', selectedFile);
+
+            const response = await fetch(`${API_BASE}/profile`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showToast('Profile photo updated successfully!', 'success');
+                
+                // Update local storage user data
+                const userData = JSON.parse(localStorage.getItem('user'));
+                userData.avatar = data.data.avatar;
+                localStorage.setItem('user', JSON.stringify(userData));
+                
+                // Update state
+                setProfile(prev => ({ ...prev, avatar: data.data.avatar }));
+                setSelectedFile(null);
+
+                // Notify layout
+                window.dispatchEvent(new Event('storage'));
+                window.dispatchEvent(new Event('user-updated'));
+            } else {
+                showToast(data.error?.message || 'Failed to update profile', 'error');
+            }
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            showToast('Network error while updating profile', 'error');
+        } finally {
+            setIsUpdatingProfile(false);
+        }
     };
 
     const handlePasswordChange = async (e) => {
         e.preventDefault();
         if (passwordData.new !== passwordData.confirm) {
-            showToast('Passwords do not match!', 'error');
+            showToast('New passwords do not match!', 'error');
             return;
         }
+
         setIsUpdatingPassword(true);
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        showToast('Password changed successfully!', 'success');
-        setIsUpdatingPassword(false);
-        setPasswordData({ current: '', new: '', confirm: '' });
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE}/password`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    currentPassword: passwordData.current,
+                    newPassword: passwordData.new
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showToast('Password updated successfully!', 'success');
+                setPasswordData({ current: '', new: '', confirm: '' });
+            } else {
+                showToast(data.error?.message || 'Failed to update password', 'error');
+            }
+        } catch (error) {
+            console.error('Error updating password:', error);
+            showToast('Network error while updating password', 'error');
+        } finally {
+            setIsUpdatingPassword(false);
+        }
     };
 
-    const handleSystemToggle = (key) => {
-        setSystemConfig(prev => ({ ...prev, [key]: !prev[key] }));
-        showToast(`${key} setting updated!`, 'info');
+    const handleSystemToggle = async (key) => {
+        const newValue = !systemConfig[key];
+        
+        // Update local state first for responsiveness
+        setSystemConfig(prev => ({ ...prev, [key]: newValue }));
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE}/settings/${key}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ value: newValue })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                showToast(`${key} setting updated!`, 'info');
+            } else {
+                // Revert state if backend update fails
+                setSystemConfig(prev => ({ ...prev, [key]: !newValue }));
+                showToast(data.error?.message || `Failed to update ${key}`, 'error');
+            }
+        } catch (error) {
+            console.error(`Error updating ${key}:`, error);
+            // Revert state on error
+            setSystemConfig(prev => ({ ...prev, [key]: !newValue }));
+            showToast('Network error while updating setting', 'error');
+        }
     };
 
     const handleAddAdmin = async (e) => {
         e.preventDefault();
+        
+        if (!newAdmin.name || !newAdmin.email) {
+            showToast('Please fill in all fields', 'warning');
+            return;
+        }
+
         setIsAddingAdmin(true);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const newId = admins.length + 1;
-        setAdmins([...admins, { ...newAdmin, id: newId, status: 'Pending', lastActive: 'Never' }]);
-        setIsAddingAdmin(false);
-        setIsAddAdminModalOpen(false);
-        setNewAdmin({ name: '', email: '', role: 'Moderator' });
-        showToast('New admin invitation sent!', 'success');
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE}/invite`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    fullName: newAdmin.name,
+                    email: newAdmin.email
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showToast(`Invitation sent to ${newAdmin.email}!`, 'success');
+                setIsAddAdminModalOpen(false);
+                setNewAdmin({ name: '', email: '' });
+                fetchAdmins(); // Refresh the list
+            } else {
+                showToast(data.error?.message || 'Failed to send invitation', 'error');
+            }
+        } catch (error) {
+            console.error('Error inviting admin:', error);
+            showToast('Network error while sending invitation', 'error');
+        } finally {
+            setIsAddingAdmin(false);
+        }
     };
 
     const handleDeleteAdmin = (id, name) => {
@@ -118,14 +318,15 @@ const Settings = () => {
         const file = e.target.files[0];
         if (file) {
             if (file.size > 2 * 1024 * 1024) {
-                alert('File size exceeds 2MB limit');
+                showToast('File size exceeds 2MB limit', 'warning');
                 return;
             }
             if (!['image/jpeg', 'image/png'].includes(file.type)) {
-                alert('Only JPG and PNG files are allowed');
+                showToast('Only JPG and PNG files are allowed', 'warning');
                 return;
             }
 
+            setSelectedFile(file);
             const reader = new FileReader();
             reader.onloadend = () => {
                 setProfile(prev => ({ ...prev, avatar: reader.result }));
@@ -134,8 +335,42 @@ const Settings = () => {
         }
     };
 
-    const handleRemovePhoto = () => {
-        setProfile(prev => ({ ...prev, avatar: null }));
+    const handleRemovePhoto = async () => {
+        if (!window.confirm('Are you sure you want to remove your profile picture?')) return;
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE}/profile/picture`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showToast('Profile picture removed successfully', 'success');
+
+                // Update local storage
+                const userData = JSON.parse(localStorage.getItem('user'));
+                userData.avatar = null;
+                localStorage.setItem('user', JSON.stringify(userData));
+
+                // Update state
+                setProfile(prev => ({ ...prev, avatar: null }));
+                setSelectedFile(null);
+
+                // Notify layout
+                window.dispatchEvent(new Event('storage'));
+                window.dispatchEvent(new Event('user-updated'));
+            } else {
+                showToast(data.error?.message || 'Failed to remove profile picture', 'error');
+            }
+        } catch (error) {
+            console.error('Error removing profile picture:', error);
+            showToast('Network error while removing profile picture', 'error');
+        }
     };
 
     return (
@@ -162,28 +397,26 @@ const Settings = () => {
                                 }}>
                                     {!profile.avatar && profile.name.charAt(0)}
                                 </div>
-                                {profile.role === 'Super Admin' && (
-                                    <div>
-                                        <input
-                                            type="file"
-                                            ref={fileInputRef}
-                                            style={{ display: 'none' }}
-                                            accept="image/jpeg, image/png"
-                                            onChange={handlePhotoChange}
-                                        />
-                                        <div className="profile-actions">
-                                            <button type="button" className="btn btn-outline btn-sm" onClick={handlePhotoClick}>
-                                                <i className="fas fa-camera"></i> Change
+                                <div>
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        style={{ display: 'none' }}
+                                        accept="image/jpeg, image/png"
+                                        onChange={handlePhotoChange}
+                                    />
+                                    <div className="profile-actions">
+                                        <button type="button" className="btn btn-outline btn-sm" onClick={handlePhotoClick}>
+                                            <i className="fas fa-camera"></i> Change
+                                        </button>
+                                        {profile.avatar && (
+                                            <button type="button" className="btn btn-outline btn-sm btn-danger-outline" onClick={handleRemovePhoto}>
+                                                <i className="fas fa-trash"></i>
                                             </button>
-                                            {profile.avatar && (
-                                                <button type="button" className="btn btn-outline btn-sm btn-danger-outline" onClick={handleRemovePhoto}>
-                                                    <i className="fas fa-trash"></i>
-                                                </button>
-                                            )}
-                                        </div>
-                                        <div className="profile-hint">Allowed: JPG, PNG (Max 2MB)</div>
+                                        )}
                                     </div>
-                                )}
+                                    <div className="profile-hint">Allowed: JPG, PNG (Max 2MB)</div>
+                                </div>
                             </div>
 
                             <div className="form-group">
@@ -289,7 +522,7 @@ const Settings = () => {
                                             <td><StatusBadge status={admin.status} /></td>
                                             <td>{admin.lastActive}</td>
                                             <td>
-                                                {admin.role !== 'Super Admin' && (
+                                                {admin.role !== 'Super Admin' && admin.role !== 'admin' && (
                                                     <button
                                                         className="btn btn-sm btn-danger btn-icon-only"
                                                         onClick={() => handleDeleteAdmin(admin.id, admin.name)}
@@ -380,10 +613,16 @@ const Settings = () => {
                                     </button>
                                     <button
                                         type="submit"
-                                        className="btn btn-primary"
+                                        className="btn btn-send"
                                         disabled={isAddingAdmin}
                                     >
-                                        {isAddingAdmin ? <><i className="fas fa-spinner fa-spin"></i> Sending...</> : 'Send Invitation'}
+                                        {isAddingAdmin ? (
+                                            <>
+                                                <i className="fas fa-spinner fa-spin"></i> Sending...
+                                            </>
+                                        ) : (
+                                            'Send Invitation'
+                                        )}
                                     </button>
                                 </div>
                             </form>

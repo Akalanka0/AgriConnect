@@ -6,7 +6,23 @@ import { useToast } from '../components/Toast';
 import ConfirmModal from '../components/ConfirmModal';
 import '../styles/AdminDash.css';
 
+const zoneOptions = [
+    { id: 'BA-001', name: 'Nochchiyagama' },
+    { id: 'BA-002', name: 'Thambuttegama' },
+    { id: 'BA-003', name: 'Galenbindunuwewa' },
+    { id: 'BA-004', name: 'Rajanganaya' },
+    { id: 'BA-005', name: 'Vilachchiya' },
+    { id: 'BA-006', name: 'Huruluwewa' }
+];
+
 const UserManagement = () => {
+    // Helper to format zone names (remove "Zone" suffix if present)
+    const formatZoneName = (name) => {
+        if (!name) return '-';
+        // More robust removal: handle trailing spaces and case-insensitive "Zone"
+        return name.toString().replace(/\s+Zone\s*$/i, '').trim();
+    };
+
     const [activeTab, setActiveTab] = useState('farmers');
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
@@ -16,6 +32,16 @@ const UserManagement = () => {
     const [loading, setLoading] = useState(false);
     const [users, setUsers] = useState([]);
     const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
+
+    // New state for local divisions
+    const [localDivisions, setLocalDivisions] = useState([]);
+    const [isAddDivisionModalOpen, setIsAddDivisionModalOpen] = useState(false);
+    const [newDivision, setNewDivision] = useState({
+        district: 'Anuradhapura',
+        zone: zoneOptions[0].name,
+        instructorDivision: '',
+        status: 'Active'
+    });
 
     // Toast and Confirm Modal State
     const { showToast } = useToast();
@@ -55,12 +81,12 @@ const UserManagement = () => {
                         email: user.email,
                         phone: user.phone,
                         district: details.district || '-',
-                        location: details.business_area || '-', // Map business_area to location
+                        location: formatZoneName(details.zone), // Map zone to project
                         instructorDivision: details.instructor_division || '-',
                         instructor: user.instructor, // Assigned Instructor Name
                         farmersCount: user.farmersCount, // Calculated Farmers Count
                         // For instructors
-                        businessArea: details.business_area || '-',
+                        zone: formatZoneName(details.zone),
                         divisions: typeof details.assigned_divisions === 'string' 
                             ? JSON.parse(details.assigned_divisions || '[]') 
                             : (details.assigned_divisions || []),
@@ -70,6 +96,34 @@ const UserManagement = () => {
                 });
                 setUsers(transformedUsers);
                 setPagination(prev => ({ ...prev, total: result.pagination.total }));
+
+        // Sync localDivisions with instructor divisions if it's the first fetch
+        if (localDivisions.length === 0) {
+            const initialDivs = transformedUsers
+                .filter(u => u.divisions && u.divisions.length > 0)
+                .flatMap(inst => inst.divisions.map(div => ({
+                    id: `init-${inst.id}-${div}`,
+                    district: inst.district,
+                    zone: inst.zone,
+                    instructorDivision: div,
+                    status: 'Active'
+                })));
+            
+            // Remove duplicates based on zone and instructorDivision
+            const uniqueDivs = initialDivs.reduce((acc, current) => {
+                const x = acc.find(item => 
+                    item.zone === current.zone && 
+                    item.instructorDivision === current.instructorDivision
+                );
+                if (!x) {
+                    return acc.concat([current]);
+                } else {
+                    return acc;
+                }
+            }, []);
+
+            setLocalDivisions(uniqueDivs);
+        }
             }
         } catch (error) {
             console.error('Error fetching users:', error);
@@ -126,27 +180,41 @@ const UserManagement = () => {
 
     // Filter Logic (Client-side filtering for Area/District if needed, but mostly Server-side now)
     const currentList = users;
-    const areaKey = activeTab === 'farmers' ? 'location' : 'businessArea';
+    const areaKey = activeTab === 'farmers' ? 'location' : 'zone';
 
-    const businessAreas = ['All', ...Array.from(new Set(currentList.map(u => u[areaKey]).filter(Boolean)))];
-    const currentData = currentList.filter(u => {
-        const matchesArea = areaFilter === 'All' || u[areaKey] === areaFilter;
+    const zones = ['All', ...Array.from(new Set(
+        activeTab === 'divisions' 
+            ? localDivisions.map(d => d.zone).filter(Boolean)
+            : currentList.map(u => u[areaKey]).filter(Boolean)
+    ))];
+
+    // Helper to get flattened divisions if activeTab is 'divisions'
+    const getFlattenedData = () => {
+        if (activeTab !== 'divisions') return currentList;
+        return localDivisions;
+    };
+
+    const currentData = getFlattenedData().filter(u => {
+        const matchesArea = areaFilter === 'All' || (u.zone || u.location) === areaFilter;
+        const matchesStatus = statusFilter === 'all' || (u.status || '').toLowerCase() === statusFilter.toLowerCase();
         const term = searchTerm.toLowerCase();
-        const matchesSearch = !searchTerm || 
-            u.name.toLowerCase().includes(term) ||
+        const matchesSearch = !searchTerm ||
+            (u.name || '').toLowerCase().includes(term) ||
             (u.displayId || '').toLowerCase().includes(term) ||
             (u.phone || '').toLowerCase().includes(term) ||
             (u.email || '').toLowerCase().includes(term) ||
             (u.district || '').toLowerCase().includes(term) ||
-            (u.location || '').toLowerCase().includes(term);
-        return matchesArea && matchesSearch;
+            (u.location || '').toLowerCase().includes(term) ||
+            (u.zone || '').toLowerCase().includes(term) ||
+            (u.instructorDivision || '').toLowerCase().includes(term);
+        return matchesArea && matchesSearch && matchesStatus;
     });
 
     // Table Columns
     const farmerColumns = [
         { header: 'ID', accessor: 'displayId', width: '140px' },
         { header: 'NAME', accessor: 'name' },
-        { header: 'BUSINESS AREA', accessor: 'location' },
+        { header: 'ZONE', accessor: 'location', render: (row) => formatZoneName(row.location) },
         { header: 'ASSIGNED INSTRUCTOR', accessor: 'instructor', render: (row) => row.instructor || 'Not Assigned' },
         {
             header: 'STATUS',
@@ -159,7 +227,7 @@ const UserManagement = () => {
     const instructorColumns = [
         { header: 'ID', accessor: 'displayId', width: '140px' },
         { header: 'NAME', accessor: 'name' },
-        { header: 'BUSINESS AREA', accessor: 'businessArea' },
+        { header: 'ZONE', accessor: 'zone', render: (row) => formatZoneName(row.zone) },
         { header: 'FARMERS COUNT', accessor: 'farmersCount', render: (row) => row.farmersCount || 0 },
         {
             header: 'STATUS',
@@ -167,6 +235,12 @@ const UserManagement = () => {
             render: (row) => <StatusBadge status={row.status} />
         },
         { header: 'JOINED DATE', accessor: 'joined' }
+    ];
+
+    const divisionColumns = [
+        { header: 'DISTRICT', accessor: 'district' },
+        { header: 'ZONE', accessor: 'zone', render: (row) => formatZoneName(row.zone) },
+        { header: 'INSTRUCTOR DIVISION', accessor: 'instructorDivision' }
     ];
 
     const deleteUser = async (userId) => {
@@ -196,63 +270,122 @@ const UserManagement = () => {
         } else if (action === 'delete') {
             setConfirmConfig({
                 isOpen: true,
-                title: 'Delete User',
-                message: `Are you sure you want to delete ${user.name}? This action cannot be undone.`,
+                title: activeTab === 'divisions' ? 'Delete Division' : 'Delete User',
+                message: activeTab === 'divisions' 
+                    ? `Are you sure you want to delete the division "${user.instructorDivision}"?` 
+                    : `Are you sure you want to delete ${user.name}? This action cannot be undone.`,
                 confirmText: 'Delete',
                 type: 'danger',
                 onConfirm: async () => {
                     setConfirmConfig(prev => ({ ...prev, loading: true }));
-                    await deleteUser(user.id);
+                    if (activeTab === 'divisions') {
+                        setLocalDivisions(prev => prev.filter(d => d.id !== user.id));
+                        showToast('Division deleted successfully', 'success');
+                    } else {
+                        await deleteUser(user.id);
+                    }
                     setConfirmConfig(prev => ({ ...prev, isOpen: false, loading: false }));
-                    // Toast handled in deleteUser
                 }
             });
-        } else if (action === 'block') {
+        } else if (action === 'block' || action === 'disable') {
             setConfirmConfig({
                 isOpen: true,
-                title: 'Block User',
-                message: `Are you sure you want to block ${user.name}? They will not be able to log in.`,
-                confirmText: 'Block',
+                title: activeTab === 'divisions' ? 'Disable Division' : 'Block User',
+                message: activeTab === 'divisions'
+                    ? `Are you sure you want to disable "${user.instructorDivision}"?`
+                    : `Are you sure you want to block ${user.name}? They will not be able to log in.`,
+                confirmText: activeTab === 'divisions' ? 'Disable' : 'Block',
                 type: 'warning',
                 onConfirm: async () => {
                     setConfirmConfig(prev => ({ ...prev, loading: true }));
-                    await handleStatusChange(user, 'blocked');
+                    if (activeTab === 'divisions') {
+                        setLocalDivisions(prev => prev.map(d => d.id === user.id ? { ...d, status: 'Blocked' } : d));
+                        showToast('Division disabled successfully', 'warning');
+                    } else {
+                        await handleStatusChange(user, 'blocked');
+                    }
                     setConfirmConfig(prev => ({ ...prev, isOpen: false, loading: false }));
-                    showToast(`${user.name} has been blocked.`, 'warning');
                 }
             });
-        } else if (action === 'unblock') {
+        } else if (action === 'unblock' || action === 'enable') {
             setConfirmConfig({
                 isOpen: true,
-                title: 'Unblock User',
-                message: `Are you sure you want to unblock ${user.name}?`,
-                confirmText: 'Unblock',
+                title: activeTab === 'divisions' ? 'Enable Division' : 'Unblock User',
+                message: activeTab === 'divisions'
+                    ? `Are you sure you want to enable "${user.instructorDivision}"?`
+                    : `Are you sure you want to unblock ${user.name}?`,
+                confirmText: activeTab === 'divisions' ? 'Enable' : 'Unblock',
                 type: 'success',
                 onConfirm: async () => {
                     setConfirmConfig(prev => ({ ...prev, loading: true }));
-                    await handleStatusChange(user, 'active');
+                    if (activeTab === 'divisions') {
+                        setLocalDivisions(prev => prev.map(d => d.id === user.id ? { ...d, status: 'Active' } : d));
+                        showToast('Division enabled successfully', 'success');
+                    } else {
+                        await handleStatusChange(user, 'active');
+                    }
                     setConfirmConfig(prev => ({ ...prev, isOpen: false, loading: false }));
-                    showToast(`${user.name} has been unblocked.`, 'success');
                 }
             });
         }
     };
 
     const actions = [
-        { name: 'view', type: 'primary', label: 'View' },
+        { 
+            name: 'view', 
+            type: 'primary', 
+            label: 'View',
+            hidden: activeTab === 'divisions'
+        },
         { name: 'delete', type: 'danger', label: 'Delete' },
         {
-            name: (row) => row.status.toLowerCase() === 'blocked' ? 'unblock' : 'block',
+            name: (row) => row.status.toLowerCase() === 'blocked' ? (activeTab === 'divisions' ? 'enable' : 'unblock') : (activeTab === 'divisions' ? 'disable' : 'block'),
             type: (row) => row.status.toLowerCase() === 'blocked' ? 'warning' : 'secondary',
-            label: (row) => row.status.toLowerCase() === 'blocked' ? 'Unblock' : 'Block'
+            label: (row) => row.status.toLowerCase() === 'blocked' ? (activeTab === 'divisions' ? 'Enable' : 'Unblock') : (activeTab === 'divisions' ? 'Disable' : 'Block')
         }
     ];
+
+    // Filter actions for the specific tab
+    const activeActions = actions.filter(action => !action.hidden);
+
+    const handleAddDivision = (e) => {
+        e.preventDefault();
+        if (!newDivision.zone || !newDivision.instructorDivision) {
+            showToast('Please fill in all fields', 'warning');
+            return;
+        }
+
+        const newEntry = {
+            ...newDivision,
+            zone: formatZoneName(newDivision.zone),
+            id: `new-${Date.now()}`
+        };
+
+        setLocalDivisions(prev => [newEntry, ...prev]);
+        setIsAddDivisionModalOpen(false);
+        setNewDivision({
+            district: 'Anuradhapura',
+            zone: zoneOptions[0].name,
+            instructorDivision: '',
+            status: 'Active'
+        });
+        showToast('Division added successfully', 'success');
+    };
 
     return (
         <div className="page active" id="users">
             <div className="page-title">
                 <i className="fas fa-users"></i>
                 <h2>User Management</h2>
+                {activeTab === 'divisions' && (
+                    <button 
+                        className="btn btn-primary" 
+                        style={{ marginLeft: 'auto' }}
+                        onClick={() => setIsAddDivisionModalOpen(true)}
+                    >
+                        <i className="fas fa-plus" style={{ marginRight: '8px' }}></i> Add Division
+                    </button>
+                )}
             </div>
 
             {/* Tabs */}
@@ -269,6 +402,12 @@ const UserManagement = () => {
                 >
                     Instructors
                 </button>
+                <button
+                    className={`tab-btn ${activeTab === 'divisions' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('divisions')}
+                >
+                    Divisions
+                </button>
             </div>
 
             {/* Filters */}
@@ -278,7 +417,7 @@ const UserManagement = () => {
                     <input
                         type="text"
                         className="filter-input"
-                        placeholder="Search by name, ID, location, or phone..."
+                        placeholder="Search by name, ID, zone, or phone..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -289,8 +428,8 @@ const UserManagement = () => {
                         value={areaFilter}
                         onChange={(e) => setAreaFilter(e.target.value)}
                     >
-                        {businessAreas.map(area => (
-                            <option key={area} value={area}>{area === 'All' ? 'All Areas' : area}</option>
+                        {zones.map(area => (
+                            <option key={area} value={area}>{area === 'All' ? 'All Zones' : area}</option>
                         ))}
                     </select>
                 </div>
@@ -326,9 +465,13 @@ const UserManagement = () => {
 
             {/* Data Table */}
             <DataTable
-                columns={activeTab === 'farmers' ? farmerColumns : instructorColumns}
+                columns={
+                    activeTab === 'farmers' ? farmerColumns :
+                        activeTab === 'instructors' ? instructorColumns :
+                            divisionColumns
+                }
                 data={currentData}
-                actions={actions}
+                actions={activeActions}
                 onAction={handleAction}
                 emptyMessage={loading ? 'Loading users...' : `No ${activeTab} found matching your filters.`}
             />
@@ -353,6 +496,83 @@ const UserManagement = () => {
                 type={confirmConfig.type}
                 loading={confirmConfig.loading}
             />
+
+            {/* Add Division Modal */}
+            <div 
+                className={`modal-overlay ${isAddDivisionModalOpen ? 'active' : ''}`}
+                onClick={() => setIsAddDivisionModalOpen(false)}
+            >
+                <div className="modal" style={{ maxWidth: '500px' }} onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-header">
+                        <h3 className="modal-title">
+                            <i className="fas fa-map-marker-alt" style={{ marginRight: '10px', color: 'var(--primary)' }}></i>
+                            Add New Division
+                        </h3>
+                        <button className="modal-close" onClick={() => setIsAddDivisionModalOpen(false)}>
+                            <i className="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <form onSubmit={handleAddDivision}>
+                        <div className="admin-modal-body">
+                            <div className="admin-form-group">
+                                <label>
+                                    <i className="fas fa-city" style={{ marginRight: '8px', color: 'var(--gray)' }}></i>
+                                    District
+                                </label>
+                                <input 
+                                    type="text" 
+                                    className="admin-form-control" 
+                                    value={newDivision.district}
+                                    readOnly
+                                    style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                                />
+                                <small style={{ color: '#7f8c8d', fontSize: '0.8rem' }}>Default district is Anuradhapura</small>
+                            </div>
+                            <div className="admin-form-group">
+                                <label>
+                                    <i className="fas fa-layer-group" style={{ marginRight: '8px', color: 'var(--gray)' }}></i>
+                                    Zone (Project)
+                                </label>
+                                <select 
+                                    className="admin-form-control" 
+                                    value={newDivision.zone}
+                                    onChange={(e) => setNewDivision({...newDivision, zone: e.target.value})}
+                                    required
+                                >
+                                    {zoneOptions.map(zone => (
+                                        <option key={zone.id} value={zone.name}>
+                                            {zone.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="admin-form-group">
+                                <label>
+                                    <i className="fas fa-id-badge" style={{ marginRight: '8px', color: 'var(--gray)' }}></i>
+                                    Instructor Division
+                                </label>
+                                <input 
+                                    type="text" 
+                                    className="admin-form-control" 
+                                    placeholder="e.g. Division 01"
+                                    value={newDivision.instructorDivision}
+                                    onChange={(e) => setNewDivision({...newDivision, instructorDivision: e.target.value})}
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div className="admin-modal-footer">
+                            <button type="button" className="btn btn-secondary" onClick={() => setIsAddDivisionModalOpen(false)}>
+                                Cancel
+                            </button>
+                            <button type="submit" className="btn btn-primary">
+                                <i className="fas fa-save" style={{ marginRight: '8px' }}></i>
+                                Save Division
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div >
     );
 };

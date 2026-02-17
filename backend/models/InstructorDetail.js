@@ -38,7 +38,7 @@ const InstructorDetail = sequelize.define('InstructorDetail', {
         type: DataTypes.STRING(50),
         allowNull: true
     },
-    business_area: {
+    zone: {
         type: DataTypes.STRING(100),
         allowNull: true
     },
@@ -46,6 +46,24 @@ const InstructorDetail = sequelize.define('InstructorDetail', {
         type: DataTypes.JSON,
         allowNull: true,
         defaultValue: []
+    },
+    specialization: {
+        type: DataTypes.STRING(255),
+        allowNull: true
+    },
+    experience: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue: 0
+    },
+    qualifications: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    average_rating: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+        defaultValue: 0.0
     }
 }, {
     tableName: 'instructor_details',
