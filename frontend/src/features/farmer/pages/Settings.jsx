@@ -1,87 +1,217 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 
 const Settings = () => {
     const { showToast } = useOutletContext();
 
     const [settings, setSettings] = useState({
-        farmerId: 'FARM-2026-0001',
+        farmerId: '',
         district: 'Anuradhapura',
-        // Locations Array: Each location has its own businessArea, division, and instructor
-        locations: [
-            {
-                id: 1,
-                businessArea: 'Rajanganaya',
-                instructorDivision: 'Yaya 4',
-                assignedInstructorId: 'INST-2026-0005',
-                assignedInstructorName: 'Piyadasa Silva'
-            },
-            {
-                id: 2,
-                businessArea: 'Vilachchiya',
-                instructorDivision: 'Track 4',
-                assignedInstructorId: 'INST-2026-0007',
-                assignedInstructorName: 'Upul Tharanga'
-            }
-        ],
-        fullName: 'Sunil Perera',
-        email: 'sunil.perera@example.com',
-        phone: '+94 77 123 4567',
-        messageNotifications: true,
-        weatherAlerts: true,
-        pestAlerts: true
+        zone: '', // Initialize zone field
+        locations: [],
+        fullName: '',
+        email: '',
+        phone: '',
+        profilePicture: null
     });
+    const [loading, setLoading] = useState(true);
+    const [isUpdatingPicture, setIsUpdatingPicture] = useState(false);
+    const [hierarchyData, setHierarchyData] = useState({});
+    const [instructors, setInstructors] = useState([]);
+    const fileInputRef = React.useRef(null);
 
-    // Mock Data for Hierarchy
-    const businessAreaOptions = [
-        { id: 'BA-001', name: 'Nochchiyagama' },
-        { id: 'BA-002', name: 'Thambuttegama' },
-        { id: 'BA-003', name: 'Galenbindunuwewa' },
-        { id: 'BA-004', name: 'Rajanganaya' },
-        { id: 'BA-005', name: 'Vilachchiya' },
-        { id: 'BA-006', name: 'Huruluwewa' }
-    ];
+    // Fetch farmer profile and other data on mount
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const headers = { 'Authorization': `Bearer ${token}` };
 
-    const instructorDivisionOptions = [
-        // Nochchiyagama
-        { id: 'ID-001', name: 'Nochchiyagama Town', businessAreaId: 'BA-001', instructorId: 'INST-2026-0001', instructorName: 'Rohan Silva' },
-        { id: 'ID-002', name: 'Pahala Halmillewa', businessAreaId: 'BA-001', instructorId: 'INST-2026-0002', instructorName: 'Nimal Perera' },
-        // Thambuttegama
-        { id: 'ID-003', name: 'Thambuttegama West', businessAreaId: 'BA-002', instructorId: 'INST-2026-0003', instructorName: 'Kamal Gunaratne' },
-        // Galenbindunuwewa
-        { id: 'ID-004', name: 'Galenbindunuwewa South', businessAreaId: 'BA-003', instructorId: 'INST-2026-0004', instructorName: 'Saman Kumara' },
-        // Rajanganaya
-        { id: 'ID-005', name: 'Yaya 4', businessAreaId: 'BA-004', instructorId: 'INST-2026-0005', instructorName: 'Piyadasa Silva' },
-        { id: 'ID-006', name: 'Yaya 5', businessAreaId: 'BA-004', instructorId: 'INST-2026-0006', instructorName: 'Kusum Perera' },
-        // Vilachchiya
-        { id: 'ID-007', name: 'Track 4', businessAreaId: 'BA-005', instructorId: 'INST-2026-0007', instructorName: 'Upul Tharanga' },
-        { id: 'ID-008', name: 'Track 5', businessAreaId: 'BA-005', instructorId: 'INST-2026-0008', instructorName: 'Ruwan Hettiarachchi' },
-        // Huruluwewa
-        { id: 'ID-009', name: 'Huruluwewa Left Bank', businessAreaId: 'BA-006', instructorId: 'INST-2026-0009', instructorName: 'Anura Bandara' },
-        { id: 'ID-010', name: 'Huruluwewa Right Bank', businessAreaId: 'BA-006', instructorId: 'INST-2026-0010', instructorName: 'Champa Kumari' }
-    ];
+                // Fetch Profile, Hierarchy, and Instructors in parallel
+                const [profileRes, hierarchyRes, instructorsRes] = await Promise.all([
+                    fetch('/api/farmer/profile', { headers }),
+                    fetch('/api/farmer/region-hierarchy', { headers }),
+                    fetch('/api/farmer/instructors', { headers })
+                ]);
+
+                const [profileData, hierarchyData, instructorsData] = await Promise.all([
+                    profileRes.json(),
+                    hierarchyRes.json(),
+                    instructorsRes.json()
+                ]);
+
+                if (profileData.success) {
+                    const profile = profileData.data;
+                    const locations = (profile.locations || []).map(loc => {
+                        // If assignedInstructorRefId is missing, it might be an old record
+                        // where assignedInstructorId was the reference ID
+                        const refId = loc.assignedInstructorRefId || (typeof loc.assignedInstructorId === 'string' && loc.assignedInstructorId.startsWith('INST-') ? loc.assignedInstructorId : '');
+                        const dbId = typeof loc.assignedInstructorId === 'number' ? loc.assignedInstructorId : (loc.assignedInstructorDbId || '');
+                        
+                        return {
+                            ...loc,
+                            assignedInstructorRefId: refId,
+                            assignedInstructorId: dbId
+                        };
+                    });
+
+                    setSettings({
+                        farmerId: profile.id || '',
+                        district: profile.district || 'Anuradhapura',
+                        zone: profile.zone || 'Not set',
+                        locations: locations,
+                        fullName: profile.full_name || profile.name || '',
+                        email: profile.email || '',
+                        phone: profile.phone || '',
+                        profilePicture: profile.profile_picture || null
+                    });
+                }
+
+                if (hierarchyData.success) {
+                    setHierarchyData(hierarchyData.data);
+                }
+
+                if (instructorsData.success) {
+                    setInstructors(instructorsData.data);
+                }
+
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                showToast('Failed to load settings data', 'error');
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [showToast]);
+
+    const handlePictureUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setIsUpdatingPicture(true);
+        const formData = new FormData();
+        formData.append('profile_picture', file);
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('/api/farmer/profile/picture', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Update local state
+                setSettings(prev => ({
+                    ...prev,
+                    profilePicture: result.data.profile_picture
+                }));
+                
+                // Update local storage user data
+                const userStr = localStorage.getItem('user');
+                if (userStr) {
+                    const user = JSON.parse(userStr);
+                    user.profile_picture = result.data.profile_picture;
+                    user.avatar = result.data.profile_picture;
+                    localStorage.setItem('user', JSON.stringify(user));
+                    
+                    // Notify layout
+                    window.dispatchEvent(new Event('storage'));
+                    window.dispatchEvent(new Event('user-updated'));
+                }
+
+                showToast('Profile picture updated successfully', 'success');
+            } else {
+                showToast(result.error?.message || 'Failed to update profile picture', 'error');
+            }
+        } catch (error) {
+            console.error('Error updating profile picture:', error);
+            showToast('An error occurred while updating profile picture', 'error');
+        } finally {
+            setIsUpdatingPicture(false);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
+    };
+
+    // Handle profile picture removal
+    const handlePictureRemove = async () => {
+        if (!window.confirm('Are you sure you want to remove your profile picture?')) return;
+
+        setIsUpdatingPicture(true);
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('/api/farmer/profile/picture', {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Update local state
+                setSettings(prev => ({
+                    ...prev,
+                    profilePicture: null
+                }));
+                
+                // Update local storage user data
+                const userStr = localStorage.getItem('user');
+                if (userStr) {
+                    const user = JSON.parse(userStr);
+                    user.profile_picture = null;
+                    user.avatar = null;
+                    localStorage.setItem('user', JSON.stringify(user));
+                    
+                    // Notify layout
+                    window.dispatchEvent(new Event('storage'));
+                    window.dispatchEvent(new Event('user-updated'));
+                }
+
+                showToast('Profile picture removed successfully', 'success');
+            } else {
+                showToast(result.error?.message || 'Failed to remove profile picture', 'error');
+            }
+        } catch (error) {
+            console.error('Error removing profile picture:', error);
+            showToast('An error occurred while removing profile picture', 'error');
+        } finally {
+            setIsUpdatingPicture(false);
+        }
+    };
 
     const handleLocationChange = (index, field, value) => {
         const updatedLocations = [...settings.locations];
         const location = { ...updatedLocations[index] };
 
-        if (field === 'businessArea') {
-            const selectedArea = businessAreaOptions.find(opt => opt.name === value);
-            // Reset division when business area changes
-            const validDivisions = instructorDivisionOptions.filter(div => div.businessAreaId === selectedArea?.id);
-            const defaultDivision = validDivisions.length > 0 ? validDivisions[0] : null;
+        if (field === 'zone') {
+            // Reset division when zone changes
+            const divisions = hierarchyData[value] || [];
+            const defaultDivision = divisions.length > 0 ? divisions[0] : '';
 
-            location.businessArea = value;
-            location.instructorDivision = defaultDivision ? defaultDivision.name : '';
-            location.assignedInstructorId = defaultDivision ? defaultDivision.instructorId : '';
-            location.assignedInstructorName = defaultDivision ? defaultDivision.instructorName : '';
+            location.zone = value;
+            location.instructorDivision = defaultDivision;
+            
+            // Find instructor for this division
+            const instructor = instructors.find(inst => inst.division.startsWith(defaultDivision));
+            location.assignedInstructorId = instructor ? instructor.dbId : 'Pending';
+            location.assignedInstructorName = instructor ? instructor.name : 'No Instructor Assigned';
+            location.assignedInstructorRefId = instructor ? instructor.id : '';
         } else if (field === 'instructorDivision') {
-            const selectedDivision = instructorDivisionOptions.find(div => div.name === value);
-            if (selectedDivision) {
-                location.instructorDivision = value;
-                location.assignedInstructorId = selectedDivision.instructorId;
-                location.assignedInstructorName = selectedDivision.instructorName;
-            }
+            location.instructorDivision = value;
+            // Find instructor for this division
+            const instructor = instructors.find(inst => inst.division.startsWith(value));
+            location.assignedInstructorId = instructor ? instructor.dbId : 'Pending';
+            location.assignedInstructorName = instructor ? instructor.name : 'No Instructor Assigned';
+            location.assignedInstructorRefId = instructor ? instructor.id : '';
         }
 
         updatedLocations[index] = location;
@@ -89,17 +219,20 @@ const Settings = () => {
     };
 
     const addLocation = () => {
+        const newLocation = {
+            id: Date.now(),
+            zone: '', // Let user select
+            instructorDivision: '', // Let user select
+            assignedInstructorId: '', // Let user select
+            assignedInstructorName: 'Select Division First', // Let user select
+            assignedInstructorRefId: ''
+        };
+        
         setSettings({
             ...settings,
             locations: [
                 ...settings.locations,
-                {
-                    id: Date.now(),
-                    businessArea: businessAreaOptions[0].name, // Default to first
-                    instructorDivision: instructorDivisionOptions.find(d => d.businessAreaId === businessAreaOptions[0].id).name,
-                    assignedInstructorId: instructorDivisionOptions.find(d => d.businessAreaId === businessAreaOptions[0].id).instructorId,
-                    assignedInstructorName: instructorDivisionOptions.find(d => d.businessAreaId === businessAreaOptions[0].id).instructorName
-                }
+                newLocation
             ]
         });
     };
@@ -113,8 +246,72 @@ const Settings = () => {
         }
     };
 
-    const saveProfile = () => {
-        showToast('Profile updated successfully!');
+    const saveProfile = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/farmer/profile', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    full_name: settings.fullName,
+                    email: settings.email,
+                    phone: settings.phone
+                })
+            });
+
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast('Profile updated successfully!');
+            } else {
+                showToast(data.error?.message || 'Failed to update profile', 'error');
+            }
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            showToast('Failed to update profile', 'error');
+        }
+    };
+
+    const saveLocationDetails = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            
+            // Determine primary instructor division from the first location if available
+            const primaryDivision = settings.locations.length > 0 ? settings.locations[0].instructorDivision : '';
+            const primaryZone = settings.locations.length > 0 ? settings.locations[0].zone : '';
+
+            const res = await fetch('/api/farmer/profile', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    locations: settings.locations,
+                    instructor_division: primaryDivision,
+                    zone: primaryZone
+                })
+            });
+            console.log('🔍 [Settings] Data sent to server:', { 
+                locations: settings.locations,
+                instructor_division: primaryDivision,
+                zone: primaryZone
+            });
+
+            const data = await res.json();
+            console.log('🔍 [Settings] Server response:', data);
+            if (res.ok && data.success) {
+                showToast('Location & Land Details saved successfully!');
+                console.log('✅ Locations saved:', settings.locations);
+            } else {
+                showToast(data.error?.message || 'Failed to save locations', 'error');
+            }
+        } catch (error) {
+            console.error('Error saving locations:', error);
+            showToast('Failed to save locations', 'error');
+        }
     };
 
     const changePassword = () => {
@@ -137,15 +334,56 @@ const Settings = () => {
                     </div>
 
                     <div className="profile-picture">
-                        <div className="profile-image-container">
-                            <div className="profile-avatar">SP</div>
+                        <div className="profile-image-container" style={{
+                            backgroundImage: settings.profilePicture ? `url(${settings.profilePicture.startsWith('http') ? settings.profilePicture : `/${settings.profilePicture}`})` : 'none',
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            backgroundColor: settings.profilePicture ? 'transparent' : 'var(--primary)',
+                            position: 'relative'
+                        }}>
+                            {!settings.profilePicture && (
+                                <div className="profile-avatar">
+                                    {settings.fullName ? settings.fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'F'}
+                                </div>
+                            )}
+                            {isUpdatingPicture && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    backgroundColor: 'rgba(0,0,0,0.5)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    borderRadius: '50%'
+                                }}>
+                                    <i className="fas fa-spinner fa-spin text-white"></i>
+                                </div>
+                            )}
                         </div>
                         <div className="profile-picture-actions">
-                            <button className="btn btn-primary" onClick={() => document.getElementById('uploadImage').click()}>
-                                <i className="fas fa-upload"></i> Upload New Photo
+                            <button 
+                                className="btn btn-primary" 
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={isUpdatingPicture}
+                            >
+                                <i className={`fas ${isUpdatingPicture ? 'fa-spinner fa-spin' : 'fa-upload'}`}></i>
+                                {isUpdatingPicture ? ' Uploading...' : ' Upload New Photo'}
                             </button>
-                            <input type="file" id="uploadImage" style={{ display: 'none' }} accept="image/*" />
-                            <button className="btn btn-secondary" onClick={() => showToast('Profile image removed')}>
+                            <input 
+                                type="file" 
+                                ref={fileInputRef}
+                                onChange={handlePictureUpload}
+                                style={{ display: 'none' }} 
+                                accept="image/*" 
+                            />
+                            <button 
+                                className="btn btn-secondary" 
+                                onClick={handlePictureRemove}
+                                disabled={isUpdatingPicture || !settings.profilePicture}
+                            >
                                 <i className="fas fa-trash"></i> Remove Photo
                             </button>
                         </div>
@@ -220,18 +458,18 @@ const Settings = () => {
                         <label>Farming Locations</label>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                             {settings.locations.map((location, index) => (
-                                <div key={location.id} style={{ 
-                                    padding: '15px', 
-                                    border: '1px solid #ddd', 
-                                    borderRadius: '8px', 
+                                <div key={location.id} style={{
+                                    padding: '15px',
+                                    border: '1px solid #ddd',
+                                    borderRadius: '8px',
                                     backgroundColor: '#f9f9f9',
                                     position: 'relative'
                                 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                                         <h4 style={{ margin: 0, fontSize: '1rem', color: '#2c3e50' }}>Location {index + 1}</h4>
                                         {settings.locations.length > 1 && (
-                                            <button 
-                                                className="btn btn-sm btn-danger" 
+                                            <button
+                                                className="btn btn-sm btn-danger"
                                                 onClick={() => removeLocation(index)}
                                                 style={{ padding: '2px 8px', fontSize: '0.8rem' }}
                                             >
@@ -241,15 +479,16 @@ const Settings = () => {
                                     </div>
 
                                     <div className="form-group" style={{ marginBottom: '10px' }}>
-                                        <label style={{ fontSize: '0.9rem' }}>Business Area</label>
+                                        <label style={{ fontSize: '0.9rem' }}>Zone</label>
                                         <select
                                             className="form-control"
-                                            value={location.businessArea}
-                                            onChange={(e) => handleLocationChange(index, 'businessArea', e.target.value)}
+                                            value={location.zone}
+                                            onChange={(e) => handleLocationChange(index, 'zone', e.target.value)}
                                         >
-                                            {businessAreaOptions.map(option => (
-                                                <option key={option.id} value={option.name}>
-                                                    {option.name}
+                                            <option value="">Select Zone</option>
+                                            {Object.keys(hierarchyData).map(zoneName => (
+                                                <option key={zoneName} value={zoneName}>
+                                                    {zoneName}
                                                 </option>
                                             ))}
                                         </select>
@@ -261,17 +500,14 @@ const Settings = () => {
                                             className="form-control"
                                             value={location.instructorDivision}
                                             onChange={(e) => handleLocationChange(index, 'instructorDivision', e.target.value)}
+                                            disabled={!location.zone}
                                         >
-                                            {instructorDivisionOptions
-                                                .filter(div => {
-                                                    const selectedArea = businessAreaOptions.find(opt => opt.name === location.businessArea);
-                                                    return div.businessAreaId === selectedArea?.id;
-                                                })
-                                                .map(division => (
-                                                    <option key={division.id} value={division.name}>
-                                                        {division.name}
-                                                    </option>
-                                                ))}
+                                            <option value="">Select Division</option>
+                                            {(hierarchyData[location.zone] || []).map(division => (
+                                                <option key={division} value={division}>
+                                                    {division}
+                                                </option>
+                                            ))}
                                         </select>
                                     </div>
 
@@ -280,7 +516,7 @@ const Settings = () => {
                                         <input
                                             type="text"
                                             className="form-control"
-                                            value={`${location.assignedInstructorName} (${location.assignedInstructorId})`}
+                                            value={location.assignedInstructorRefId ? `${location.assignedInstructorName} (${location.assignedInstructorRefId})` : location.assignedInstructorName}
                                             disabled
                                             style={{ backgroundColor: '#e9ecef' }}
                                         />
@@ -288,12 +524,19 @@ const Settings = () => {
                                 </div>
                             ))}
                         </div>
-                        <button 
-                            className="btn btn-secondary" 
+                        <button
+                            className="btn btn-secondary"
                             onClick={addLocation}
                             style={{ marginTop: '10px', width: '100%' }}
                         >
                             <i className="fas fa-plus"></i> Add Another Location
+                        </button>
+                        <button
+                            className="btn btn-primary"
+                            onClick={saveLocationDetails}
+                            style={{ width: '100%', marginTop: '10px' }}
+                        >
+                            <i className="fas fa-save"></i> Save Location Details
                         </button>
                     </div>
                 </div>
@@ -322,35 +565,6 @@ const Settings = () => {
                     </button>
                 </div>
 
-                {/* Notification Preferences */}
-                <div className="settings-section">
-                    <div className="settings-header">
-                        <i className="fas fa-bell"></i>
-                        <h3>Notification Preferences</h3>
-                    </div>
-
-                    {[
-                        { id: 'messageNotifications', label: 'Message Notifications' },
-                        { id: 'weatherAlerts', label: 'Weather Alerts' },
-                        { id: 'pestAlerts', label: 'Pest & Disease Alerts' }
-                    ].map(item => (
-                        <div className="toggle-label" key={item.id}>
-                            <span>{item.label}</span>
-                            <label className="toggle-switch">
-                                <input
-                                    type="checkbox"
-                                    id={item.id}
-                                    checked={settings[item.id]}
-                                    onChange={(e) => setSettings({ ...settings, [item.id]: e.target.checked })}
-                                />
-                                <span className="toggle-slider"></span>
-                            </label>
-                        </div>
-                    ))}
-                    <button className="btn btn-primary" onClick={() => showToast('Notification preferences saved!')}>
-                        <i className="fas fa-bell"></i> Save Preferences
-                    </button>
-                </div>
 
                 {/* Danger Zone */}
                 <div className="settings-section">

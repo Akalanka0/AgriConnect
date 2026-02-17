@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { jsPDF } from "jspdf";
 import AdminSidebar from './AdminSidebar';
 import { ToastProvider, useToast } from './Toast';
+import AdminMessageCenter from './AdminMessageCenter';
 import '@/features/admin/styles/AdminDash.css';
 
 // Portal Component for Modals
@@ -16,90 +17,95 @@ const AdminLayout = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [sidebarActive, setSidebarActive] = useState(false);
-    const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
+    const [isMessageCenterOpen, setIsMessageCenterOpen] = useState(false);
+    const [messages, setMessages] = useState([]);
 
-    // State for expanded notification
-    const [expandedNotification, setExpandedNotification] = useState(null);
+    // Get real user data
+    const [userData, setUserData] = useState(() => JSON.parse(localStorage.getItem('user') || '{}'));
+    const userAvatar = userData.avatar;
+    const userName = userData.full_name || 'Admin User';
+    const userInitials = userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
-    // Mock Notifications Data (moved from AdminHome)
-    const [notifications, setNotifications] = useState([
-        { id: 1, title: 'New Message from Rohan Silva (INST001)', message: 'INST001 - Rohan Silva sent a message: "Monthly report submission delay due to heavy rains."', details: 'Full message: "Dear Admin, I am writing to inform you that the monthly report for Padaviya area will be delayed by 2 days due to heavy rains disrupting field visits. I apologize for the inconvenience."', time: '10 mins ago', unread: true },
-        { id: 2, title: 'New Message from Sunil Perera (FARM001)', message: 'FARM001 - Sunil Perera sent a message with Attachment: "Pest_Image_001.jpg"', details: 'Attachment: Pest_Image_001.jpg (2.5MB). Message: "Found this pest in my paddy field today. Please identify and suggest a remedy."', time: '1 hour ago', unread: true },
-        { id: 3, title: 'New Message from Kamala Fernando (FARM002)', message: 'FARM002 - Kamala Fernando sent a message: "Inquiry about next season\'s seed distribution."', details: 'Full message: "Hello, when will the seed distribution for the Yala season begin? We need to prepare the land accordingly."', time: '5 hours ago', unread: false },
-        { id: 4, title: 'New Message from Anura (INST003)', message: 'INST003 - Anura Wickramasinghe sent a message: "Requesting additional fertilizer allocation for Vahalkada."', details: 'Full message: "The current fertilizer stock is insufficient for the expanded cultivation area in Vahalkada. Requesting an additional 500kg of Urea."', time: '1 day ago', unread: false }
-    ]);
+    // Update user data on storage/custom events
+    useEffect(() => {
+        const updateUserData = () => {
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+                setUserData(JSON.parse(storedUser));
+            }
+        };
 
-    const openNotificationsModal = () => {
-        setIsNotificationsModalOpen(true);
+        window.addEventListener('storage', updateUserData);
+        window.addEventListener('user-updated', updateUserData);
+
+        return () => {
+            window.removeEventListener('storage', updateUserData);
+            window.removeEventListener('user-updated', updateUserData);
+        };
+    }, []);
+
+    // Fetch messages from API
+    useEffect(() => {
+        const fetchMessages = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/admin/messages', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const result = await response.json();
+                if (result.success) {
+                    // Map status to is_read for MessageCenter compatibility
+                    const formattedMessages = result.data.map(msg => ({
+                        ...msg,
+                        is_read: msg.status === 'read'
+                    }));
+                    setMessages(formattedMessages);
+                }
+            } catch (error) {
+                console.error('Error fetching messages:', error);
+            }
+        };
+
+        fetchMessages();
+    }, []);
+
+    const openMessageCenter = () => {
+        setIsMessageCenterOpen(true);
     };
 
-    const closeNotificationsModal = () => {
-        setIsNotificationsModalOpen(false);
-        setExpandedNotification(null);
+    const closeMessageCenter = () => {
+        setIsMessageCenterOpen(false);
     };
 
-    const toggleNotificationExpand = (id) => {
-        setExpandedNotification(expandedNotification === id ? null : id);
-        // Mark as read if opening
-        if (expandedNotification !== id) {
-            setNotifications(notifications.map(n => n.id === id ? { ...n, unread: false } : n));
+    const unreadCount = messages.filter(m => m.type === 'received' && !m.is_read).length;
+
+    const handleMessageRead = async (messageId) => {
+        if (messageId === 'refresh') {
+            // Refresh signal from WebSocket - fetch new messages
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/admin/messages', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    setMessages(data.data || []);
+                }
+            } catch (error) {
+                console.error('Failed to refresh messages:', error);
+            }
+        } else {
+            // Update messages list to mark message as read
+            setMessages(prevMessages => 
+                prevMessages.map(msg => 
+                    msg.id === messageId ? { ...msg, is_read: true } : msg
+                )
+            );
         }
-    };
-
-    const deleteNotification = (id) => {
-        setNotifications(notifications.filter(n => n.id !== id));
-        if (expandedNotification === id) {
-            setExpandedNotification(null);
-        }
-    };
-
-    const downloadNotificationPDF = (e, notification) => {
-        e.stopPropagation();
-        const doc = new jsPDF();
-
-        // Title
-        doc.setFontSize(16);
-        doc.setTextColor(93, 64, 55); // --primary color
-        doc.text("Notification Details", 20, 20);
-
-        // Info
-        doc.setFontSize(12);
-        doc.setTextColor(0, 0, 0);
-        doc.text(`Title: ${notification.title}`, 20, 40);
-        doc.text(`Time: ${notification.time}`, 20, 50);
-
-        // Message
-        doc.setFontSize(14);
-        doc.text("Message Content:", 20, 70);
-        doc.setFontSize(12);
-        doc.setTextColor(50, 50, 50);
-
-        // Split text to fit page
-        const splitTitle = doc.splitTextToSize(notification.message, 170);
-        doc.text(splitTitle, 20, 80);
-
-        let yPos = 80 + (splitTitle.length * 7);
-
-        if (notification.details) {
-            yPos += 10;
-            doc.setFontSize(14);
-            doc.setTextColor(0, 0, 0);
-            doc.text("Full Details:", 20, yPos);
-            yPos += 10;
-            doc.setFontSize(12);
-            doc.setTextColor(50, 50, 50);
-            const splitDetails = doc.splitTextToSize(notification.details, 170);
-            doc.text(splitDetails, 20, yPos);
-        }
-
-        // Footer
-        doc.setFontSize(10);
-        doc.setTextColor(150, 150, 150);
-        doc.text("Generated by AgriConnect Admin Dashboard", 20, 280);
-
-        // Save
-        doc.save(`notification_${notification.id}.pdf`);
-        showToast('Notification details downloaded as PDF', 'success');
     };
 
     const getCurrentPage = () => {
@@ -137,97 +143,44 @@ const AdminLayout = () => {
                     </div>
                     <div className="user-info">
                         <div className="notification-container">
-                            <button className="notification-btn" onClick={openNotificationsModal}>
-                                <i className="fas fa-bell"></i>
-                                {notifications.filter(n => n.unread).length > 0 && (
-                                    <div className="notification-badge">{notifications.filter(n => n.unread).length}</div>
-                                )}
+                            <button className="notification-btn" onClick={openMessageCenter}>
+                                <i className="fas fa-envelope"></i>
+                                {unreadCount > 0 && <div className="notification-badge">{unreadCount}</div>}
                             </button>
                         </div>
-                        <div className="user-avatar clickable" onClick={() => navigate('/admin/settings')}>AD</div>
-                        <div onClick={() => navigate('/admin/settings')} className="clickable">Admin User</div>
+                        <div
+                            className="user-avatar clickable"
+                            onClick={() => navigate('/admin/settings')}
+                            style={{
+                                backgroundImage: userAvatar ? `url(${userAvatar})` : 'none',
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: userAvatar ? 'transparent' : 'var(--primary)',
+                                color: 'white',
+                                fontWeight: 'bold'
+                            }}
+                        >
+                            {!userAvatar && userInitials}
+                        </div>
+                        <div onClick={() => navigate('/admin/settings')} className="clickable">{userName}</div>
                     </div>
                 </div>
 
                 <div className="admin-content">
-                <ToastProvider>
-                    <Outlet context={{ openNotificationsModal }} />
-                </ToastProvider>
-            </div>
+                    <Outlet context={{ openNotificationsModal: openMessageCenter }} />
+                </div>
             </div>
 
-            {/* Notifications Modal */}
-            {isNotificationsModalOpen && (
-                <ModalPortal>
-                    <div className="admin-modal active" id="notificationsModal">
-                        <div className="admin-modal-content large">
-                            <div className="admin-modal-header">
-                                <div className="admin-modal-title">Notifications</div>
-                                <button className="admin-modal-close-round" onClick={closeNotificationsModal}>
-                                    <i className="fas fa-times"></i>
-                                </button>
-                            </div>
-                            <div className="admin-modal-body">
-                                <div className="notification-list">
-                                    {notifications.length > 0 ? (
-                                        notifications.map((notification) => (
-                                            <div
-                                                key={notification.id}
-                                                className={`notification-item ${notification.unread ? 'unread' : ''} notification-item-content-wrapper`}
-                                                onClick={() => toggleNotificationExpand(notification.id)}
-                                            >
-                                                <div className="notification-header-row">
-                                                    <div className="notification-content notification-main-content">
-                                                        <div className="notification-title notification-title-row">
-                                                            {notification.title}
-                                                            <i
-                                                                className={`fas fa-chevron-${expandedNotification === notification.id ? 'up' : 'down'} notification-expand-icon`}
-                                                            ></i>
-                                                        </div>
-                                                        <div className="notification-message">{notification.message}</div>
-                                                        <div className="notification-time">
-                                                            <i className="far fa-clock"></i> {notification.time}
-                                                        </div>
-                                                    </div>
-                                                    <button
-                                                        className="notification-delete-btn"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            deleteNotification(notification.id);
-                                                        }}
-                                                        title="Delete Notification"
-                                                    >
-                                                        <i className="fas fa-trash-alt"></i>
-                                                    </button>
-                                                </div>
-                                                {expandedNotification === notification.id && (
-                                                    <div className="notification-details-expanded">
-                                                        <div className="notification-details-text">{notification.details}</div>
-                                                        <button
-                                                            className="btn btn-sm btn-outline btn-pdf-download"
-                                                            onClick={(e) => downloadNotificationPDF(e, notification)}
-                                                        >
-                                                            <i className="fas fa-file-pdf"></i> Download as PDF
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div className="no-notifications-container">
-                                            <i className="far fa-bell-slash no-notifications-icon"></i>
-                                            No notifications
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="admin-modal-footer">
-                                    <button className="btn btn-secondary" onClick={closeNotificationsModal}>Close</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </ModalPortal>
-            )}
+            {/* Admin Message Center Modal */}
+            <AdminMessageCenter
+                isOpen={isMessageCenterOpen}
+                onClose={closeMessageCenter}
+                messages={messages}
+                onMessageRead={handleMessageRead}
+            />
         </div>
     );
 };

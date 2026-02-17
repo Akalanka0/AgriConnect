@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import StatusBadge from '../../admin/components/StatusBadge';
 
@@ -33,58 +33,139 @@ const Harvest = () => {
         harvestNotes: ''
     });
 
-    const initialHarvestRecords = [
-        { crop: 'Rice Paddy', location: 'Field A', instructorDivision: 'Rajanganaya - Yaya 4', quantity: '500kg', quality: 'Excellent', date: '2025-10-05', details: 'Second harvest of the season. Good yield with high quality grains.', notes: 'Harvested early in the morning to avoid heat stress. Grains sent for immediate processing.' },
-        { crop: 'Vegetables', location: 'Field B', instructorDivision: 'Vilachchiya - Track 4', quantity: '120kg', quality: 'Good', date: '2025-09-28', details: 'Mixed vegetables including carrots, beans, and cabbage.', notes: 'Sold directly to local market. Received positive feedback on freshness.' },
-        { crop: 'Corn', location: 'Field C', instructorDivision: 'Rajanganaya - Yaya 4', quantity: '300kg', quality: 'Average', date: '2025-09-15', details: 'Some pest damage observed. Lower yield than expected.', notes: 'Pest control measures were applied too late. Need to monitor more closely next season.' },
-        { crop: 'Tomatoes', location: 'Field D', instructorDivision: 'Vilachchiya - Track 4', quantity: '80kg', quality: 'Good', date: '2025-08-30', details: 'First tomato harvest of the season. Good color and size.', notes: 'Harvested ripe tomatoes. Some cracking observed due to inconsistent watering.' },
-        { crop: 'Potatoes', location: 'Field E', instructorDivision: 'Rajanganaya - Yaya 4', quantity: '250kg', quality: 'Excellent', date: '2025-08-20', details: 'Early potato harvest. Very good quality and size.', notes: 'Used organic fertilizers. No pest issues observed.' },
-        { crop: 'Beans', location: 'Field F', instructorDivision: 'Vilachchiya - Track 4', quantity: '70kg', quality: 'Good', date: '2025-08-10', details: 'Bush beans harvest. Consistent yield.', notes: 'Regular watering maintained. Good market demand.' }
-    ];
-
-    const [harvestRecords, setHarvestRecords] = useState(initialHarvestRecords);
+    const [harvestRecords, setHarvestRecords] = useState([]);
+    const [availableLocations, setAvailableLocations] = useState([]);
+    const [availableCrops, setAvailableCrops] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [visibleHarvestCount, setVisibleHarvestCount] = useState(3); // Initially show 3 records
     const recordsToShowIncrement = 3; // Number of records to show each time "Show More" is clicked
+
+    // Fetch data on mount
+    const fetchData = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            
+            // Fetch harvest records
+            const recordsRes = await fetch('/api/farmer/harvest-records', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const recordsData = await recordsRes.json();
+            if (recordsRes.ok && recordsData.success) {
+                setHarvestRecords(recordsData.data);
+            }
+
+            // Fetch profile for locations
+            const profRes = await fetch('/api/farmer/profile', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const profData = await profRes.json();
+            if (profRes.ok && profData.success) {
+                let locations = profData.data.locations;
+                if (typeof locations === 'string') {
+                    try {
+                        locations = JSON.parse(locations);
+                    } catch (e) {
+                        locations = [];
+                    }
+                }
+                setAvailableLocations(Array.isArray(locations) ? locations : []);
+            }
+
+            // Fetch crops from database
+            const cropsRes = await fetch('/api/farmer/crop-calendars', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const cropsData = await cropsRes.json();
+            if (cropsRes.ok && cropsData.success) {
+                setAvailableCrops(cropsData.data || []);
+            }
+        } catch (error) {
+            console.error('Error fetching data:', error);
+            showToast('Failed to load data', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, []);
 
     const handleShowMoreHarvests = () => {
         setVisibleHarvestCount(prevCount => prevCount + recordsToShowIncrement);
     };
 
-    const handleHarvestSubmit = () => {
+    const handleHarvestSubmit = async () => {
         if (!harvestForm.harvestCrop || !harvestForm.harvestLocation || !harvestForm.harvestDate || !harvestForm.harvestQuantity) {
             showToast('Please fill in all required fields', 'error');
             return;
         }
 
-        showToast('Harvest recorded successfully!');
-        setHarvestForm({
-            harvestCrop: '',
-            harvestLocation: '',
-            instructorDivision: '',
-            harvestDate: '',
-            harvestQuantity: '',
-            harvestQuality: '',
-            harvestNotes: ''
-        });
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/farmer/harvest-records', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    crop: harvestForm.harvestCrop,
+                    location: harvestForm.harvestLocation,
+                    harvest_date: harvestForm.harvestDate,
+                    quantity: harvestForm.harvestQuantity,
+                    quality: harvestForm.harvestQuality,
+                    notes: harvestForm.harvestNotes,
+                    instructorDivision: harvestForm.instructorDivision
+                })
+            });
+
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast('Harvest recorded successfully!');
+                setHarvestForm({
+                    harvestCrop: '',
+                    harvestLocation: '',
+                    instructorDivision: '',
+                    harvestDate: '',
+                    harvestQuantity: '',
+                    harvestQuality: '',
+                    harvestNotes: ''
+                });
+                fetchData(); // Refresh list
+            } else {
+                showToast(data.error?.message || 'Failed to record harvest', 'error');
+            }
+        } catch (error) {
+            console.error('Error submitting harvest:', error);
+            showToast('Failed to record harvest', 'error');
+        }
     };
 
-    // Mock Data for Farmer Locations (Instructor Divisions)
-    const availableLocations = [
-        {
-            id: 1,
-            businessArea: 'Rajanganaya',
-            instructorDivision: 'Yaya 4',
-            instructorName: 'Piyadasa Silva',
-            instructorId: 'INST-2026-0001'
-        },
-        {
-            id: 2,
-            businessArea: 'Vilachchiya',
-            instructorDivision: 'Track 4',
-            instructorName: 'Upul Tharanga',
-            instructorId: 'INST-2026-0002'
+    const handleDeleteHarvest = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this harvest record?')) return;
+
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`/api/farmer/harvest-records/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast('Harvest record deleted successfully');
+                fetchData(); // Refresh list
+            } else {
+                showToast(data.error?.message || 'Failed to delete harvest record', 'error');
+            }
+        } catch (error) {
+            console.error('Error deleting harvest record:', error);
+            showToast('Failed to delete harvest record', 'error');
         }
-    ];
+    };
+
+    // Mock Data for Farmer Locations (Instructor Divisions) - Removed, using real data from profile
 
     return (
         <div className="page active" id="harvest" style={{ display: 'block' }}>
@@ -109,10 +190,11 @@ const Harvest = () => {
                                 onChange={(e) => setHarvestForm({ ...harvestForm, harvestCrop: e.target.value })}
                             >
                                 <option value="">Select crop</option>
-                                <option value="rice">Rice</option>
-                                <option value="vegetables">Vegetables</option>
-                                <option value="corn">Corn</option>
-                                <option value="tomatoes">Tomatoes</option>
+                                {availableCrops.map((crop) => (
+                                    <option key={crop.id} value={crop.name}>
+                                        {crop.name}
+                                    </option>
+                                ))}
                                 <option value="other">Other</option>
                             </select>
                         </div>
@@ -134,9 +216,9 @@ const Harvest = () => {
                                 onChange={(e) => setHarvestForm({ ...harvestForm, instructorDivision: e.target.value })}
                             >
                                 <option value="">Select instructor division</option>
-                                {availableLocations.map(loc => (
-                                    <option key={loc.id} value={`${loc.businessArea} - ${loc.instructorDivision}`}>
-                                        {loc.businessArea} - {loc.instructorDivision}
+                                {availableLocations.map((loc, idx) => (
+                                    <option key={idx} value={`${loc.zone} - ${loc.instructorDivision}`}>
+                                        {loc.zone} - {loc.instructorDivision}
                                     </option>
                                 ))}
                             </select>
@@ -198,30 +280,36 @@ const Harvest = () => {
                     </div>
                     <div className="card-content" style={{ maxHeight: '600px', overflowY: 'auto' }}>
                         <div className="harvest-list">
-                            {harvestRecords.slice(0, visibleHarvestCount).map((harvest, index) => (
-                                <div className="harvest-item" key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '15px', borderBottom: '1px solid #eee' }}>
-                                    <div className="harvest-info" style={{ flex: '1' }}>
-                                        <div className="harvest-header">
-                                            <h4>{harvest.crop}</h4>
+                            {loading ? (
+                                <div style={{ textAlign: 'center', padding: '20px' }}>Loading harvest records...</div>
+                            ) : harvestRecords.length > 0 ? (
+                                harvestRecords.slice(0, visibleHarvestCount).map((harvest) => (
+                                    <div className="harvest-item" key={harvest.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '15px', borderBottom: '1px solid #eee' }}>
+                                        <div className="harvest-info" style={{ flex: '1' }}>
+                                            <div className="harvest-header">
+                                                <h4>{harvest.crop}</h4>
+                                            </div>
+                                            <div className="harvest-details">
+                                                <p><strong>Location:</strong> {harvest.location}</p>
+                                                <p><strong>Instructor Division:</strong> {harvest.instructor_division || harvest.instructorDivision}</p>
+                                                <p><strong>Quantity:</strong> {harvest.quantity}</p>
+                                                <p><strong>Quality:</strong> <StatusBadge status={harvest.quality} type={harvest.quality?.toLowerCase() === 'excellent' || harvest.quality?.toLowerCase() === 'good' ? 'success' : 'warning'} /></p>
+                                                {harvest.notes && <NotesDisplay notes={harvest.notes} />}
+                                            </div>
                                         </div>
-                                        <div className="harvest-details">
-                                            <p><strong>Location:</strong> {harvest.location}</p>
-                                            <p><strong>Instructor Division:</strong> {harvest.instructorDivision}</p>
-                                            <p><strong>Quantity:</strong> {harvest.quantity}</p>
-                                            <p><strong>Quality:</strong> <StatusBadge status={harvest.quality} type={harvest.quality === 'Excellent' || harvest.quality === 'Good' ? 'success' : 'warning'} /></p>
-                                            {harvest.details && <p>{harvest.details}</p>}
-                                            {harvest.notes && <NotesDisplay notes={harvest.notes} />}
+                                        <div className="harvest-side">
+                                            <span className="harvest-date">{new Date(harvest.date).toLocaleDateString()}</span>
+                                            <div className="harvest-actions">
+                                                <button className="btn btn-secondary" onClick={() => handleDeleteHarvest(harvest.id)}>Delete</button>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="harvest-side">
-                                        <span className="harvest-date">{harvest.date}</span>
-                                        <div className="harvest-actions">
-                                            <button className="btn btn-primary">View</button>
-                                            <button className="btn btn-secondary">Edit</button>
-                                        </div>
-                                    </div>
+                                ))
+                            ) : (
+                                <div style={{ textAlign: 'center', color: '#666', padding: '20px' }}>
+                                    No harvest records found
                                 </div>
-                            ))}
+                            )}
                         </div>
                         {visibleHarvestCount < harvestRecords.length && (
                             <div style={{ textAlign: 'center', marginTop: '15px' }}>

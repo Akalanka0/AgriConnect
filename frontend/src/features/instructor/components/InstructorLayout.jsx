@@ -1,16 +1,111 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import InstructorSidebar from './InstructorSidebar';
 import InstructorMessageModal from './modals/InstructorMessageModal';
 import AddFarmerModal from './modals/AddFarmerModal';
 import RatingsModal from './modals/RatingsModal';
+import WeatherDetailModal from './modals/WeatherDetailModal';
+import InstructorMessageCenter from './InstructorMessageCenter';
+import { useToast } from '../../admin/components/Toast';
 import '@/features/instructor/styles/InstructorDash.css'; // Independent styles
 
 const InstructorLayout = () => {
+    const { showToast } = useToast();
     const [isSidebarActive, setIsSidebarActive] = useState(false);
+    const [isMessageCenterOpen, setIsMessageCenterOpen] = useState(false);
     const location = useLocation();
     const navigate = useNavigate();
-    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+    const [messages, setMessages] = useState([]);
+    const [userData, setUserData] = useState({ full_name: 'Instructor', initials: 'I' });
+
+    useEffect(() => {
+        let isMounted = true;
+        
+        const updateUserData = () => {
+            try {
+                const userStr = localStorage.getItem('user');
+                const user = userStr ? JSON.parse(userStr) : {};
+                if (user.full_name && isMounted) {
+                    setUserData({
+                        full_name: user.full_name,
+                        initials: user.full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase(),
+                        avatar: user.profile_picture || user.avatar
+                    });
+                }
+            } catch (error) {
+                console.error('Error parsing user data:', error);
+            }
+        };
+
+        // Initial load
+        updateUserData();
+
+        // Listen for updates
+        window.addEventListener('userProfileUpdated', updateUserData);
+        window.addEventListener('storage', updateUserData);
+
+        const fetchMessages = async () => {
+            if (!isMounted) return;
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch('/api/instructor/messages', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.success && isMounted) {
+                    // Map status to is_read for MessageCenter compatibility
+                    const formattedMessages = data.data.map(msg => ({
+                        ...msg,
+                        is_read: msg.status === 'read'
+                    }));
+                    setMessages(formattedMessages);
+                }
+            } catch (error) {
+                if (isMounted) console.error('Error fetching messages:', error);
+            }
+        };
+
+        fetchMessages();
+
+        // Cleanup function
+        return () => {
+            isMounted = false;
+            window.removeEventListener('userProfileUpdated', updateUserData);
+            window.removeEventListener('storage', updateUserData);
+        };
+    }, []);
+
+    const unreadCount = messages.filter(m => m.type === 'received' && !m.is_read).length;
+
+    const handleMessageRead = async (messageId) => {
+        if (messageId === 'refresh') {
+            // Refresh signal from WebSocket - fetch new messages
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/instructor/messages', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    setMessages(data.data || []);
+                }
+            } catch (error) {
+                console.error('Failed to refresh messages:', error);
+            }
+        } else {
+            // Update messages list to mark message as read
+            setMessages(prevMessages => 
+                prevMessages.map(msg => 
+                    msg.id === messageId ? { ...msg, is_read: true } : msg
+                )
+            );
+        }
+    };
 
     // Modal Management in Layout to support global triggers from pages
     const [showModals, setShowModals] = useState({
@@ -19,15 +114,9 @@ const InstructorLayout = () => {
         addTimeSlot: false,
         feedback: false,
         help: false,
-        ratings: false
+        ratings: false,
+        weather: false
     });
-
-    const showToast = (message, type = 'success') => {
-        setToast({ show: true, message, type });
-        setTimeout(() => {
-            setToast({ show: false, message: '', type: '' });
-        }, 3000);
-    };
 
     const openModal = (modalName) => {
         setShowModals({ ...showModals, [modalName]: true });
@@ -65,31 +154,47 @@ const InstructorLayout = () => {
                 <div className="header">
                     <div className="header-left">
                         <button className="mobile-toggle" onClick={() => setIsSidebarActive(!isSidebarActive)}>
-                            <i className="fas fa-bars"></i>
+                            <i className={`fas ${isSidebarActive ? 'fa-times' : 'fa-bars'}`}></i>
                         </button>
                         <h2 id="pageHeader">{getPageTitle(location.pathname)}</h2>
                     </div>
                     <div className="user-info">
-                        <div className="notification-icon">
-                            <i className="fas fa-bell"></i>
-                            <div className="notification-badge">5</div> {/* Static for now, can be made dynamic later */}
+                        <div
+                            className="notification-icon"
+                            onClick={() => setIsMessageCenterOpen(true)}
+                            style={{ cursor: 'pointer' }}
+                            title="Message Center"
+                        >
+                            <i className="fas fa-envelope"></i>
+                            {unreadCount > 0 && <div className="notification-badge">{unreadCount}</div>}
                         </div>
-                        <div className="user-avatar">RS</div>
-                        <div>Rohan Silva</div>
+                        <div className="user-avatar" style={{
+                            backgroundImage: userData.avatar ? `url(${userData.avatar.startsWith('http') ? userData.avatar : `/${userData.avatar}`})` : 'none',
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            backgroundColor: userData.avatar ? 'transparent' : 'var(--primary)',
+                            color: 'white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}>
+                            {!userData.avatar && userData.initials}
+                        </div>
+                        <div>{userData.full_name}</div>
                     </div>
                 </div>
 
-                {/* Page Content */}
                 <div className="instructor-page-container">
-                    <Outlet context={{ showToast, openModal, closeModal, showModals }} />
+                    <Outlet context={{ openModal, showToast }} />
                 </div>
 
-                {/* Toast Notification */}
-                {toast.show && (
-                    <div className={`toast ${toast.type === 'error' ? 'error' : ''} show`} id="toast">
-                        {toast.message}
-                    </div>
-                )}
+                {/* Instructor Message Center Modal */}
+                <InstructorMessageCenter
+                    isOpen={isMessageCenterOpen}
+                    onClose={() => setIsMessageCenterOpen(false)}
+                    messages={messages}
+                    onMessageRead={handleMessageRead}
+                />
             </div>
 
             {/* 
@@ -99,10 +204,33 @@ const InstructorLayout = () => {
                 <InstructorMessageModal
                     isOpen={showModals.sendMessage}
                     onClose={() => closeModal('sendMessage')}
-                    onSubmit={(data) => {
-                        console.log('Message sent:', data);
-                        closeModal('sendMessage');
-                        showToast('Message sent successfully!', 'success');
+                    onSubmit={async (formData) => {
+                        try {
+                            console.log('📤 [InstructorLayout] Sending Message Modal Data...');
+                            for (let pair of formData.entries()) {
+                                console.log(`   ${pair[0]}: ${pair[1] instanceof File ? pair[1].name : pair[1]}`);
+                            }
+                            const res = await fetch('/api/instructor/messages', {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                                },
+                                body: formData
+                            });
+
+                            const data = await res.json();
+
+                            if (res.ok && data.success) {
+                                showToast('Message sent successfully!', 'success');
+                                closeModal('sendMessage');
+                            } else {
+                                throw new Error(data.error?.message || 'Failed to send message');
+                            }
+                        } catch (error) {
+                            console.error('Error sending message:', error);
+                            showToast(error.message, 'error');
+                            throw error;
+                        }
                     }}
                 />
             )}
@@ -123,6 +251,13 @@ const InstructorLayout = () => {
                 <RatingsModal
                     isOpen={showModals.ratings}
                     onClose={() => closeModal('ratings')}
+                />
+            )}
+
+            {showModals.weather && (
+                <WeatherDetailModal
+                    isOpen={showModals.weather}
+                    onClose={() => closeModal('weather')}
                 />
             )}
 

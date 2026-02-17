@@ -29,16 +29,7 @@ const GeneratedId = sequelize.define('GeneratedId', {
     tableName: 'generated_ids',
     timestamps: true,
     createdAt: 'created_at',
-    updatedAt: 'updated_at',
-    indexes: [
-        {
-            fields: ['type', 'status']
-        },
-        {
-            unique: true,
-            fields: ['code']
-        }
-    ]
+    updatedAt: 'updated_at'
 });
 
 export default GeneratedId;

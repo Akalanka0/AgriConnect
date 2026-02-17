@@ -67,6 +67,19 @@ export const errorHandler = (err, req, res, next) => {
         });
     }
 
+    // Cloudinary upload error
+    if (err.cloudinaryDetails) {
+        return res.status(err.statusCode || 500).json({
+            success: false,
+            error: {
+                code: err.code || 'CLOUDINARY_UPLOAD_ERROR',
+                message: err.message || 'Failed to upload file to Cloudinary',
+                cloudinaryDetails: err.cloudinaryDetails,
+                ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
+            }
+        });
+    }
+
     // Default error
     const statusCode = error.statusCode || 500;
     const message = error.message || 'Internal server error';

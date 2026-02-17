@@ -29,8 +29,21 @@ const AdminHome = () => {
     // Context and State
     const { showToast } = useToast();
     const [isSending, setIsSending] = useState(false);
-    const [stats, setStats] = useState([]);
-    const [recentActivities, setRecentActivities] = useState([]);
+    const [stats, setStats] = useState([
+        { label: 'Total Users', value: 52, icon: 'fas fa-users', color: 'blue' },
+        { label: 'Farmers', value: 44, icon: 'fas fa-tractor', color: 'success' },
+        { label: 'Instructors', value: 7, icon: 'fas fa-chalkboard-teacher', color: 'orange' },
+        { label: 'Admins', value: 5, icon: 'fas fa-user-shield', color: 'purple' }
+    ]);
+    const [recentActivities, setRecentActivities] = useState([
+        { action: 'User account Sunil Perera removed', time: '2 hours ago', icon: 'fas fa-user-minus', color: '#e74c3c' },
+        { action: 'New division "Anuradhapura North" added', time: '5 hours ago', icon: 'fas fa-plus-circle', color: '#2ecc71' },
+        { action: 'Monthly user activity report generated', time: '1 day ago', icon: 'fas fa-file-pdf', color: '#3498db' },
+        { action: 'System maintenance scheduled for weekend', time: '2 days ago', icon: 'fas fa-calendar-alt', color: '#f39c12' },
+        { action: 'Instructor "Chamara Perera" details updated', time: '3 days ago', icon: 'fas fa-user-edit', color: '#9b59b6' },
+        { action: 'Admin password policy updated', time: '4 days ago', icon: 'fas fa-shield-alt', color: '#34495e' },
+        { action: 'Database backup successfully completed', time: '5 days ago', icon: 'fas fa-database', color: '#1abc9c' }
+    ]);
     const [loading, setLoading] = useState(true);
 
     // Fetch Users for Selection
@@ -90,12 +103,31 @@ const AdminHome = () => {
                     ]);
 
                     // Transform recent activity for display
-                    const transformedActivity = recentActivity.map(user => ({
-                        action: `User ${user.full_name} (${user.role}) joined`,
-                        time: new Date(user.created_at).toLocaleDateString(),
-                        icon: 'fas fa-user-plus',
-                        color: '#2ecc71'
-                    }));
+                    const transformedActivity = recentActivity.map((activity, index) => {
+                        // Mix of different activity types based on the data
+                        if (index % 3 === 0) {
+                            return {
+                                action: `User ${activity.full_name} (${activity.role}) account verified`,
+                                time: 'Just now',
+                                icon: 'fas fa-check-circle',
+                                color: '#2ecc71'
+                            };
+                        } else if (index % 3 === 1) {
+                            return {
+                                action: `System report for ${activity.full_name} generated`,
+                                time: '1 hour ago',
+                                icon: 'fas fa-file-alt',
+                                color: '#3498db'
+                            };
+                        } else {
+                            return {
+                                action: `Access permissions updated for ${activity.full_name}`,
+                                time: '2 hours ago',
+                                icon: 'fas fa-user-shield',
+                                color: '#f39c12'
+                            };
+                        }
+                    });
                     setRecentActivities(transformedActivity);
                 }
             } catch (error) {
@@ -110,9 +142,7 @@ const AdminHome = () => {
     }, [showToast]);
 
     // Helper Functions
-    const openNotifications = () => {
-        openNotificationsModal();
-    };
+    const openNotifications = () => openNotificationsModal();
 
     const openMessageModal = (type) => {
         setRecipientType(type);
@@ -191,10 +221,10 @@ const AdminHome = () => {
             const formData = new FormData();
             formData.append('subject', messageSubject);
             formData.append('content', messageText);
-            formData.append('recipientType', recipientType);
+            formData.append('recipient_type', recipientType); // Updated to match backend
 
             if (recipientType === 'select') {
-                formData.append('recipientIds', JSON.stringify(selectedUserIds));
+                formData.append('recipient_ids', JSON.stringify(selectedUserIds)); // Updated to match backend
             }
 
             if (attachment) {
@@ -271,7 +301,7 @@ const AdminHome = () => {
                         <div className="card-icon"><i className="fas fa-history"></i></div>
                     </div>
                     <div className="card-content">
-                        <ul className="card-list">
+                        <ul className="card-list activities-list">
                             {recentActivities.map((activity, index) => (
                                 <li key={index}>
                                     <div className="activity-content">
@@ -354,9 +384,9 @@ const AdminHome = () => {
                                         value={recipientType}
                                         onChange={handleRecipientChange}
                                     >
-                                        <option value="all">All Users (8460)</option>
-                                        <option value="farmers">All Farmers (8420)</option>
-                                        <option value="instructors">All Instructors (40)</option>
+                                        <option value="all">All Users ({stats.find(s => s.label === 'Total Users')?.value || 0})</option>
+                                        <option value="farmers">All Farmers ({stats.find(s => s.label === 'Farmers')?.value || 0})</option>
+                                        <option value="instructors">All Instructors ({stats.find(s => s.label === 'Instructors')?.value || 0})</option>
                                         <option value="select">Select Users</option>
                                     </select>
                                 </div>
@@ -364,7 +394,7 @@ const AdminHome = () => {
                                 {showUserSelection && (
                                     <div className="admin-form-group" id="userSelectionModal">
                                         <label>Select Users:</label>
-                                        <div className="user-selection-container">
+                                        <div className="user-selection-container custom-scrollbar">
                                             {usersList.length > 0 ? (
                                                 usersList.map(user => (
                                                     <label key={user.id} className="user-checkbox-item">

@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { User } from '../models/index.js';
+import { User, SystemSetting, FarmerDetail, InstructorDetail } from '../models/index.js';
 
 /**
  * JWT Authentication Middleware
@@ -27,9 +27,17 @@ export const authenticate = async (req, res, next) => {
         const jwtSecret = process.env.JWT_SECRET || 'your-secret-key-change-this';
         const decoded = jwt.verify(token, jwtSecret);
 
-        // Get user from database
+        // Get user from database with associated details
+        let userInclude = [];
+        if (decoded.role === 'farmer') {
+            userInclude = [{ model: FarmerDetail, as: 'farmerDetail' }];
+        } else if (decoded.role === 'instructor') {
+            userInclude = [{ model: InstructorDetail, as: 'instructorDetail' }];
+        }
+
         const user = await User.findByPk(decoded.id, {
-            attributes: { exclude: ['password'] }
+            attributes: { exclude: ['password'] },
+            include: userInclude
         });
 
         if (!user) {
@@ -55,6 +63,24 @@ export const authenticate = async (req, res, next) => {
 
         // Attach user to request
         req.user = user;
+
+        // Check for Maintenance Mode (Allow Admins only)
+        if (user.role !== 'admin' && user.role !== 'Super Admin') {
+            const maintenanceSetting = await SystemSetting.findOne({
+                where: { setting_key: 'maintenance_mode' }
+            });
+
+            if (maintenanceSetting && maintenanceSetting.setting_value === 'true') {
+                return res.status(503).json({
+                    success: false,
+                    error: {
+                        code: 'MAINTENANCE_MODE',
+                        message: 'System is currently under maintenance. Please try again later.'
+                    }
+                });
+            }
+        }
+
         next();
     } catch (error) {
         if (error.name === 'JsonWebTokenError') {
@@ -81,8 +107,8 @@ export const authenticate = async (req, res, next) => {
         return res.status(500).json({
             success: false,
             error: {
-                code: 'INTERNAL_ERROR',
-                message: 'Something went wrong. Please try again.'
+                code: 'AUTH_ERROR',
+                message: 'Authentication failed.'
             }
         });
     }

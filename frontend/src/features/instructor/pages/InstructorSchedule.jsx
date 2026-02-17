@@ -1,51 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import InstructorCalendar from '../components/InstructorCalendar';
-
-const INITIAL_INSTRUCTOR_MOCK_MEETINGS = [
-    {
-        id: 'mock-1',
-        meetingTitle: 'Crop Disease Consultation',
-        meetingDate: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0],
-        meetingTime: '10:00',
-        meetingNotes: 'I am seeing some yellow spots on my paddy leaves. Need urgent advice.',
-        status: 'pending',
-        farmerName: 'Kamal Perera',
-        farmerId: 'FARM-2026-0001',
-        division: 'Kebithigollewa',
-        isMock: true
-    },
-    {
-        id: 'mock-2',
-        meetingTitle: 'Organic Fertilizer Advice',
-        meetingDate: new Date().toISOString().split('T')[0],
-        meetingTime: '14:30',
-        meetingNotes: 'Want to switch to organic fertilizers for my vegetable garden.',
-        status: 'accepted',
-        zoomLink: 'https://zoom.us/j/123456789',
-        farmerName: 'Sunil Silva',
-        farmerId: 'FARM-2026-0002',
-        division: 'Padaviya',
-        isMock: true
-    },
-    {
-        id: 'mock-3',
-        meetingTitle: 'Soil Testing Results',
-        meetingDate: new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0],
-        meetingTime: '09:00',
-        meetingNotes: 'Discussing the soil test results from last week.',
-        status: 'accepted',
-        zoomLink: 'https://zoom.us/j/987654321',
-        farmerName: 'Nimal Bandara',
-        farmerId: 'FARM-2026-0003',
-        division: 'Rambewa',
-        isMock: true
-    }
-];
 
 const InstructorSchedule = () => {
     const { showToast } = useOutletContext();
     const [meetings, setMeetings] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isActionLoading, setIsActionLoading] = useState(null); // track which meeting is being updated
     const [rescheduleData, setRescheduleData] = useState({ id: null, date: '', time: '' });
     const [zoomLink, setZoomLink] = useState('');
     const [instructorNote, setInstructorNote] = useState('');
@@ -53,56 +14,85 @@ const InstructorSchedule = () => {
     const [cancellingMeetingId, setCancellingMeetingId] = useState(null);
     const [cancelReason, setCancelReason] = useState('');
 
-    // Load meetings from localStorage
-    useEffect(() => {
-        const loadMeetings = () => {
-            const savedMeetings = JSON.parse(localStorage.getItem('agri_meetings') || '[]');
-            setMeetings(prev => {
-                // Keep the current state of mock meetings (to preserve session-level changes)
-                const currentMocks = prev.length > 0 
-                    ? prev.filter(m => m.isMock) 
-                    : INITIAL_INSTRUCTOR_MOCK_MEETINGS;
-                
-                // Merge with saved non-mock meetings
-                return [...currentMocks, ...savedMeetings];
+    // Load meetings from API
+    const fetchMeetings = useCallback(async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('/api/instructor/meetings', {
+                headers: { 'Authorization': `Bearer ${token}` }
             });
-        };
+            const result = await response.json();
+            if (result.success) {
+                setMeetings(result.data);
+            } else {
+                showToast(result.error?.message || 'Failed to fetch meetings', 'error');
+            }
+        } catch (error) {
+            console.error('Error fetching meetings:', error);
+            showToast('An error occurred while fetching meetings', 'error');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [showToast]);
 
-        loadMeetings();
-
-        // Polling for updates every 5 seconds (simulating real-time)
-        const interval = setInterval(loadMeetings, 5000);
-
+    useEffect(() => {
+        fetchMeetings();
+        // Polling for updates every 10 seconds
+        const interval = setInterval(fetchMeetings, 10000);
         return () => clearInterval(interval);
-    }, []);
+    }, []); // Remove fetchMeetings dependency to prevent memory leak
 
-    const handleAccept = (meetingId) => {
+    const updateMeeting = async (meetingId, updateData) => {
+        setIsActionLoading(meetingId);
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`/api/instructor/meetings/${meetingId}/status`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(updateData)
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                showToast(result.message || 'Meeting updated successfully!');
+                fetchMeetings(); // Refresh the list
+                return true;
+            } else {
+                showToast(result.error?.message || 'Failed to update meeting', 'error');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error updating meeting:', error);
+            showToast('An error occurred while updating meeting', 'error');
+            return false;
+        } finally {
+            setIsActionLoading(null);
+        }
+    };
+
+    const handleAccept = async (meetingId) => {
         if (!zoomLink) {
             showToast('Please provide a Zoom link', 'error');
             return;
         }
 
-        const updatedMeetings = meetings.map(m => {
-            if (m.id === meetingId) {
-                return { 
-                    ...m, 
-                    status: 'accepted', 
-                    zoomLink: zoomLink, 
-                    instructorNote: instructorNote,
-                    farmerAcceptedSuggestion: false 
-                };
-            }
-            return m;
+        const success = await updateMeeting(meetingId, {
+            status: 'accepted',
+            zoomLink,
+            instructorNote
         });
 
-        saveMeetings(updatedMeetings);
-        showToast('Meeting accepted and Zoom link sent!');
-        setZoomLink('');
-        setInstructorNote('');
-        setActiveMeetingId(null);
+        if (success) {
+            setZoomLink('');
+            setInstructorNote('');
+            setActiveMeetingId(null);
+        }
     };
 
-    const handleReschedule = (meetingId) => {
+    const handleReschedule = async (meetingId) => {
         const now = new Date();
         const currentTodayStr = now.toISOString().split('T')[0];
         const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -122,38 +112,30 @@ const InstructorSchedule = () => {
             return;
         }
 
-        const updatedMeetings = meetings.map(m => {
-            if (m.id === meetingId) {
-                return { 
-                    ...m, 
-                    status: 'reschedule', 
-                    suggestedDate: rescheduleData.date, 
-                    suggestedTime: rescheduleData.time,
-                    instructorNote: instructorNote,
-                    farmerAcceptedSuggestion: false 
-                };
-            }
-            return m;
+        const success = await updateMeeting(meetingId, {
+            status: 'reschedule',
+            suggestedDate: rescheduleData.date,
+            suggestedTime: rescheduleData.time,
+            instructorNote
         });
 
-        saveMeetings(updatedMeetings);
-        showToast('Reschedule suggestion sent to farmer!');
-        setRescheduleData({ id: null, date: '', time: '' });
-        setInstructorNote('');
-        setActiveMeetingId(null);
+        if (success) {
+            setRescheduleData({ id: null, date: '', time: '' });
+            setInstructorNote('');
+            setActiveMeetingId(null);
+        }
     };
 
-    const handleDecline = (meetingId) => {
-        const updatedMeetings = meetings.map(m => {
-            if (m.id === meetingId) {
-                return { ...m, status: 'declined', instructorNote: instructorNote };
-            }
-            return m;
+    const handleDecline = async (meetingId) => {
+        const success = await updateMeeting(meetingId, {
+            status: 'declined',
+            instructorNote
         });
-        saveMeetings(updatedMeetings);
-        showToast('Meeting declined');
-        setInstructorNote('');
-        setActiveMeetingId(null);
+
+        if (success) {
+            setInstructorNote('');
+            setActiveMeetingId(null);
+        }
     };
 
     const handleCancelClick = (meetingId) => {
@@ -161,52 +143,25 @@ const InstructorSchedule = () => {
         setCancelReason('');
     };
 
-    const confirmCancel = (meetingId) => {
+    const confirmCancel = async (meetingId) => {
         if (!cancelReason.trim()) {
             showToast('Please provide a reason for cancellation', 'error');
             return;
         }
 
-        const updatedMeetings = meetings.map(m => {
-            if (m.id === meetingId) {
-                return { ...m, status: 'cancelled', cancelReason: cancelReason };
-            }
-            return m;
+        const success = await updateMeeting(meetingId, {
+            status: 'cancelled',
+            cancelReason
         });
-        saveMeetings(updatedMeetings);
-        showToast('Meeting cancelled');
-        setCancellingMeetingId(null);
-        setCancelReason('');
-    };
 
-    const saveMeetings = (updatedMeetings) => {
-        setMeetings(updatedMeetings);
-        // Only save non-mock meetings to localStorage
-        const nonMockMeetings = updatedMeetings.filter(m => !m.isMock);
-        localStorage.setItem('agri_meetings', JSON.stringify(nonMockMeetings));
+        if (success) {
+            setCancellingMeetingId(null);
+            setCancelReason('');
+        }
     };
 
     return (
-        <div className="theme-instructor">
-            <div className="page-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <i className="fas fa-calendar-alt"></i>
-                    <h2>Schedule & Availability</h2>
-                </div>
-                <div style={{ 
-                    fontSize: '0.9rem', 
-                    fontWeight: '600', 
-                    color: '#64748b',
-                    background: '#f8fafc',
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid #e2e8f0'
-                }}>
-                    <i className="fas fa-id-badge" style={{ marginRight: '8px' }}></i>
-                    ID: INST-2026-0007
-                </div>
-            </div>
-
+        <>
             <div style={{ display: 'block' }}>
                 <div className="left-column">
                     <InstructorCalendar meetings={meetings} />
@@ -256,6 +211,14 @@ const InstructorSchedule = () => {
                                                             {meeting.farmerAcceptedSuggestion && (
                                                                 <div style={{ marginTop: '4px' }}>
                                                                     <span className="badge badge-success" style={{ fontSize: '0.65em' }}>Farmer Accepted New Time</span>
+                                                                </div>
+                                                            )}
+                                                            {!meeting.instructor_id && (
+                                                                <div style={{ marginTop: '4px' }}>
+                                                                    <span className="badge" style={{ fontSize: '0.65em', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
+                                                                        <i className="fas fa-users" style={{ marginRight: '4px' }}></i>
+                                                                        Division Request
+                                                                    </span>
                                                                 </div>
                                                             )}
                                                         </td>
@@ -580,7 +543,7 @@ const InstructorSchedule = () => {
                     </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 };
 

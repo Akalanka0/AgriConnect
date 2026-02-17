@@ -41,7 +41,7 @@ const UserDetailsDrawer = ({ isOpen, onClose, user, activeTab }) => {
                                     <div className="info-value">{user.district}</div>
                                 </div>
                                 <div className="info-group">
-                                    <div className="info-label">Business Area</div>
+                                    <div className="info-label">Zone</div>
                                     <div className="info-value">{user.location}</div>
                                 </div>
                                 <div className="info-group">
@@ -56,8 +56,8 @@ const UserDetailsDrawer = ({ isOpen, onClose, user, activeTab }) => {
                                     <div className="info-value">{user.district}</div>
                                 </div>
                                 <div className="info-group">
-                                    <div className="info-label">Business Area</div>
-                                    <div className="info-value">{user.businessArea}</div>
+                                    <div className="info-label">Zone</div>
+                                    <div className="info-value">{user.zone}</div>
                                 </div>
                                 <div className="info-group">
                                     <div className="info-label">Instructor Divisions</div>
@@ -93,7 +93,7 @@ UserDetailsDrawer.propTypes = {
         status: PropTypes.string,
         district: PropTypes.string,
         location: PropTypes.string,
-        businessArea: PropTypes.string,
+        zone: PropTypes.string,
         instructorDivision: PropTypes.string,
         divisions: PropTypes.arrayOf(PropTypes.string)
     }),

@@ -26,7 +26,7 @@ const Message = sequelize.define('Message', {
         }
     },
     recipient_type: {
-        type: DataTypes.ENUM('all', 'farmers', 'instructors', 'select'),
+        type: DataTypes.ENUM('all', 'farmers', 'instructors', 'select', 'admin'),
         allowNull: false
     },
     // If recipient_type is 'select', we store the user ID here
@@ -62,6 +62,10 @@ const Message = sequelize.define('Message', {
     attachment_name: {
         type: DataTypes.STRING(255),
         allowNull: true
+    },
+    is_read: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
     }
 }, {
     tableName: 'messages',

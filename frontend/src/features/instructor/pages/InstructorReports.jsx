@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { useOutletContext } from 'react-router-dom';
 
 // Portal Component for Modals
@@ -11,10 +11,12 @@ const ModalPortal = ({ children }) => {
 
 const InstructorReports = () => {
     const { showToast } = useOutletContext();
-    const [isGenerating, setIsGenerating] = useState(false);
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
     const [currentReportType, setCurrentReportType] = useState('');
-    
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [divisions, setDivisions] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+
     const [filters, setFilters] = useState({
         startDate: '',
         endDate: '',
@@ -23,14 +25,29 @@ const InstructorReports = () => {
         format: 'PDF'
     });
 
-    // Mock Divisions for the instructor
-    const divisions = ['Boganewa', 'Kumbukwewa', 'Tulana 1', 'Tulana 2', 'Yaya 1', 'Yaya 2'];
+    // Fetch instructor profile to get actual divisions
+    useEffect(() => {
+        const fetchInstructorProfile = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/instructor/profile', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const result = await response.json();
+                if (result.success && result.data.assigned_divisions) {
+                    setDivisions(result.data.assigned_divisions);
+                }
+            } catch (error) {
+                console.error('Error fetching instructor profile:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
 
-    const [reportHistory, setReportHistory] = useState([
-        { id: 1, category: 'Pest Management', name: 'Monthly Pest Analysis', date: '2025-10-28', status: 'Success' },
-        { id: 2, category: 'Meetings', name: 'Farmer Consultation Summary', date: '2025-10-25', status: 'Success' },
-        { id: 3, category: 'Crop Plans', name: 'Seasonal Crop Review', date: '2025-10-15', status: 'Success' }
-    ]);
+        fetchInstructorProfile();
+    }, []);
+
+    const [reportHistory, setReportHistory] = useState([]);
 
     const openFilterModal = (type) => {
         setCurrentReportType(type);
@@ -70,7 +87,7 @@ const InstructorReports = () => {
         doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 58);
 
         // Table
-        doc.autoTable({
+        autoTable(doc, {
             startY: 65,
             head: [columns],
             body: data,
@@ -82,12 +99,15 @@ const InstructorReports = () => {
 
         // Footer
         const pageCount = doc.internal.getNumberOfPages();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+
         for (let i = 1; i <= pageCount; i++) {
             doc.setPage(i);
             doc.setFontSize(8);
             doc.setTextColor(150);
-            doc.text('AgriConnect Instructor System - Confidential Report', 14, doc.internal.pageSize.height - 10);
-            doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.width - 20, doc.internal.pageSize.height - 10, { align: 'right' });
+            doc.text('AgriConnect Instructor System - Confidential Report', 14, pageHeight - 10);
+            doc.text(`Page ${i} of ${pageCount}`, pageWidth - 20, pageHeight - 10, { align: 'right' });
         }
 
         doc.save(`${filename}.pdf`);
@@ -97,6 +117,33 @@ const InstructorReports = () => {
             id: Date.now(),
             category: currentReportType,
             name: `${currentReportType} Report - ${new Date().toLocaleDateString()}`,
+            date: new Date().toISOString().split('T')[0],
+            status: 'Success'
+        };
+        setReportHistory(prev => [newEntry, ...prev]);
+    };
+
+    const generateCSV = (columns, data, filename) => {
+        const csvContent = [
+            columns.join(','),
+            ...data.map(row => row.map(cell => `"${cell}"`).join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `${filename}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Add to history
+        const newEntry = {
+            id: Date.now(),
+            category: currentReportType,
+            name: `${currentReportType} Report (CSV) - ${new Date().toLocaleDateString()}`,
             date: new Date().toISOString().split('T')[0],
             status: 'Success'
         };
@@ -115,38 +162,54 @@ const InstructorReports = () => {
         setIsGenerating(true);
         showToast(`Generating ${currentReportType} report...`, 'info');
 
-        // Simulate processing delay
-        await new Promise(resolve => setTimeout(resolve, 1200));
+        try {
+            const token = localStorage.getItem('token');
+            const queryParams = new URLSearchParams({
+                type: currentReportType,
+                startDate: filters.startDate,
+                endDate: filters.endDate,
+                status: filters.status,
+                division: filters.division
+            }).toString();
 
-        const columns = ['Metric', 'Selection/Filter', 'Count (Mock)'];
-        const data = [
-            ['Report Category', currentReportType, '-'],
-            ['Date Range', `${filters.startDate || 'All Time'} - ${filters.endDate || 'Present'}`, '-'],
-            ['Status Filter', filters.status, '8'],
-            ['Division Filter', filters.division, '12'],
-            ['Total Records Found', 'Matched criteria', '20']
-        ];
+            const response = await fetch(`/api/instructor/reports?${queryParams}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
 
-        generatePDF(
-            `${currentReportType} Report`, 
-            `Detailed analysis for selected duration and filters`, 
-            columns, 
-            data, 
-            `${currentReportType.toLowerCase().replace(' ', '_')}_report`
-        );
+            const result = await response.json();
 
-        setIsGenerating(false);
-        showToast('Report generated successfully!', 'success');
-        closeFilterModal();
+            if (result.success) {
+                const { columns, rows } = result.data;
+                const filename = `${currentReportType.toLowerCase().replace(' ', '_')}_report_${new Date().toISOString().split('T')[0]}`;
+
+                if (filters.format === 'CSV') {
+                    generateCSV(columns, rows, filename);
+                } else {
+                    generatePDF(
+                        `${currentReportType} Report`,
+                        `Detailed analysis for selected duration and filters`,
+                        columns,
+                        rows,
+                        filename
+                    );
+                }
+                showToast('Report generated successfully!', 'success');
+                closeFilterModal();
+            } else {
+                showToast(result.error?.message || 'Failed to generate report', 'error');
+            }
+        } catch (error) {
+            console.error('Error generating report:', error);
+            showToast('An error occurred while generating the report', 'error');
+        } finally {
+            setIsGenerating(false);
+        }
     };
 
     return (
-        <div className="theme-instructor">
-            <div className="page-title">
-                <i className="fas fa-file-alt"></i>
-                <h2>Reports</h2>
-            </div>
-
+        <>
             <div className="dashboard-grid">
                 {/* Pest Management Report Card */}
                 <div className="card">
@@ -290,7 +353,8 @@ const InstructorReports = () => {
                                         >
                                             <option value="All">All Statuses</option>
                                             <option value="Pending">Pending Review</option>
-                                            <option value="Reviewed">Reviewed / Completed</option>
+                                            <option value="In_progress">In Progress</option>
+                                            <option value="Resolved">Resolved / Completed</option>
                                             <option value="Declined">Declined / Cancelled</option>
                                         </select>
                                     </div>
@@ -312,12 +376,28 @@ const InstructorReports = () => {
 
                                     <div className="form-group">
                                         <label>Report Format</label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            value="PDF (Locked)"
-                                            disabled
-                                        />
+                                        <div style={{ display: 'flex', gap: '20px', marginTop: '10px' }}>
+                                            <label className="format-radio-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                                <input
+                                                    type="radio"
+                                                    name="format"
+                                                    value="PDF"
+                                                    checked={filters.format === 'PDF'}
+                                                    onChange={handleFilterChange}
+                                                />
+                                                <i className="fas fa-file-pdf" style={{ color: '#e74c3c' }}></i> PDF
+                                            </label>
+                                            <label className="format-radio-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                                <input
+                                                    type="radio"
+                                                    name="format"
+                                                    value="CSV"
+                                                    checked={filters.format === 'CSV'}
+                                                    onChange={handleFilterChange}
+                                                />
+                                                <i className="fas fa-file-csv" style={{ color: '#27ae60' }}></i> CSV
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="instructor-modal-footer">
@@ -327,7 +407,7 @@ const InstructorReports = () => {
                                         onClick={handleGenerateReport}
                                         disabled={isGenerating}
                                     >
-                                        {isGenerating ? 'Generating...' : 'Generate PDF Report'}
+                                        {isGenerating ? 'Generating...' : `Generate ${filters.format} Report`}
                                     </button>
                                 </div>
                             </div>
@@ -335,7 +415,7 @@ const InstructorReports = () => {
                     </div>
                 </ModalPortal>
             )}
-        </div>
+        </>
     );
 };
 

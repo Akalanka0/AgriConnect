@@ -7,20 +7,18 @@ const ModalPortal = ({ children }) => {
 };
 
 const Engagement = () => {
+    // Helper to format zone names (remove "Zone" suffix if present)
+    const formatZoneName = (name) => {
+        if (!name) return '-';
+        // More robust removal: handle trailing spaces and case-insensitive "Zone"
+        return name.toString().replace(/\s+Zone\s*$/i, '').trim();
+    };
+
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedInstructor, setSelectedInstructor] = useState(null);
     const [selectedFarmer, setSelectedFarmer] = useState(null);
     const [instructorEngagement, setInstructorEngagement] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({
-        totalInstructors: 0,
-        totalFarmers: 0,
-        newRegistrations: 0,
-        totalActiveUsers: 0,
-        dailyActive: 0,
-        registrationTrend: [],
-        activityByRole: []
-    });
 
     useEffect(() => {
         const fetchEngagementData = async () => {
@@ -28,10 +26,16 @@ const Engagement = () => {
                 const response = await fetch('/api/admin/engagement/instructors');
                 const result = await response.json();
                 if (result.success) {
-                    setInstructorEngagement(result.data);
-                    const totalInst = result.data.length;
-                    const totalFarm = result.data.reduce((acc, curr) => acc + curr.farmersCount, 0);
-                    setStats(prevStats => ({ ...prevStats, totalInstructors: totalInst, totalFarmers: totalFarm }));
+                    // Transform data to format zone names
+                    const transformedData = result.data.map(instructor => ({
+                        ...instructor,
+                        zone: formatZoneName(instructor.zone),
+                        farmers: instructor.farmers.map(farmer => ({
+                            ...farmer,
+                            location: formatZoneName(farmer.location)
+                        }))
+                    }));
+                    setInstructorEngagement(transformedData);
                 }
             } catch (error) {
                 console.error('Error fetching instructor engagement data:', error);
@@ -40,27 +44,7 @@ const Engagement = () => {
             }
         };
 
-        const fetchOverallStats = async () => {
-            try {
-                const response = await fetch('/api/admin/engagement');
-                const result = await response.json();
-                if (result.success) {
-                    setStats(prevStats => ({
-                        ...prevStats,
-                        newRegistrations: result.data.summary.newRegistrations,
-                        totalActiveUsers: result.data.summary.totalActiveUsers,
-                        dailyActive: result.data.summary.dailyActive,
-                        registrationTrend: result.data.trend,
-                        activityByRole: result.data.distribution
-                    }));
-                }
-            } catch (error) {
-                console.error('Error fetching overall engagement stats:', error);
-            }
-        };
-
         fetchEngagementData();
-        fetchOverallStats();
     }, []);
 
 
@@ -162,14 +146,7 @@ const Engagement = () => {
                                             </button>
                                         </div>
                                     ))}
-                                    <div className="more-farmers-text">
-                                        + more farmers
-                                    </div>
                                 </div>
-
-                                <button className="btn btn-primary btn-view-all">
-                                    View All
-                                </button>
                             </div>
                         </div>
                     ))
@@ -179,23 +156,6 @@ const Engagement = () => {
                         <p>No instructors or farmers found matching &quot;{searchTerm}&quot;</p>
                     </div>
                 )}
-            </div>
-
-            <div className="engagement-stats-container">
-                <div className="engagement-card-inline">
-                    <div className="engagement-stat-value">{stats.totalInstructors}</div>
-                    <div className="engagement-stat-label">Total Instructors</div>
-                    <div className="engagement-stat-value">{stats.totalFarmers}</div>
-                    <div className="engagement-stat-label">Total Farmers</div>
-                </div>
-                <div className="engagement-card-inline">
-                    <div className="engagement-stat-value">{stats.newRegistrations}</div>
-                    <div className="engagement-stat-label">New Registrations (7 Days)</div>
-                    <div className="engagement-stat-value">{stats.totalActiveUsers}</div>
-                    <div className="engagement-stat-label">Total Active Users</div>
-                    <div className="engagement-stat-value">{stats.dailyActive}</div>
-                    <div className="engagement-stat-label">Daily Active Users (Est.)</div>
-                </div>
             </div>
 
             {/* Instructor Details Modal */}
@@ -249,8 +209,8 @@ const Engagement = () => {
                                                     </div>
 
                                                     <div className="working-area-row">
-                                                        <span className="working-area-key">Business Area:</span>
-                                                        <span className="working-area-val">{selectedInstructor.businessArea}</span>
+                                                        <span className="working-area-key">Zone:</span>
+                                                        <span className="working-area-val">{selectedInstructor.zone}</span>
                                                     </div>
 
                                                     <div>
@@ -318,9 +278,9 @@ const Engagement = () => {
                             <div className="admin-modal-body">
                                 <div className="instructor-profile-header">
                                     <div className="instructor-avatar-large" style={{
-                                        background: '#D2B48C'
+                                        background: selectedFarmer.avatar ? `url(${selectedFarmer.avatar}) center/cover no-repeat` : '#D2B48C'
                                     }}>
-                                        {selectedFarmer.name.charAt(0)}
+                                        {!selectedFarmer.avatar && selectedFarmer.name.charAt(0)}
                                     </div>
                                     <div className="instructor-details-wrapper">
                                         <h2 className="instructor-name-large">{selectedFarmer.name}</h2>
@@ -336,7 +296,7 @@ const Engagement = () => {
                                                 <div className="info-value-md">{selectedFarmer.district}</div>
                                             </div>
                                             <div>
-                                                <div className="info-label-sm">Location</div>
+                                                <div className="info-label-sm">Zone</div>
                                                  <div className="info-value-md">{selectedFarmer.location}</div>
                                             </div>
                                             <div>

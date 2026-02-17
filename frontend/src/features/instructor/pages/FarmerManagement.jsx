@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import DataTable from '../../admin/components/DataTable';
 import StatusBadge from '../../admin/components/StatusBadge';
+import FarmerDetailsModal from '../components/modals/FarmerDetailsModal';
 
 const FarmerManagement = () => {
     const { openModal, showToast } = useOutletContext();
@@ -11,73 +12,104 @@ const FarmerManagement = () => {
     const [loading, setLoading] = useState(false);
     const [farmers, setFarmers] = useState([]);
     const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
+    const [selectedFarmerId, setSelectedFarmerId] = useState(null);
+    const [instructorInfo, setInstructorInfo] = useState({
+        zone: '',
+        assignedDivisions: []
+    });
 
-    // Mock Instructor Data (In a real app, this would come from auth context or API)
-    const instructorInfo = {
-        businessArea: 'Nuwaragam Palatha Zone',
-        assignedDivisions: ['Nuwaragam Palatha Central', 'Mihintale', 'Nochchiyagama']
+    // Helper to format zone names (remove "Zone" suffix if present)
+    const formatZoneName = (name) => {
+        if (!name) return '-';
+        return name.replace(/\s+Zone$/i, '').trim();
     };
 
-    // Mock Data Fetching
-    const fetchFarmers = async () => {
-        setLoading(true);
-        // Simulating API delay
-        setTimeout(() => {
-            const mockFarmers = [
-                {
-                    id: 1,
-                    displayId: 'FARM-2026-0001',
-                    name: 'Sunil Perera',
-                    division: 'Nuwaragam Palatha Central',
-                    joined: '2025-12-10'
-                },
-                {
-                    id: 2,
-                    displayId: 'FARM-2026-0002',
-                    name: 'Kamal Gunaratne',
-                    division: 'Mihintale',
-                    joined: '2025-12-15'
-                },
-                {
-                    id: 3,
-                    displayId: 'FARM-2026-0003',
-                    name: 'Nimal Siripala',
-                    division: 'Nochchiyagama',
-                    joined: '2026-01-05'
-                },
-                {
-                    id: 4,
-                    displayId: 'FARM-2026-0004',
-                    name: 'Wimal Weerawansa',
-                    division: 'Nuwaragam Palatha Central',
-                    joined: '2026-01-10'
-                },
-                {
-                    id: 5,
-                    displayId: 'FARM-2026-0005',
-                    name: 'Bandula Gunawardena',
-                    division: 'Mihintale',
-                    joined: '2026-01-20'
+    // Fetch Instructor Info (Divisions)
+    const fetchInstructorInfo = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('/api/instructor/profile', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+            if (data.success) {
+                setInstructorInfo({
+                    zone: data.data.zone || '',
+                    assignedDivisions: data.data.assigned_divisions || []
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching instructor info:', error);
+        }
+    };
+
+    
+    useEffect(() => {
+        let isMounted = true;
+        
+        const fetchInstructorInfo = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/instructor/profile', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (data.success && isMounted) {
+                    setInstructorInfo({
+                        zone: data.data.zone || '',
+                        assignedDivisions: data.data.assigned_divisions || []
+                    });
                 }
-            ];
+            } catch (error) {
+                if (isMounted) console.error('Error fetching instructor info:', error);
+            }
+        };
 
-            setFarmers(mockFarmers);
-            setPagination(prev => ({ ...prev, total: mockFarmers.length }));
-            setLoading(false);
-        }, 500);
-    };
+        fetchInstructorInfo();
+        
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     useEffect(() => {
-        fetchFarmers();
-    }, [pagination.page, divisionFilter]);
+        let isMounted = true;
+        
+        const fetchFarmersData = async () => {
+            if (!isMounted) return;
+            setLoading(true);
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/instructor/farmers', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (data.success && isMounted) {
+                    setFarmers(data.data);
+                    setPagination(prev => ({ ...prev, total: data.data.length }));
+                } else if (isMounted) {
+                    showToast(data.error?.message || 'Failed to fetch farmers', 'error');
+                }
+            } catch (error) {
+                if (isMounted) {
+                    console.error('Error fetching farmers:', error);
+                    showToast('An error occurred while fetching farmers', 'error');
+                }
+            } finally {
+                if (isMounted) setLoading(false);
+            }
+        };
+
+        fetchFarmersData();
+        
+        return () => {
+            isMounted = false;
+        };
+    }, [pagination.page, showToast]);
 
     const handleAction = (action, farmer) => {
         if (action === 'view') {
-            showToast(`Viewing details for ${farmer.name}`, 'info');
-            // Logic to open view drawer/modal
-        } else if (action === 'edit') {
-            showToast(`Editing ${farmer.name}`, 'info');
-            // Logic to open edit modal
+            setSelectedFarmerId(farmer.id);
         }
     };
 
@@ -89,8 +121,7 @@ const FarmerManagement = () => {
     ];
 
     const actions = [
-        { name: 'view', type: 'primary', label: 'View' },
-        { name: 'edit', type: 'secondary', label: 'Edit' }
+        { name: 'view', type: 'primary', label: 'View' }
     ];
 
     // Filter Logic
@@ -100,47 +131,32 @@ const FarmerManagement = () => {
         const matchesSearch = !searchTerm ||
             f.name.toLowerCase().includes(term) ||
             f.displayId.toLowerCase().includes(term);
-        
+
         return matchesDivision && matchesSearch;
     });
 
     return (
         <>
-            <div className="page-title">
-                <i className="fas fa-users"></i>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <h2>Farmer Management</h2>
-                    <span style={{ fontSize: '0.8em', color: '#666', marginTop: '4px' }}>
-                        <i className="fas fa-map-marker-alt" style={{ marginRight: '5px' }}></i>
-                        {instructorInfo.businessArea}
-                    </span>
-                </div>
-            </div>
-
             <div className="card">
                 <div className="table-header">
                     <div className="header-left">
                         <div className="search-box">
                             <i className="fas fa-search"></i>
-                            <input 
-                                type="text" 
-                                placeholder="Search farmers..." 
+                            <input
+                                type="text"
+                                placeholder="Search farmers..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
                         <div className="filters">
-                            <select 
+                            <select
                                 className="filter-select"
                                 value={divisionFilter}
                                 onChange={(e) => setDivisionFilter(e.target.value)}
                             >
                                 <option value="All">All Divisions</option>
-                                {instructorInfo.assigned_divisions && instructorInfo.assigned_divisions.map(div => (
-                                    <option key={div} value={div}>{div}</option>
-                                ))}
-                                {/* Fallback for mock data */}
-                                {!instructorInfo.assigned_divisions && instructorInfo.assignedDivisions.map(div => (
+                                {instructorInfo.assignedDivisions && instructorInfo.assignedDivisions.map(div => (
                                     <option key={div} value={div}>{div}</option>
                                 ))}
                             </select>
@@ -160,6 +176,13 @@ const FarmerManagement = () => {
                     }}
                 />
             </div>
+
+            {/* Farmer Details Modal */}
+            <FarmerDetailsModal 
+                isOpen={!!selectedFarmerId}
+                onClose={() => setSelectedFarmerId(null)}
+                farmerId={selectedFarmerId}
+            />
 
             <style jsx>{`
                 .header-left {

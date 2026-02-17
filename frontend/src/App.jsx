@@ -13,7 +13,7 @@ import {
   Activities,
   PestManagement,
   Harvest,
-  Calendar,
+  FarmerSchedule,
   Weather,
   Settings as FarmerSettings
 } from '@/features/farmer';
@@ -43,48 +43,50 @@ import {
 
 export default function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/verify" element={<VerificationPage />} />
-        <Route path="/verify-email" element={<EmailVerificationPage />} />
+    <AdminToastProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/verify" element={<VerificationPage />} />
+          <Route path="/verify-email" element={<EmailVerificationPage />} />
 
-        {/* Nested Farmer Routes */}
-        <Route path="/farmer" element={<FarmerLayout />}>
-          <Route index element={<FarmerHome />} />
-          <Route path="crop" element={<CropPlans />} />
-          <Route path="activity" element={<Activities />} />
-          <Route path="pest" element={<PestManagement />} />
-          <Route path="harvest" element={<Harvest />} />
-          <Route path="meeting" element={<Calendar />} />
-          <Route path="alerts" element={<Weather />} />
-          <Route path="settings" element={<FarmerSettings />} />
-        </Route>
+          {/* Nested Farmer Routes */}
+          <Route path="/farmer" element={<FarmerLayout />}>
+            <Route index element={<FarmerHome />} />
+            <Route path="crop" element={<CropPlans />} />
+            <Route path="activity" element={<Activities />} />
+            <Route path="pest" element={<PestManagement />} />
+            <Route path="harvest" element={<Harvest />} />
+            <Route path="meeting" element={<FarmerSchedule />} />
+            <Route path="alerts" element={<Weather />} />
+            <Route path="settings" element={<FarmerSettings />} />
+          </Route>
 
-        {/* Nested Admin Routes */}
-        <Route path="/admin" element={<AdminToastProvider><AdminLayout /></AdminToastProvider>}>
-          <Route index element={<AdminHome />} />
-          <Route path="users" element={<UserManagement />} />
-          <Route path="engagement" element={<Engagement />} />
-          <Route path="reports" element={<AdminReports />} />
-          <Route path="ids" element={<UserIdManagement />} />
-          <Route path="settings" element={<AdminSettings />} />
-        </Route>
+          {/* Nested Admin Routes */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminHome />} />
+            <Route path="users" element={<UserManagement />} />
+            <Route path="engagement" element={<Engagement />} />
+            <Route path="reports" element={<AdminReports />} />
+            <Route path="ids" element={<UserIdManagement />} />
+            <Route path="settings" element={<AdminSettings />} />
+          </Route>
 
-        {/* Nested Instructor Routes */}
-        <Route path="/instructor" element={<InstructorLayout />}>
-          <Route index element={<InstructorHome />} />
-          <Route path="farmers" element={<FarmerManagement />} />
-          <Route path="crop-plans" element={<CropPlanReview />} />
-          <Route path="pest-management" element={<PestReports />} />
-          <Route path="reports" element={<InstructorReports />} />
-          <Route path="schedule" element={<InstructorSchedule />} />
-          <Route path="settings" element={<InstructorSettings />} />
-        </Route>
+          {/* Nested Instructor Routes */}
+          <Route path="/instructor" element={<InstructorLayout />}>
+            <Route index element={<InstructorHome />} />
+            <Route path="farmers" element={<FarmerManagement />} />
+            <Route path="crop-plans" element={<CropPlanReview />} />
+            <Route path="pest-management" element={<PestReports />} />
+            <Route path="reports" element={<InstructorReports />} />
+            <Route path="schedule" element={<InstructorSchedule />} />
+            <Route path="settings" element={<InstructorSettings />} />
+          </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Router>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+    </AdminToastProvider>
   );
 }

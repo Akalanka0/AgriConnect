@@ -34,13 +34,18 @@ const FarmerDetail = sequelize.define('FarmerDetail', {
         type: DataTypes.STRING(50),
         allowNull: true
     },
-    business_area: {
+    zone: {
         type: DataTypes.STRING(100),
         allowNull: true
     },
     instructor_division: {
         type: DataTypes.STRING(100),
         allowNull: true
+    },
+    locations: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        defaultValue: []
     }
 }, {
     tableName: 'farmer_details',
