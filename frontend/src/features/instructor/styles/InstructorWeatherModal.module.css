@@ -1,0 +1,528 @@
+/* InstructorWeatherModal.module.css - Independent CSS for Instructor Weather Modal */
+
+/* Import semantic color system */
+@import url('../../../shared/semantic-colors.css');
+
+.mainPage {
+  /* Instructor theme override — portal renders outside .appContainer scope */
+  --color-primary: var(--instructor-primary);
+  --color-primary-hover: var(--instructor-primary-dark);
+  --color-primary-light: var(--instructor-primary-light);
+  padding: var(--space-lg) var(--space-lg) var(--space-xl) var(--space-lg);
+}
+
+.pageTitle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-xl);
+  padding: var(--space-lg);
+  background: linear-gradient(135deg, var(--instructor-primary-light), var(--instructor-primary));
+  border-radius: var(--radius-lg);
+  color: var(--neutral-white);
+  position: relative;
+  gap: var(--space-lg);
+}
+
+.titleSection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  flex: 1;
+}
+
+.weatherCloseButton {
+  background: var(--neutral-100);
+  border: none;
+  color: var(--neutral-600);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition-normal);
+}
+
+.weatherCloseButton:hover {
+  background: var(--state-danger);
+  color: var(--neutral-white);
+}
+
+.titleLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.titleLeft i {
+  font-size: 2em;
+}
+
+.titleLeft h2 {
+  margin: 0;
+  font-size: 1.8em;
+  font-weight: 700;
+}
+
+.timeDisplay {
+  text-align: right;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.currentTime {
+  font-size: 1.5em;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.currentDate {
+  font-size: 0.9em;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+.locationSection {
+  margin-bottom: var(--space-xl);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.locationSelect {
+  width: 100%;
+  max-width: 400px;
+  padding: var(--space-sm) var(--space-md);
+  border: 2px solid var(--instructor-primary-light);
+  border-radius: var(--radius-md);
+  font-size: 1em;
+  background: var(--neutral-white);
+  color: var(--instructor-primary-dark);
+  transition: all 0.3s ease;
+  margin: 0 auto;
+}
+
+.locationSelect:focus {
+  outline: none;
+  border-color: var(--instructor-primary);
+  box-shadow: 0 0 0 3px var(--instructor-rgba-10);
+}
+
+.weatherCardHeader {
+  padding: var(--space-xl);
+  background: linear-gradient(135deg, var(--state-info), var(--instructor-primary-light));
+  color: var(--neutral-white);
+  border-radius: var(--radius-lg);
+  position: relative;
+  overflow: hidden;
+}
+
+.weatherCardHeader::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(180deg); }
+}
+
+.locationInfo {
+  margin-bottom: var(--space-lg);
+}
+
+.locationName {
+  font-size: 1.8em;
+  font-weight: 700;
+  margin-bottom: var(--space-xs);
+}
+
+.weatherCoords {
+  font-size: 0.9em;
+  opacity: 0.8;
+  margin-bottom: var(--space-xs);
+}
+
+.lastUpdated {
+  font-size: 0.8em;
+  opacity: 0.7;
+}
+
+.temperature {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-md);
+}
+
+.currentTemperature {
+  font-size: 3.5em;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.temperatureRange {
+  font-size: 1.1em;
+  opacity: 0.9;
+}
+
+.weatherDescription {
+  font-size: 1.2em;
+  font-weight: 500;
+  text-transform: capitalize;
+  margin-bottom: var(--space-lg);
+}
+
+.weatherDetails {
+  display: flex;
+  justify-content: space-around;
+  padding-top: var(--space-lg);
+  border-top: 1px solid rgba(255,255,255,0.2);
+}
+
+.weather-detail {
+  text-align: center;
+}
+
+.weather-detail i {
+  font-size: 1.5em;
+  margin-bottom: var(--space-xs);
+  display: block;
+}
+
+.weather-detail div:last-child {
+  font-size: 0.9em;
+  font-weight: 600;
+}
+
+/* Weather Icons and Details */
+.tempUpIcon {
+  color: var(--state-warning);
+  margin-right: var(--space-xs);
+}
+
+.tempDownIcon {
+  color: var(--state-info);
+  margin-left: var(--space-xs);
+  margin-right: var(--space-xs);
+}
+
+.detailLabel {
+  font-size: 0.8em;
+}
+
+.sunMoonGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-lg);
+  padding: var(--space-sm);
+}
+
+.sunMoonItem {
+  text-align: center;
+}
+
+.sunIcon {
+  color: var(--state-warning);
+  font-size: 1.5em;
+  margin-bottom: var(--space-xs);
+}
+
+.moonIcon {
+  color: var(--neutral-600);
+  font-size: 1.5em;
+  margin-bottom: var(--space-xs);
+}
+
+.sunMoonLabel {
+  font-size: 0.9em;
+  color: var(--neutral-500);
+}
+
+.sunMoonTime {
+  font-weight: 600;
+}
+
+.nextEvent {
+  text-align: center;
+  grid-column: span 2;
+  padding: var(--space-sm);
+  background: var(--neutral-100);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--instructor-primary-light);
+}
+
+.nextEventText {
+  font-size: 0.85em;
+  color: var(--neutral-500);
+}
+
+.nextEventStrong {
+  color: var(--instructor-primary-dark);
+}
+
+.thermoIcon {
+  color: var(--instructor-primary);
+  font-size: 1.5em;
+  margin-bottom: var(--space-xs);
+}
+
+.precipIcon {
+  color: var(--state-info);
+  font-size: 1.5em;
+  margin-bottom: var(--space-xs);
+}
+
+.cloudIcon {
+  color: var(--neutral-400);
+  font-size: 1.5em;
+  margin-bottom: var(--space-xs);
+}
+
+.dewIcon {
+  color: var(--state-info);
+  font-size: 1.5em;
+  margin-bottom: var(--space-xs);
+}
+
+.forecastItem {
+  padding: var(--space-sm) 0;
+}
+
+.forecastDate {
+  font-weight: 500;
+}
+
+.forecastDayContainer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.forecastIconContainer {
+  text-align: center;
+  min-width: 40px;
+}
+
+.forecastIcon {
+  color: var(--instructor-primary);
+  display: block;
+}
+
+.forecastPop {
+  font-size: 0.7em;
+  color: var(--state-info);
+  font-weight: 600;
+}
+
+.forecastTemp {
+  font-weight: 600;
+  min-width: 40px;
+}
+
+.advisoryCard {
+  margin-top: var(--space-lg);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+}
+
+.advisorySection {
+  flex: 1 1 300px;
+}
+
+.advisoryHeader {
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+.advisoryIcon {
+  font-size: 1.5em;
+  color: var(--instructor-primary);
+}
+
+.advisoryTitle {
+  color: var(--instructor-primary-dark);
+  margin: 0;
+}
+
+.advisoryText {
+  font-size: 0.95em;
+  line-height: 1.5;
+}
+
+.pestSection {
+  flex: 1 1 300px;
+  border-left: 1px solid var(--neutral-200);
+  padding-left: var(--space-lg);
+}
+
+.pestIcon {
+  font-size: 1.5em;
+  color: var(--state-danger);
+}
+
+.pestTitle {
+  color: var(--state-danger);
+  margin: 0;
+}
+
+.waterSection {
+  flex: 1 1 100%;
+  border-top: 1px solid var(--neutral-200);
+  padding-top: var(--space-md);
+  margin-top: var(--space-sm);
+}
+
+.waterIcon {
+  font-size: 1.5em;
+  color: var(--state-info);
+}
+
+.waterTitle {
+  color: var(--state-info);
+  margin: 0;
+}
+
+.waterGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-md);
+}
+
+.waterBadge {
+  padding: var(--space-sm);
+  text-align: left;
+}
+
+/* Weather Modal Content Styling */
+.weatherModalContent {
+  max-width: 1200px;
+  width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.weatherModalContent .instructorModalBody {
+  padding: 0;
+  flex: 1;
+  overflow-y: hidden;
+}
+
+/* Custom Scrollbar - Using standardized customScrollbar from common */
+
+/* Custom card heights to replace Bootstrap h-100 */
+.sunMoonCard {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.forecastCard {
+  grid-column: span 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.loadingContainer {
+  text-align: center;
+  padding: var(--space-2xl) var(--space-lg);
+}
+
+.loadingIcon {
+  font-size: 3em;
+  color: var(--instructor-primary);
+  margin-bottom: var(--space-lg);
+}
+
+.loadingText {
+  font-size: 1.2em;
+  color: var(--neutral-500);
+}
+
+.errorContainer {
+  text-align: center;
+  padding: var(--space-2xl) var(--space-lg);
+}
+
+.errorIcon {
+  font-size: 3em;
+  color: var(--state-danger);
+  margin-bottom: var(--space-lg);
+}
+
+.errorText {
+  font-size: 1.2em;
+  color: var(--state-danger);
+}
+
+.evaporationBadge {
+  background: var(--neutral-100);
+  color: var(--state-info);
+}
+
+.sprayingBadge {
+  background: var(--neutral-100);
+  color: var(--state-success);
+}
+
+.dryingBadge {
+  background: var(--neutral-50);
+  color: var(--state-warning);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .pageTitle {
+    flex-direction: column;
+    text-align: center;
+    gap: var(--space-md);
+  }
+  
+  .timeDisplay {
+    text-align: center;
+  }
+  
+  .temperature {
+    flex-direction: column;
+    text-align: center;
+    gap: var(--space-sm);
+  }
+  
+  .weatherDetails {
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+  
+  .sunMoonGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .nextEvent {
+    grid-column: span 1;
+  }
+  
+  .advisoryCard {
+    flex-direction: column;
+  }
+  
+  .pestSection {
+    border-left: none;
+    border-top: 1px solid rgba(0,0,0,0.1);
+    padding-left: 0;
+    padding-top: var(--space-lg);
+    margin-top: var(--space-lg);
+  }
+}

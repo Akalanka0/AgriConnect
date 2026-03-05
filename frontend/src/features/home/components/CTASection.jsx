@@ -1,30 +1,35 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
+import styles from '../styles/Home.module.css';
 import PropTypes from 'prop-types';
 
-const CTASection = React.memo(({ onLoginClick, onRegisterClick }) => (
-    <section className="cta" id="contact" aria-label="Call to action">
-        <h2>Join the Digital Agriculture Revolution</h2>
-        <p>Ready to get started? Create your account today and join our growing community of agricultural professionals.</p>
-        <div className="cta-buttons">
+const CTASection = React.memo(({ onLoginClick, onRegisterClick }) => {
+    const { t } = useTranslation('home');
+    return (
+    <section className={styles.cta} id="contact" aria-label="Call to action">
+        <h2>{t('cta.title')}</h2>
+        <p>{t('cta.desc')}</p>
+        <div className={styles.ctaButtons}>
             <button
-                className="btn btn-white"
+                className={`${styles.btn} ${styles.btnWhite}`}
                 onClick={onLoginClick}
                 type="button"
             >
-                <i className="fas fa-sign-in-alt"></i>
-                Login
+                <i className="fas fa-right-to-bracket"></i>
+                {t('cta.loginBtn')}
             </button>
             <button
-                className="btn btn-outline"
+                className={`${styles.btn} ${styles.btnOutline}`}
                 onClick={onRegisterClick}
                 type="button"
             >
                 <i className="fas fa-user-plus"></i>
-                Register Now
+                {t('cta.registerBtn')}
             </button>
         </div>
     </section>
-));
+    );
+});
 
 CTASection.propTypes = {
     onLoginClick: PropTypes.func.isRequired,

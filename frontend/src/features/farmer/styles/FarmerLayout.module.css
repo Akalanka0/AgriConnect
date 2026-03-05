@@ -1,0 +1,206 @@
+/* Import semantic color system */
+@import url('../../../shared/semantic-colors.css');
+
+.appContainer {
+    /* Farmer Theme Variables - Use standardized naming */
+    --color-primary: var(--farmer-primary);
+    --color-primary-hover: var(--farmer-primary-dark);
+    --color-primary-light: var(--farmer-primary-light);
+    --color-secondary: var(--farmer-secondary);
+    --color-secondary-hover: var(--farmer-secondary-dark);
+    --color-secondary-light: var(--farmer-secondary-light);
+    --color-accent: var(--farmer-accent);
+    --color-background: var(--farmer-background);
+    --color-surface: var(--farmer-surface);
+    --color-border: var(--farmer-border);
+    --color-text: var(--farmer-text);
+    --color-text-muted: var(--farmer-text-muted);
+
+    /* Legacy variable names for backwards compatibility */
+    --primary: var(--farmer-primary);
+    --primary-dark: var(--farmer-primary-dark);
+    --primary-light: var(--farmer-primary-light);
+    --accent: var(--farmer-accent);
+    --secondary: var(--farmer-secondary);
+    --gray: var(--neutral-500);
+    --dark: var(--neutral-800);
+    --light: var(--neutral-50);
+    --light-gray: var(--neutral-100);
+    --border: var(--color-border);
+    --danger: var(--state-danger);
+    --info: var(--state-info);
+    --gradient: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+    --shadow: var(--shadow-sm);
+    --transition: var(--transition-normal);
+    --input-bg: var(--neutral-white);
+    --input-border: var(--neutral-300);
+    --input-border-focus: var(--color-primary-light);
+    --input-text: var(--color-text);
+    --btn-primary-bg: var(--color-primary);
+    --btn-primary-text: var(--neutral-white);
+    --btn-danger-bg: var(--state-danger);
+    --btn-danger-text: var(--neutral-white);
+    --scrollbar-width: 8px;
+    --scrollbar-track-bg: var(--neutral-100);
+    --scrollbar-thumb-bg: var(--neutral-400);
+    --scrollbar-thumb-hover: var(--neutral-500);
+    --scrollbar-radius: var(--radius-full);
+    
+    /* Layout Variables */
+    --sidebar-width: 250px;
+    --header-height: 70px;
+    --border-radius: var(--radius-md);
+
+    /* Typography */
+    --font-primary: 'Inter', 'Segoe UI', sans-serif;
+    --font-heading: 'Outfit', 'Segoe UI', sans-serif;
+    
+    display: flex;
+    min-height: 100vh;
+    font-family: var(--font-primary);
+    background: linear-gradient(135deg, var(--neutral-100) 0%, var(--neutral-200) 100%);
+    color: var(--neutral-900);
+    line-height: 1.6;
+}
+
+.mainContent {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    transition: var(--transition);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+
+.header {
+    background: var(--neutral-white);
+    padding: 0 var(--space-lg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: var(--header-height);
+    box-shadow: var(--shadow-sm);
+    position: sticky;
+    top: 0;
+    z-index: 999;
+}
+
+.headerLeft {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.headerLeft h2 {
+    color: var(--primary-dark);
+    font-weight: 600;
+    margin: 0;
+}
+
+.userInfo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.userAvatar {
+    width: 40px;
+    height: 40px;
+    background: var(--primary);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--neutral-white);
+    font-weight: bold;
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+}
+
+.hasImage {
+    background: transparent;
+}
+
+.userAvatarImg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.notificationIcon {
+    position: relative;
+    cursor: pointer;
+    font-size: 1.2em;
+    color: var(--neutral-white);
+    width: 40px;
+    height: 40px;
+    background: var(--primary);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition-normal);
+    border: none;
+    padding: 0;
+}
+
+.notificationIcon:hover {
+    background: var(--primary-dark);
+}
+
+.notificationBadge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    background: var(--accent);
+    color: var(--neutral-white);
+    border-radius: var(--radius-full);
+    width: 18px;
+    height: 18px;
+    font-size: 0.7em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid white;
+}
+
+.pageContent {
+    padding: var(--space-lg);
+    flex: 1;
+}
+
+.mobileToggle {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--primary);
+    cursor: pointer;
+}
+
+.mobileOverlay {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .mainContent {
+        margin-left: 0;
+    }
+
+    .mobileToggle {
+        display: block;
+    }
+
+    .pageContent {
+        padding: var(--space-md);
+    }
+
+    .mobileOverlay {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+        z-index: 99;
+    }
+}

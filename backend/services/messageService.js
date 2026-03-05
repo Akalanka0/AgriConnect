@@ -1,6 +1,7 @@
 import { Message } from '../models/index.js';
 import { uploadToCloudinary } from '../middleware/uploadMiddleware.js';
 import sequelize from '../config/db.js';
+import { Op } from 'sequelize';
 
 /**
  * Shared message service for cross-module communication
@@ -18,7 +19,13 @@ export class MessageService {
             
             // Handle file upload if provided
             if (fileAttachment) {
-                attachmentUrl = await uploadToCloudinary(fileAttachment);
+                const uploadResult = await uploadToCloudinary(fileAttachment);
+                attachmentUrl = uploadResult.secure_url;
+                
+                // Store additional Cloudinary metadata
+                messageData.attachment_url = attachmentUrl;
+                messageData.attachment_public_id = uploadResult.public_id;
+                messageData.attachment_name = fileAttachment.originalname || 'attachment';
             }
 
             const message = await Message.create({
@@ -27,22 +34,13 @@ export class MessageService {
                 recipient_type: messageData.recipient_type,
                 subject: messageData.subject,
                 content: messageData.content,
-                attachment_url: attachmentUrl,
+                attachment_url: messageData.attachment_url || attachmentUrl,
+                attachment_public_id: messageData.attachment_public_id || null,
+                attachment_name: messageData.attachment_name || null,
                 message_type: messageData.message_type || 'text'
             }, { transaction });
 
             await transaction.commit();
-
-            // Emit real-time notification if socket.io is available
-            if (messageData.io) {
-                messageData.io.to(`user_${messageData.recipient_id}`).emit('newMessage', {
-                    id: message.id,
-                    sender_id: message.sender_id,
-                    subject: message.subject,
-                    content: message.content,
-                    created_at: message.created_at
-                });
-            }
 
             return message;
         } catch (error) {
@@ -56,11 +54,15 @@ export class MessageService {
      */
     static async getUserMessages(userId, userRole, filters = {}) {
         const whereClause = {
-            [sequelize.Sequelize.Op.or]: [
+            [Op.or]: [
                 { recipient_id: userId },
+                { sender_id: userId },
                 { 
                     recipient_type: userRole,
                     recipient_id: null 
+                },
+                { 
+                    recipient_type: 'all'
                 }
             ]
         };
@@ -94,7 +96,11 @@ export class MessageService {
         const message = await Message.findOne({
             where: { 
                 id: messageId,
-                recipient_id: userId
+                [Op.or]: [
+                    { recipient_id: userId },
+                    { recipient_type: 'all' },
+                    { recipient_type: userId }
+                ]
             }
         });
 
@@ -134,7 +140,11 @@ export class MessageService {
     static async getUnreadCount(userId) {
         return await Message.count({
             where: {
-                recipient_id: userId,
+                [Op.or]: [
+                    { recipient_id: userId },
+                    { recipient_type: 'all' },
+                    { recipient_type: userId }
+                ],
                 is_read: false
             }
         });

@@ -1,0 +1,447 @@
+/* CropPlanReview.module.css */
+
+/* Import semantic color system */
+@import url('../../../shared/semantic-colors.css');
+
+.cardsGrid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+}
+
+.instructorDetailView {
+    padding: var(--space-lg);
+}
+
+/* Plan Details Overlay Modal */
+.viewModalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: var(--space-lg);
+}
+
+.viewModalContent {
+    background: var(--neutral-white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl, 0 20px 60px rgba(0,0,0,0.2));
+    width: 100%;
+    max-width: 820px;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.viewModalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-lg);
+    border-bottom: 1px solid var(--neutral-200);
+    background: var(--neutral-50);
+    flex-shrink: 0;
+}
+
+.viewModalTitle {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin: 0;
+}
+
+.viewModalTitle i {
+    color: var(--primary);
+}
+
+.viewModalCloseBtn {
+    background: none;
+    border: none;
+    font-size: 1.1rem;
+    color: var(--neutral-500);
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+}
+
+.viewModalCloseBtn:hover {
+    background: var(--neutral-100);
+    color: var(--danger, #ef4444);
+}
+
+.viewModalBody {
+    overflow-y: auto;
+    flex: 1;
+}
+
+.viewModalFooter {
+    padding: var(--space-md) var(--space-lg);
+    border-top: 1px solid var(--neutral-200);
+    display: flex;
+    justify-content: flex-end;
+    flex-shrink: 0;
+}
+
+.instructorDetailHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-lg);
+    border-bottom: 1px solid var(--neutral-200);
+    padding-bottom: var(--space-md);
+}
+
+.instructorDetailsGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
+}
+
+.instructorDetailGroup p {
+    margin-bottom: var(--space-sm);
+}
+
+.instructorDescriptionBox {
+    background: var(--neutral-100);
+    padding: var(--space-md);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--neutral-200);
+    margin-top: var(--space-xs);
+    min-height: 80px;
+}
+
+.instructorAttachmentList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+}
+
+.instructorAttachmentItem {
+    display: flex;
+    align-items: center;
+    padding: var(--space-sm) var(--space-md);
+    background: var(--neutral-100);
+    border: 1px solid var(--neutral-200);
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s;
+}
+
+.instructorAttachmentItem:hover {
+    background: var(--neutral-100);
+    text-decoration: none;
+    color: inherit;
+}
+
+.instructorAttachmentIcon {
+    margin-right: var(--space-xs);
+}
+
+.instructorAttachmentName {
+    font-size: 0.9rem;
+}
+
+.instructorAttachmentDownload {
+    margin-left: auto;
+    font-size: 0.8rem;
+    color: var(--neutral-600);
+    padding-left: 8px;
+}
+
+.instructorActionSection {
+    background: var(--state-success-bg);
+    padding: var(--space-lg);
+    border-radius: var(--radius-md);
+    margin-top: var(--space-lg);
+}
+
+.instructorActionSection label {
+    display: block;
+    margin-bottom: var(--space-xs);
+    font-weight: 600;
+}
+
+.fileUpload {
+    margin-top: 8px;
+}
+
+.fileHint {
+    color: var(--neutral-600);
+    display: block;
+    margin-top: var(--space-xs);
+}
+
+.instructorHistoryBox {
+    background: var(--neutral-white);
+    padding: var(--space-md);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--state-success-border);
+    margin-top: var(--space-xs);
+}
+
+.reviewedAttachmentItem {
+    display: flex;
+    align-items: center;
+    padding: var(--space-sm) var(--space-md);
+    background: var(--neutral-100);
+    border: 1px solid var(--neutral-200);
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    color: var(--color-secondary);
+    transition: var(--transition-normal);
+}
+
+.reviewedAttachmentDownload {
+    margin-left: auto;
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
+
+/* List Items */
+.instructorListContainer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    max-height: 420px;
+    overflow-y: auto;
+    padding-right: 4px;
+    border-radius: var(--radius-md);
+    scrollbar-width: thin;
+    scrollbar-color: var(--neutral-300) transparent;
+}
+
+.instructorListContainer::-webkit-scrollbar {
+    width: 6px;
+}
+
+.instructorListContainer::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.instructorListContainer::-webkit-scrollbar-thumb {
+    background-color: var(--neutral-300);
+    border-radius: 3px;
+}
+
+.instructorListItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md);
+    background: var(--neutral-white);
+    border: 1px solid var(--neutral-200);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition-normal);
+}
+
+.instructorListItem:hover {
+    box-shadow: var(--shadow-sm);
+    border-color: var(--color-primary-light);
+}
+
+.instructorListInfo h4 {
+    margin: 0 0 var(--space-xs) 0;
+    font-size: var(--text-lg);
+    color: var(--color-primary-hover);
+}
+
+.instructorListDetails {
+    font-size: var(--text-sm);
+    color: var(--neutral-600);
+}
+
+.instructorListDetails p {
+    margin: 0;
+}
+
+.instructorListSide {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-xs);
+}
+
+/* Crop Calendar */
+.calendarActions {
+    display: flex;
+    gap: var(--space-sm);
+    position: relative;
+}
+
+.calendarSelect {
+    width: 150px;
+    background-color: var(--neutral-white);
+    color: var(--neutral-600);
+    border: 1px solid var(--neutral-200);
+    cursor: pointer;
+}
+
+.calendarDisplay {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: var(--space-lg);
+}
+
+@media (max-width: 640px) {
+    .instructorDetailsGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .viewModalContent {
+        max-height: 95vh;
+    }
+
+    .instructorDetailHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-sm);
+    }
+
+    .instructorListSide {
+        align-items: flex-start;
+    }
+}
+
+.calendarImage {
+    max-width: 100%;
+    max-height: 600px;
+    border-radius: var(--radius-sm);
+    object-fit: contain;
+    cursor: pointer;
+    box-shadow: var(--shadow-md);
+}
+
+.calendarNoData {
+    color: var(--neutral-600);
+    font-style: italic;
+}
+
+/* Fullscreen Zoom */
+.instructorFullscreenOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: var(--modal-overlay-bg);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.instructorFullscreenContainer {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.instructorFullscreenControls {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    gap: var(--space-md);
+}
+
+.instructorZoomGroup {
+    display: flex;
+    align-items: center;
+    background: var(--neutral-white);
+    opacity: 0.1;
+    border-radius: var(--radius-sm);
+    padding: 0 var(--space-sm);
+}
+
+.instructorZoomLevel {
+    color: var(--neutral-white);
+    padding: 0 10px;
+    font-weight: bold;
+    min-width: 60px;
+    text-align: center;
+}
+
+.instructorFullscreenImage {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+    transition: transform 0.2s ease-out;
+}
+
+.instructorFullscreenImage.zoomed {
+    max-width: none;
+    max-height: none;
+}
+
+/* Modal Styling */
+.modalBodyManage {
+    overflow: visible;
+    min-height: 300px;
+}
+
+.manageSelectContainer {
+    position: relative;
+    z-index: 1060;
+}
+
+.manageSelect {
+    background-color: var(--neutral-white);
+    color: var(--neutral-800);
+    cursor: pointer;
+    display: block;
+    width: 100%;
+    border: 1px solid var(--neutral-300);
+}
+
+.manageNoData {
+    font-size: 0.85rem;
+}
+
+/* Utilities */
+.loadingContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 400px;
+}
+
+@media (max-width: 768px) {
+    .instructorDetailsGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .instructorListItem {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .instructorListSide {
+        width: 100%;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 10px;
+    }
+}

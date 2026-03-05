@@ -1,0 +1,621 @@
+/* Import semantic color system */
+@import url('../../../shared/semantic-colors.css');
+
+/* ========================================
+   TABLE STYLES
+   ======================================== */
+
+.tableResponsive {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--neutral-white);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+.tableHeaderPadding {
+  padding: var(--space-md) var(--space-lg);
+  background: var(--neutral-50);
+  font-weight: 600;
+  color: var(--neutral-700);
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--neutral-200);
+}
+
+.tableCellPadding {
+  padding: var(--space-lg) var(--space-lg);
+  border-bottom: 1px solid var(--neutral-100);
+}
+
+/* ========================================
+   MAIN LAYOUT
+   ======================================== */
+
+.mainContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.leftColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.meetingRequestsCard {
+  border-top: 4px solid var(--instructor-primary);
+}
+
+.cardHeaderPadding {
+  padding: var(--space-lg) var(--space-lg);
+}
+
+.cardTitleWithIcon {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  font-size: 1.1rem;
+}
+
+.inboxIcon {
+  color: var(--instructor-primary);
+}
+
+.cardContentNoPadding {
+  padding: 0;
+}
+
+.emptyStateContainer {
+  text-align: center;
+  padding: var(--space-2xl) var(--space-lg);
+  color: var(--neutral-400);
+}
+
+.envelopeIcon {
+  font-size: 3.5em;
+  margin-bottom: var(--space-md);
+  opacity: 0.15;
+}
+
+.emptyStateTitle {
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.emptyStateSubtitle {
+  font-size: 0.9rem;
+}
+
+.meetingTitle {
+  font-weight: 700;
+  color: var(--neutral-800);
+  margin-bottom: var(--space-xs);
+}
+
+.meetingMeta {
+  font-size: 0.85rem;
+  color: var(--neutral-500);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.meetingMetaItem {
+  display: flex;
+  align-items: center;
+}
+
+.userIcon {
+  margin-right: var(--space-xs);
+  font-size: 0.8rem;
+}
+
+.farmerId {
+  font-size: 0.75rem;
+  color: var(--neutral-400);
+  font-weight: 500;
+}
+
+.badgeContainer {
+  margin-top: var(--space-xs);
+}
+
+.farmerAcceptedBadge {
+  font-size: 0.65rem;
+}
+
+.divisionRequestBadge {
+  font-size: 0.65rem;
+  background: var(--neutral-50);
+  color: var(--instructor-primary-dark);
+  border: 1px solid var(--state-info);
+}
+
+.usersIcon {
+  margin-right: var(--space-xs);
+}
+
+.divisionBadge {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--neutral-600);
+  background: var(--neutral-50);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+}
+
+.meetingDateTime {
+  font-size: 0.9rem;
+  color: var(--neutral-600);
+  font-weight: 600;
+}
+
+.meetingTime {
+  font-size: 0.85rem;
+  color: var(--neutral-500);
+}
+
+
+.statusBadge {
+  text-transform: capitalize;
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badgePrimary {
+  background: var(--state-info-bg, #eff6ff);
+  color: var(--state-info-hover, #1d4ed8);
+  border: 1px solid var(--state-info, #3b82f6);
+}
+
+.badgeWarning {
+  background: var(--state-warning-bg, #fff7ed);
+  color: var(--state-warning-hover, #c2410c);
+  border: 1px solid var(--state-warning, #f97316);
+}
+
+.badgeSuccess {
+  background: var(--state-success-bg, #f0fdf4);
+  color: var(--state-success-hover, #15803d);
+  border: 1px solid var(--state-success-border, #bbf7d0);
+}
+
+.badgeSecondary {
+  background: var(--neutral-100);
+  color: var(--neutral-500);
+  border: 1px solid var(--neutral-300);
+}
+
+.badgeDanger {
+  background: var(--state-error-bg, #fef2f2);
+  color: var(--state-error-hover, #b91c1c);
+  border: 1px solid var(--state-error, #f87171);
+}
+
+.cancelledByFarmer {
+  font-size: 0.78rem;
+  color: var(--state-error-hover, #b91c1c);
+  font-style: italic;
+  max-width: 200px;
+  display: block;
+}
+
+.thCenter {
+  text-align: center;
+}
+
+.tdCenter {
+  text-align: center;
+}
+
+.tdCenter > .actionButtons {
+  justify-content: center;
+}
+
+.requestItemHover:hover {
+  background: var(--neutral-50);
+  transition: var(--transition-normal);
+}
+
+.actionButtons {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.declineButton {
+  background: var(--neutral-50);
+  color: var(--state-danger);
+  border: 1px solid var(--neutral-200);
+  transition: var(--transition-normal);
+}
+
+.declineButton:hover {
+  background: var(--state-danger);
+  color: var(--neutral-white);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.expandedRow {
+  padding: 0;
+  border-top: none;
+}
+
+.expandedContent {
+  padding: var(--space-lg);
+  background: var(--neutral-50);
+  border-bottom: 1px solid var(--neutral-200);
+}
+
+.farmerNotes {
+  margin-bottom: var(--space-lg);
+  font-size: 0.9rem;
+  color: var(--neutral-600);
+  background: var(--neutral-100);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  border-left: 4px solid var(--neutral-200);
+}
+
+.noteSection {
+  margin-bottom: var(--space-lg);
+}
+
+.noteLabel {
+  display: block;
+  margin-bottom: var(--space-xs);
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--neutral-700);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.noteTextarea {
+  border-radius: var(--radius-md);
+  height: 80px;
+  resize: none;
+  border: 1px solid var(--neutral-200);
+}
+
+.optionSection {
+  margin-bottom: var(--space-xl);
+}
+
+.optionLabel {
+  display: block;
+  margin-bottom: var(--space-md);
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--neutral-700);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.zoomInputContainer {
+  display: flex;
+  gap: var(--space-md);
+}
+
+.inputWrapper {
+  position: relative;
+  flex: 1;
+}
+
+.linkIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--neutral-400);
+}
+
+.zoomInput {
+  padding-left: 36px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--neutral-200);
+}
+
+.confirmButton {
+  padding: 0 var(--space-lg);
+  background: var(--instructor-primary);
+  color: var(--neutral-white);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 600;
+  transition: var(--transition-normal);
+}
+
+.confirmButton:hover {
+  background: var(--instructor-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.rescheduleSection {
+  border-top: 1px solid var(--neutral-50);
+  padding-top: var(--space-lg);
+}
+
+.rescheduleGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: var(--space-md);
+  align-items: flex-end;
+}
+
+.dateLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--neutral-500);
+  display: block;
+  margin-bottom: var(--space-xs);
+}
+
+.roundedInput {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--neutral-200);
+}
+
+.proposeButton {
+  padding: 0 var(--space-lg);
+  background: var(--instructor-primary);
+  color: var(--neutral-white);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 600;
+  transition: var(--transition-normal);
+}
+
+.proposeButton:hover {
+  background: var(--instructor-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.waitingCard {
+  border-left: 4px solid var(--state-warning);
+}
+
+.waitingList {
+  display: flex;
+  flex-direction: column;
+}
+
+.waitingTitle {
+  font-size: 1rem;
+}
+
+.hourglassIcon {
+  color: var(--state-warning);
+}
+
+.waitingItem {
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--neutral-50);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.waitingTitleText {
+  display: block;
+  color: var(--neutral-800);
+  margin-bottom: var(--space-xs);
+}
+
+.waitingMeta {
+  font-size: 0.85rem;
+  color: var(--neutral-500);
+  margin-bottom: var(--space-xs);
+}
+
+.clockIcon {
+  margin-right: var(--space-xs);
+}
+
+.waitingId {
+  color: var(--neutral-400);
+  font-size: 0.75rem;
+}
+
+.proposedTime {
+  font-size: 0.85rem;
+  color: var(--neutral-500);
+}
+
+.pendingReplyBadge {
+  background: var(--neutral-50);
+  color: var(--state-warning);
+  border: 1px solid var(--neutral-100);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.confirmedCard {
+  border-top: 4px solid var(--instructor-primary);
+}
+
+.calendarIcon {
+  color: var(--instructor-primary);
+}
+
+.confirmedEmptyState {
+  text-align: center;
+  padding: var(--space-xl) var(--space-lg);
+  color: var(--neutral-400);
+}
+
+.confirmedEmptyText {
+  font-size: 0.9rem;
+}
+
+.cancelledTitle {
+  color: var(--neutral-400);
+}
+
+.cancelledDateTime {
+  color: var(--neutral-400);
+}
+
+.viewButtonIcon {
+  margin-right: var(--space-xs);
+}
+
+.cancelModalRow {
+  padding: 0;
+  border-top: none;
+}
+
+.cancelModalContent {
+  padding: var(--space-lg) var(--space-lg);
+  background: var(--neutral-50);
+  border-bottom: 1px solid var(--neutral-200);
+}
+
+.cancelReasonLabel {
+  display: block;
+  margin-bottom: var(--space-sm);
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--state-danger);
+  text-transform: uppercase;
+}
+
+.cancelReasonContainer {
+  display: flex;
+  gap: var(--space-md);
+}
+
+.cancelTextarea {
+  border-radius: var(--radius-md);
+  height: 60px;
+  resize: none;
+  border: 1px solid var(--neutral-200);
+}
+
+.cancelButtons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.cancelConfirmButton {
+  padding: 0 var(--space-lg);
+  height: 100%;
+}
+
+.dismissButton {
+  background: var(--neutral-100);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--neutral-600);
+  font-size: 1.2rem;
+  transition: var(--transition-normal);
+}
+
+.dismissButton:hover {
+  background: var(--state-danger);
+  color: var(--neutral-white);
+}
+
+.viewExpandedRow {
+  padding: 0;
+  border-top: none;
+}
+
+.viewExpandedContent {
+  padding: var(--space-lg) var(--space-lg);
+  background: var(--neutral-100);
+  border-bottom: 1px solid var(--neutral-200);
+}
+
+.viewDetailsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-lg);
+}
+
+.viewDetailsLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--neutral-500);
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: var(--space-xs);
+}
+
+.viewNotesText {
+  font-size: 0.9rem;
+  color: var(--neutral-700);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.joinButton {
+  padding: 0 var(--space-lg);
+  background: var(--instructor-primary);
+  color: var(--neutral-white);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 600;
+  transition: var(--transition-normal);
+}
+
+.joinButton:hover {
+  background: var(--instructor-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.meetingLinkCode {
+    font-size: 0.8rem;
+    color: var(--neutral-500);
+    word-break: break-all;
+}
+
+@media (max-width: 640px) {
+    .rescheduleGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .proposeButton {
+        width: 100%;
+        padding: var(--space-sm);
+    }
+
+    .zoomInputContainer {
+        flex-direction: column;
+    }
+
+    .confirmButton {
+        width: 100%;
+        padding: var(--space-sm);
+    }
+
+    .viewDetailsGrid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,0 +1,128 @@
+/* UserDetailsDrawer Modular Styles */
+
+/* Import semantic color system */
+@import url('../../../shared/semantic-colors.css');
+
+.drawerOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--modal-overlay-bg);
+    backdrop-filter: blur(4px);
+    z-index: 3000;
+    opacity: 0;
+    visibility: hidden;
+    transition: var(--transition-normal);
+    display: flex;
+    justify-content: flex-end;
+}
+
+.drawerOverlay.open {
+    opacity: 1;
+    visibility: visible;
+}
+
+.drawer {
+    width: 100%;
+    max-width: 450px;
+    height: 100%;
+    background: var(--neutral-white);
+    box-shadow: var(--shadow-lg);
+    transform: translateX(100%);
+    transition: var(--transition-normal);
+    display: flex;
+    flex-direction: column;
+}
+
+.drawerOverlay.open .drawer {
+    transform: translateX(0);
+}
+
+.drawerHeader {
+    padding: var(--space-xl);
+    border-bottom: 1px solid var(--neutral-200);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--neutral-100);
+}
+
+.drawerHeader h3 {
+    margin: 0;
+    color: var(--admin-primary-dark);
+    font-size: var(--text-2xl);
+    font-weight: 700;
+}
+
+.closeBtn {
+    background: var(--neutral-100);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--neutral-600);
+    font-size: 0.9rem;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: var(--transition-normal);
+}
+
+.closeBtn:hover {
+    background: var(--state-danger);
+    color: var(--neutral-white);
+}
+
+.drawerContent {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+}
+
+.infoGroup {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.infoLabel {
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--admin-primary-light);
+    font-weight: 700;
+}
+
+.infoValue {
+    font-size: 1.05em;
+    color: var(--neutral-800);
+    font-weight: 500;
+}
+
+.divisionTagsWrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+}
+
+.divisionTagsWrapperMargin {
+    margin-top: 8px;
+}
+
+.divisionTag {
+    padding: var(--space-xs) var(--space-md);
+    background: var(--neutral-100);
+    color: var(--admin-primary);
+    border-radius: var(--radius-xl);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    border: 1px solid var(--neutral-200);
+}

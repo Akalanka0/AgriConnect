@@ -1,0 +1,82 @@
+/* FarmerManagement.module.css */
+
+.tableHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: var(--space-lg);
+    margin-bottom: var(--space-lg);
+    border-bottom: 1px solid var(--neutral-200);
+}
+
+.headerLeft {
+    display: flex;
+    gap: var(--space-md);
+    flex: 1;
+}
+
+.searchBox {
+    position: relative;
+    min-width: 250px;
+}
+
+.searchBox i {
+    position: absolute;
+    left: var(--space-sm);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--neutral-400);
+}
+
+.searchBox input {
+    width: 100%;
+    padding: var(--space-xs) var(--space-sm) var(--space-xs) var(--space-xl);
+    border: 1px solid var(--neutral-200);
+    border-radius: var(--radius-sm);
+    font-size: 0.9em;
+}
+
+.filters {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.filterSelect {
+    padding: var(--space-xs) var(--space-sm);
+    border: 1px solid var(--neutral-300);
+    border-radius: var(--radius-sm);
+    background-color: var(--neutral-white);
+    font-size: 0.9em;
+    min-width: 150px;
+}
+
+@media (max-width: 768px) {
+    .tableHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-md);
+    }
+
+    .headerLeft {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .searchBox {
+        width: 100%;
+    }
+
+    .filters {
+        width: 100%;
+    }
+
+    .filterSelect {
+        flex: 1;
+    }
+
+    .tableHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-md);
+    }
+}

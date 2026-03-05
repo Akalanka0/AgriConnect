@@ -1,0 +1,254 @@
+/* InstructorSettings.module.css */
+
+/* Import semantic color system */
+@import url('../../../shared/semantic-colors.css');
+
+/* ========================================
+   MAIN LAYOUT
+   ======================================== */
+
+.settingsContainer {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: var(--space-xl);
+}
+
+.settingsSection {
+    background: var(--neutral-white);
+    padding: var(--space-xl);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md);
+    transition: var(--transition-normal);
+}
+
+.settingsSection:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* ========================================
+   COMPONENT HEADERS
+   ======================================== */
+
+.settingsHeader {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--neutral-200);
+}
+
+.settingsHeader i {
+    font-size: 1.5em;
+    color: var(--instructor-primary);
+}
+
+.settingsHeader h3 {
+    color: var(--instructor-primary-dark);
+    font-weight: 600;
+    margin: 0;
+}
+
+/* ========================================
+   PROFILE COMPONENTS
+   ======================================== */
+
+.profilePicture {
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
+}
+
+.settingsProfileImg {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.profileAvatarPlaceholder {
+    width: 100px;
+    height: 100px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--instructor-primary);
+    color: var(--neutral-white);
+    font-size: 2.2rem;
+    font-weight: 700;
+}
+
+.fileInputHidden {
+    display: none;
+}
+
+.profilePictureActions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    margin-top: var(--space-md);
+}
+
+/* ========================================
+   FORM COMPONENTS
+   ======================================== */
+
+.settingsFormRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+}
+
+.inputDisabled {
+    background-color: var(--neutral-100);
+    cursor: not-allowed;
+}
+
+.settingsHelperText {
+    color: var(--neutral-500);
+}
+
+.zoneSelect {
+    width: 100%;
+    padding: var(--space-sm);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--neutral-300);
+    background-color: var(--neutral-white);
+}
+
+/* ========================================
+   DIVISION SELECTION
+   ======================================== */
+
+.divisionsGridContainer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--neutral-200);
+    background-color: var(--neutral-white);
+    min-height: 50px;
+}
+
+.divisionChip {
+    padding: var(--space-xs) var(--space-md);
+    border-radius: var(--radius-full);
+    border: 1px solid var(--neutral-300);
+    background-color: var(--neutral-100);
+    color: var(--neutral-600);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    opacity: 1;
+}
+
+.divisionChip.active {
+    border-color: var(--instructor-primary);
+    background-color: var(--neutral-100);
+    color: var(--instructor-primary);
+}
+
+.divisionChip.taken {
+    border-color: var(--neutral-200);
+    background-color: var(--neutral-50);
+    color: var(--neutral-400);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* ========================================
+   TEXT ELEMENTS
+   ======================================== */
+
+.noDivisionsText {
+    color: var(--neutral-500);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.divisionsSelectionNote {
+    color: var(--neutral-500);
+    margin-top: var(--space-xs);
+    display: block;
+}
+
+.dangerZoneText {
+    color: var(--neutral-500);
+    margin-bottom: var(--space-lg);
+    text-align: center;
+}
+
+/* ========================================
+   ACTION CONTAINERS
+   ======================================== */
+
+.dangerZoneActions {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--space-lg);
+}
+
+.sectionActions {
+    margin-top: var(--space-xl);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--neutral-100);
+}
+
+/* ========================================
+   LOADING STATE
+   ======================================== */
+
+.loadingContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 400px;
+    font-size: 1.2rem;
+    color: var(--neutral-600);
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+
+@media (max-width: 768px) {
+    .settingsContainer {
+        grid-template-columns: 1fr;
+        gap: var(--space-lg);
+    }
+
+    .settingsSection {
+        padding: var(--space-lg);
+    }
+
+    .settingsFormRow {
+        grid-template-columns: 1fr;
+        gap: var(--space-md);
+    }
+
+    .profilePicture {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .profilePictureActions {
+        width: 100%;
+    }
+
+    .sectionActions {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-sm);
+    }
+
+    .sectionActions :global(.btn) {
+        width: 100%;
+    }
+}

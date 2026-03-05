@@ -5,6 +5,11 @@ import cloudinary from '../../utils/cloudinary.js'; // Import cloudinary for ima
 export const createHarvest = async (req, res) => {
     try {
         const { name, description } = req.body;
+
+        if (!name || !name.trim()) {
+            return res.status(400).json({ success: false, error: { message: 'Harvest name is required' } });
+        }
+
         let imageUrl = null;
         let imagePublicId = null;
 
@@ -31,16 +36,14 @@ export const createHarvest = async (req, res) => {
             return res.status(409).json({
                 success: false,
                 error: {
-                    message: 'Harvest with this name already exists.',
-                    details: error.message
+                    message: 'Harvest with this name already exists.'
                 }
             });
         }
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to create harvest',
-                details: error.message
+                message: 'Failed to create harvest'
             }
         });
     }
@@ -80,8 +83,7 @@ export const getHarvests = async (req, res) => {
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to fetch harvests',
-                details: error.message
+                message: 'Failed to fetch harvests'
             }
         });
     }
@@ -110,8 +112,7 @@ export const getHarvestById = async (req, res) => {
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to fetch harvest',
-                details: error.message
+                message: 'Failed to fetch harvest'
             }
         });
     }
@@ -168,16 +169,14 @@ export const updateHarvest = async (req, res) => {
             return res.status(409).json({
                 success: false,
                 error: {
-                    message: 'Harvest with this name already exists.',
-                    details: error.message
+                    message: 'Harvest with this name already exists.'
                 }
             });
         }
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to update harvest',
-                details: error.message
+                message: 'Failed to update harvest'
             }
         });
     }
@@ -213,8 +212,7 @@ export const deleteHarvest = async (req, res) => {
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to delete harvest',
-                details: error.message
+                message: 'Failed to delete harvest'
             }
         });
     }

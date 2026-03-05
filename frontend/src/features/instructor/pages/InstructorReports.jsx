@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import ReactDOM from 'react-dom';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useOutletContext } from 'react-router-dom';
-
-// Portal Component for Modals
-const ModalPortal = ({ children }) => {
-    return ReactDOM.createPortal(children, document.body);
-};
+import { useTranslation } from 'react-i18next';
+import styles from '../styles/InstructorReports.module.css';
+import modalStyles from '../styles/InstructorModals.module.css';
+import commonCardStyles from '@/components/common/styles/Card.module.css';
+import commonBtnStyles from '@/components/common/styles/Button.module.css';
+import { getAccessToken } from '@/utils/authStorage';
 
 const InstructorReports = () => {
     const { showToast } = useOutletContext();
+    const { t } = useTranslation('instructor');
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
     const [currentReportType, setCurrentReportType] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
@@ -29,7 +30,7 @@ const InstructorReports = () => {
     useEffect(() => {
         const fetchInstructorProfile = async () => {
             try {
-                const token = localStorage.getItem('token');
+                const token = getAccessToken();
                 const response = await fetch('/api/instructor/profile', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -47,10 +48,26 @@ const InstructorReports = () => {
         fetchInstructorProfile();
     }, []);
 
-    const [reportHistory, setReportHistory] = useState([]);
+    const [reportHistory, setReportHistory] = useState(() => {
+        try {
+            const saved = localStorage.getItem('instructor_report_history');
+            return saved ? JSON.parse(saved) : [];
+        } catch {
+            return [];
+        }
+    });
+
+    useEffect(() => {
+        try {
+            localStorage.setItem('instructor_report_history', JSON.stringify(reportHistory));
+        } catch {
+            // ignore storage errors
+        }
+    }, [reportHistory]);
 
     const openFilterModal = (type) => {
         setCurrentReportType(type);
+        setFilters(prev => ({ ...prev, status: 'All' }));
         setIsFilterModalOpen(true);
     };
 
@@ -151,19 +168,33 @@ const InstructorReports = () => {
     };
 
     const handleGenerateReport = async () => {
-        // Validation
-        if (filters.startDate && filters.endDate) {
-            if (new Date(filters.startDate) > new Date(filters.endDate)) {
-                showToast('Start date cannot be after end date', 'error');
-                return;
-            }
+        // Enhanced Validation
+        if (!filters.startDate || !filters.endDate) {
+            showToast(t('reports.datesRequired'), 'error');
+            return;
+        }
+
+        if (new Date(filters.startDate) > new Date(filters.endDate)) {
+            showToast(t('reports.dateOrderError'), 'error');
+            return;
+        }
+
+        // Add date range limit (max 1 year)
+        const startDate = new Date(filters.startDate);
+        const endDate = new Date(filters.endDate);
+        const maxDate = new Date(startDate);
+        maxDate.setFullYear(maxDate.getFullYear() + 1);
+        
+        if (endDate > maxDate) {
+            showToast(t('reports.dateRangeError'), 'error');
+            return;
         }
 
         setIsGenerating(true);
-        showToast(`Generating ${currentReportType} report...`, 'info');
+        showToast(t('reports.generatingReport', { type: currentReportType }), 'info');
 
         try {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             const queryParams = new URLSearchParams({
                 type: currentReportType,
                 startDate: filters.startDate,
@@ -195,14 +226,14 @@ const InstructorReports = () => {
                         filename
                     );
                 }
-                showToast('Report generated successfully!', 'success');
+                showToast(t('reports.reportSuccess'), 'success');
                 closeFilterModal();
             } else {
                 showToast(result.error?.message || 'Failed to generate report', 'error');
             }
         } catch (error) {
             console.error('Error generating report:', error);
-            showToast('An error occurred while generating the report', 'error');
+            showToast(t('reports.reportError'), 'error');
         } finally {
             setIsGenerating(false);
         }
@@ -210,80 +241,80 @@ const InstructorReports = () => {
 
     return (
         <>
-            <div className="dashboard-grid">
+            <div className={styles.dashboardGrid}>
                 {/* Pest Management Report Card */}
-                <div className="card">
-                    <div className="card-header">
-                        <div className="card-title">Pest Management</div>
-                        <div className="card-icon"><i className="fas fa-bug"></i></div>
+                <div className={commonCardStyles.card}>
+                    <div className={commonCardStyles.cardHeader}>
+                        <div className={commonCardStyles.cardTitle}>{t('reports.pestReports')}</div>
+                        <div className={commonCardStyles.cardIcon}><i className="fas fa-bug"></i></div>
                     </div>
-                    <div className="card-content">
-                        <p className="card-description-text" style={{ minHeight: '60px' }}>
-                            Comprehensive report on pest and disease incidents reported by farmers and their review status across your assigned divisions.
+                    <div className={commonCardStyles.cardContent}>
+                        <p className={`${commonCardStyles.cardDescriptionText} ${styles.reportDescription}`}>
+                            {t('reports.pestCardDesc')}
                         </p>
-                        <button 
-                            className="btn btn-primary btn-full-width" 
+                        <button
+                            className={`${commonBtnStyles.btn} ${commonBtnStyles.btnPrimary} ${commonBtnStyles.btnFullWidth}`}
                             onClick={() => openFilterModal('Pest Management')}
                         >
-                            <i className="fas fa-download"></i> Download Report
+                            <i className="fas fa-download"></i> {t('reports.downloadReport')}
                         </button>
                     </div>
                 </div>
 
                 {/* Crop Plan Report Card */}
-                <div className="card">
-                    <div className="card-header">
-                        <div className="card-title">Crop Plans</div>
-                        <div className="card-icon"><i className="fas fa-seedling"></i></div>
+                <div className={commonCardStyles.card}>
+                    <div className={commonCardStyles.cardHeader}>
+                        <div className={commonCardStyles.cardTitle}>{t('reports.cropPlanReports')}</div>
+                        <div className={commonCardStyles.cardIcon}><i className="fas fa-seedling"></i></div>
                     </div>
-                    <div className="card-content">
-                        <p className="card-description-text" style={{ minHeight: '60px' }}>
-                            Detailed summary of seasonal crop cultivation plans submitted for review and approval by farmers in your business area.
+                    <div className={commonCardStyles.cardContent}>
+                        <p className={`${commonCardStyles.cardDescriptionText} ${styles.reportDescription}`}>
+                            {t('reports.cropPlanCardDesc')}
                         </p>
-                        <button 
-                            className="btn btn-primary btn-full-width" 
+                        <button
+                            className={`${commonBtnStyles.btn} ${commonBtnStyles.btnPrimary} ${commonBtnStyles.btnFullWidth}`}
                             onClick={() => openFilterModal('Crop Plans')}
                         >
-                            <i className="fas fa-download"></i> Download Report
+                            <i className="fas fa-download"></i> {t('reports.downloadReport')}
                         </button>
                     </div>
                 </div>
 
                 {/* Meetings Report Card */}
-                <div className="card">
-                    <div className="card-header">
-                        <div className="card-title">Meetings</div>
-                        <div className="card-icon"><i className="fas fa-calendar-check"></i></div>
+                <div className={commonCardStyles.card}>
+                    <div className={commonCardStyles.cardHeader}>
+                        <div className={commonCardStyles.cardTitle}>{t('reports.meetingReports')}</div>
+                        <div className={commonCardStyles.cardIcon}><i className="fas fa-calendar-check"></i></div>
                     </div>
-                    <div className="card-content">
-                        <p className="card-description-text" style={{ minHeight: '60px' }}>
-                            Analysis of consultation requests and finalized meetings with farmers, including scheduling trends and engagement levels.
+                    <div className={commonCardStyles.cardContent}>
+                        <p className={`${commonCardStyles.cardDescriptionText} ${styles.reportDescription}`}>
+                            {t('reports.meetingCardDesc')}
                         </p>
-                        <button 
-                            className="btn btn-primary btn-full-width" 
+                        <button
+                            className={`${commonBtnStyles.btn} ${commonBtnStyles.btnPrimary} ${commonBtnStyles.btnFullWidth}`}
                             onClick={() => openFilterModal('Meetings')}
                         >
-                            <i className="fas fa-download"></i> Download Report
+                            <i className="fas fa-download"></i> {t('reports.downloadReport')}
                         </button>
                     </div>
                 </div>
             </div>
 
             {/* History Table in a Card */}
-            <div className="card card-margin-top">
-                <div className="card-header">
-                    <div className="card-title">Recent Report Generation History</div>
-                    <div className="card-icon"><i className="fas fa-history"></i></div>
+            <div className={`${commonCardStyles.card} ${commonCardStyles.cardMarginTop}`}>
+                <div className={commonCardStyles.cardHeader}>
+                    <div className={commonCardStyles.cardTitle}>{t('reports.historyTitle')}</div>
+                    <div className={commonCardStyles.cardIcon}><i className="fas fa-clock-rotate-left"></i></div>
                 </div>
-                <div className="card-content">
-                    <div className="table-container">
-                        <table>
+                <div className={commonCardStyles.cardContent}>
+                    <div className={styles.tableContainer}>
+                        <table className={styles.historyTable}>
                             <thead>
                                 <tr>
-                                    <th>Category</th>
-                                    <th>Report Name</th>
-                                    <th>Generated On</th>
-                                    <th>Status</th>
+                                    <th>{t('reports.colCategory')}</th>
+                                    <th>{t('reports.colReportName')}</th>
+                                    <th>{t('reports.colGeneratedOn')}</th>
+                                    <th>{t('reports.colStatus')}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -293,7 +324,7 @@ const InstructorReports = () => {
                                         <td>{report.name}</td>
                                         <td>{report.date}</td>
                                         <td>
-                                            <span className="status-badge status-completed">
+                                            <span className={`${styles.statusBadge} status-completed`}>
                                                 {report.status}
                                             </span>
                                         </td>
@@ -307,77 +338,103 @@ const InstructorReports = () => {
 
             {/* Filter Modal */}
             {isFilterModalOpen && (
-                <ModalPortal>
-                    <div className="theme-instructor">
-                        <div className="instructor-modal" style={{ display: 'flex' }}>
-                            <div className="instructor-modal-content">
-                                <div className="instructor-modal-header">
-                                    <div className="instructor-modal-title">Generate {currentReportType} Report</div>
-                                    <span className="instructor-close" onClick={closeFilterModal}>&times;</span>
+                <div className={modalStyles.instructorModalFlex}>
+                            <div className={modalStyles.instructorModalContent}>
+                                <div className={modalStyles.instructorModalHeader}>
+                                    <div className={modalStyles.instructorModalTitle}>
+                                        {t('reports.generateReport')} - {currentReportType === 'Pest Management' ? t('reports.pestReports') : currentReportType === 'Crop Plans' ? t('reports.cropPlanReports') : t('reports.meetingReports')}
+                                    </div>
+                                    <span className={modalStyles.instructorClose} onClick={closeFilterModal}><i className="fas fa-xmark"></i></span>
                                 </div>
-                                <div className="instructor-modal-body">
-                                    <p className="card-description-text">
-                                        Select the criteria for your agricultural report.
+                                <div className={modalStyles.instructorModalBody}>
+                                    <p className={commonCardStyles.cardDescriptionText}>
+                                        {currentReportType === 'Pest Management' && t('reports.pestModalDesc')}
+                                        {currentReportType === 'Crop Plans' && t('reports.cropPlanModalDesc')}
+                                        {currentReportType === 'Meetings' && t('reports.meetingModalDesc')}
                                     </p>
 
-                                    <div className="instructor-modal-grid">
-                                        <div className="form-group">
-                                            <label>Start Date</label>
-                                            <input
-                                                type="date"
-                                                className="form-control"
-                                                name="startDate"
-                                                value={filters.startDate}
-                                                onChange={handleFilterChange}
-                                            />
-                                        </div>
-                                        <div className="form-group">
-                                            <label>End Date</label>
-                                            <input
-                                                type="date"
-                                                className="form-control"
-                                                name="endDate"
-                                                value={filters.endDate}
-                                                onChange={handleFilterChange}
-                                            />
-                                        </div>
+                                    <div className={`${styles.formGroup} ${isGenerating ? styles.disabled : ''}`}>
+                                        <label>{t('reports.startDate')} <span className={styles.required}>*</span></label>
+                                        <input
+                                            type="date"
+                                            className={styles.formControl}
+                                            name="startDate"
+                                            value={filters.startDate}
+                                            onChange={handleFilterChange}
+                                            required
+                                            disabled={isGenerating}
+                                        />
+                                    </div>
+                                    <div className={`${styles.formGroup} ${isGenerating ? styles.disabled : ''}`}>
+                                        <label>{t('reports.endDate')} <span className={styles.required}>*</span></label>
+                                        <input
+                                            type="date"
+                                            className={styles.formControl}
+                                            name="endDate"
+                                            value={filters.endDate}
+                                            onChange={handleFilterChange}
+                                            required
+                                            disabled={isGenerating}
+                                        />
                                     </div>
 
-                                    <div className="form-group">
-                                        <label>Status Type</label>
-                                        <select
-                                            className="form-control"
-                                            name="status"
-                                            value={filters.status}
-                                            onChange={handleFilterChange}
-                                        >
-                                            <option value="All">All Statuses</option>
-                                            <option value="Pending">Pending Review</option>
-                                            <option value="In_progress">In Progress</option>
-                                            <option value="Resolved">Resolved / Completed</option>
-                                            <option value="Declined">Declined / Cancelled</option>
+                                <div className={`${styles.formGroup} ${isGenerating ? styles.disabled : ''}`}>
+                                    <label>{t('reports.statusFilter')}</label>
+                                    <select
+                                        className={styles.formControl}
+                                        name="status"
+                                        value={filters.status}
+                                        onChange={handleFilterChange}
+                                        disabled={isGenerating}
+                                    >
+                                            {currentReportType === 'Pest Management' && (
+                                                <>
+                                                    <option value="All">{t('reports.allStatuses')}</option>
+                                                    <option value="pending">{t('reports.pending')}</option>
+                                                    <option value="resolved">{t('reports.resolved')}</option>
+                                                </>
+                                            )}
+                                            {currentReportType === 'Crop Plans' && (
+                                                <>
+                                                    <option value="All">{t('reports.allStatuses')}</option>
+                                                    <option value="pending">{t('reports.pendingReview')}</option>
+                                                    <option value="approved">{t('reports.approved')}</option>
+                                                    <option value="correction">{t('reports.correctionRequested')}</option>
+                                                </>
+                                            )}
+                                            {currentReportType === 'Meetings' && (
+                                                <>
+                                                    <option value="All">{t('reports.allStatuses')}</option>
+                                                    <option value="pending">{t('reports.pending')}</option>
+                                                    <option value="accepted">{t('reports.accepted')}</option>
+                                                    <option value="reschedule">{t('reports.rescheduleRequested')}</option>
+                                                    <option value="rejected">{t('reports.rejected')}</option>
+                                                    <option value="declined">{t('reports.declined')}</option>
+                                                    <option value="cancelled">{t('reports.cancelled')}</option>
+                                                </>
+                                            )}
                                         </select>
                                     </div>
 
-                                    <div className="form-group">
-                                        <label>Instructor's Division</label>
+                                    <div className={styles.formGroup}>
+                                        <label>{t('reports.reportDivisionFilter')}</label>
                                         <select
-                                            className="form-control"
+                                            className={styles.formControl}
                                             name="division"
                                             value={filters.division}
                                             onChange={handleFilterChange}
                                         >
-                                            <option value="All">All Divisions</option>
+                                            <option value="All">{t('reports.allDivisions')}</option>
                                             {divisions.map(div => (
                                                 <option key={div} value={div}>{div}</option>
                                             ))}
                                         </select>
                                     </div>
 
-                                    <div className="form-group">
-                                        <label>Report Format</label>
-                                        <div style={{ display: 'flex', gap: '20px', marginTop: '10px' }}>
-                                            <label className="format-radio-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                    <div className={styles.formGroup}>
+                                        <label>{t('reports.exportFormat')}</label>
+                                        <div className={styles.formatOptionsContainer}>
+                                            <label className={styles.formatRadioLabel}>
                                                 <input
                                                     type="radio"
                                                     name="format"
@@ -385,9 +442,9 @@ const InstructorReports = () => {
                                                     checked={filters.format === 'PDF'}
                                                     onChange={handleFilterChange}
                                                 />
-                                                <i className="fas fa-file-pdf" style={{ color: '#e74c3c' }}></i> PDF
+                                                <i className={`fas fa-file-pdf ${styles.pdfIcon}`}></i> PDF
                                             </label>
-                                            <label className="format-radio-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                            <label className={styles.formatRadioLabel}>
                                                 <input
                                                     type="radio"
                                                     name="format"
@@ -395,25 +452,23 @@ const InstructorReports = () => {
                                                     checked={filters.format === 'CSV'}
                                                     onChange={handleFilterChange}
                                                 />
-                                                <i className="fas fa-file-csv" style={{ color: '#27ae60' }}></i> CSV
+                                                <i className={`fas fa-file-csv ${styles.csvIcon}`}></i> CSV
                                             </label>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="instructor-modal-footer">
-                                    <button className="btn btn-secondary" onClick={closeFilterModal}>Cancel</button>
-                                    <button 
-                                        className="btn btn-primary" 
+                                <div className={modalStyles.instructorModalFooter}>
+                                    <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSecondary}`} onClick={closeFilterModal}>{t('reports.cancelBtn')}</button>
+                                    <button
+                                        className={`${commonBtnStyles.btn} ${commonBtnStyles.btnPrimary}`}
                                         onClick={handleGenerateReport}
                                         disabled={isGenerating}
                                     >
-                                        {isGenerating ? 'Generating...' : `Generate ${filters.format} Report`}
+                                        {isGenerating ? t('reports.generating') : `${t('reports.generateReport')} (${filters.format})`}
                                     </button>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </ModalPortal>
+                </div>
             )}
         </>
     );

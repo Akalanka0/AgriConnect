@@ -1,8 +1,13 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
+import { useOutletContext } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { adminAPI } from '@/services/adminService';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { useToast } from '../components/Toast';
+import commonCardStyles from '@/components/common/styles/Card.module.css';
+import commonBtnStyles from '@/components/common/styles/Button.module.css';
+import styles from '../styles/Reports.module.css';
 
 // Portal Component for Modals
 const ModalPortal = ({ children }) => {
@@ -17,17 +22,15 @@ const Reports = () => {
         return name.toString().replace(/\s+Zone\s*$/i, '').trim();
     };
 
-    const { showToast } = useToast();
+    const { showToast } = useOutletContext();
+    const { t } = useTranslation('admin');
     const [isGenerating, setIsGenerating] = useState(false);
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-    const abortControllerRef = useRef(false);
+    const cancelledRef = useRef(false);
 
     const [currentReportType, setCurrentReportType] = useState('farmers');
     const [filters, setFilters] = useState({
         method: 'zone', // Default selection
-        startDate: '',
-        endDate: '',
-        district: 'All',
         zone: 'All',
         instructor: 'All',
         division: 'All',
@@ -36,48 +39,50 @@ const Reports = () => {
         reportName: ''
     });
 
-    // Mock Data mirroring UserManagement.jsx
-    const farmersData = [
-        { id: 'FARM-2025-0001', name: 'Sunil Perera', email: 'sunil@example.com', district: 'Anuradhapura', location: formatZoneName('Nuwaragam Palatha'), division: 'Nuwaragam Palatha Central', instructor: 'Chamara Perera', status: 'Active' },
-        { id: 'FARM-2025-0002', name: 'Kamala Fernando', email: 'kamala@example.com', district: 'Anuradhapura', location: formatZoneName('Nuwaragam Palatha'), division: 'Nuwaragam Palatha Central', instructor: 'Chamara Perera', status: 'Active' },
-        { id: 'FARM-2025-0003', name: 'Nimal Rathnayake', email: 'nimal@example.com', district: 'Anuradhapura', location: formatZoneName('Nuwaragam Palatha'), division: 'Nuwaragam Palatha East', instructor: 'Chamara Perera', status: 'Active' },
-        { id: 'FARM-2025-0004', name: 'Saman Kumara', email: 'saman@example.com', district: 'Anuradhapura', location: formatZoneName('Nuwaragam Palatha'), division: 'Nuwaragam Palatha East', instructor: 'Chamara Perera', status: 'Blocked' },
-        { id: 'FARM-2025-0005', name: 'Ajith Weerasinghe', email: 'ajith@example.com', district: 'Anuradhapura', location: formatZoneName('Nuwaragam Palatha'), division: 'Mihintale', instructor: 'Chamara Perera', status: 'Active' },
+    const [reportHistory, setReportHistory] = useState([]);
 
-        { id: 'FARM-2025-0006', name: 'Chitra Kumari', email: 'chitra@example.com', district: 'Anuradhapura', location: formatZoneName('Kekirawa'), division: 'Kekirawa', instructor: 'Ruwan Silva', status: 'Active' },
-        { id: 'FARM-2025-0007', name: 'Sarath Fonseka', email: 'sarath@example.com', district: 'Anuradhapura', location: formatZoneName('Kekirawa'), division: 'Ipalogama', instructor: 'Ruwan Silva', status: 'Active' },
-        { id: 'FARM-2025-0008', name: 'Malini De Silva', email: 'malini@example.com', district: 'Anuradhapura', location: formatZoneName('Kekirawa'), division: 'Palagala', instructor: 'Ruwan Silva', status: 'Active' },
-        { id: 'FARM-2025-0009', name: 'Bandara Menike', email: 'bandara@example.com', district: 'Anuradhapura', location: formatZoneName('Kekirawa'), division: 'Thirappane', instructor: 'Kumari Dissanayake', status: 'Active' },
-        { id: 'FARM-2025-0010', name: 'Jagath Pushpakumara', email: 'jagath@example.com', district: 'Anuradhapura', location: formatZoneName('Kekirawa'), division: 'Maradankadawala', instructor: 'Kumari Dissanayake', status: 'Active' },
+    // Dynamic filter data loaded from API
+    const [instructorsList, setInstructorsList] = useState([]);
+    const [regionHierarchy, setRegionHierarchy] = useState({});
 
-        { id: 'FARM-2025-0011', name: 'Gunapala Herath', email: 'gunapala@example.com', district: 'Anuradhapura', location: formatZoneName('Huruluwewa'), division: 'Galenbindunuwewa', instructor: 'Pradeep Bandara', status: 'Active' },
-        { id: 'FARM-2025-0012', name: 'Siripala Gamage', email: 'siripala@example.com', district: 'Anuradhapura', location: formatZoneName('Huruluwewa'), division: 'Kahatagasdigiliya', instructor: 'Pradeep Bandara', status: 'Active' },
-        { id: 'FARM-2025-0013', name: 'Chandani Liyanage', email: 'chandani@example.com', district: 'Anuradhapura', location: formatZoneName('Huruluwewa'), division: 'Horowpothana', instructor: 'Pradeep Bandara', status: 'Active' },
-        { id: 'FARM-2025-0014', name: 'Duminda Silva', email: 'duminda@example.com', district: 'Anuradhapura', location: formatZoneName('Huruluwewa'), division: 'Kebithigollewa', instructor: 'Tharindu Rajapaksa', status: 'Active' },
-        { id: 'FARM-2025-0015', name: 'Mahesh Senanayake', email: 'mahesh@example.com', district: 'Anuradhapura', location: formatZoneName('Huruluwewa'), division: 'Padaviya', instructor: 'Tharindu Rajapaksa', status: 'Active' },
+    // Load report history from localStorage on mount
+    useEffect(() => {
+        const savedHistory = localStorage.getItem('agriconnect_report_history');
+        if (savedHistory) {
+            try {
+                setReportHistory(JSON.parse(savedHistory));
+            } catch (err) {
+                console.error('Error loading report history:', err);
+            }
+        }
+    }, []);
 
-        { id: 'FARM-2025-0016', name: 'Thilini Priyadarshani', email: 'thilini@example.com', district: 'Anuradhapura', location: formatZoneName('Medawachchiya'), division: 'Medawachchiya', instructor: 'Sunil Hettiarachchi', status: 'Active' },
-        { id: 'FARM-2025-0017', name: 'Ruwan Hettiarachchi', email: 'ruwan@example.com', district: 'Anuradhapura', location: formatZoneName('Medawachchiya'), division: 'Kanadara', instructor: 'Sunil Hettiarachchi', status: 'Active' },
-        { id: 'FARM-2025-0018', name: 'Sanath Jayasuriya', email: 'sanath@example.com', district: 'Anuradhapura', location: formatZoneName('Medawachchiya'), division: 'Medawachchiya', instructor: 'Sunil Hettiarachchi', status: 'Active' }
-    ];
+    // Load real zone / division / instructor data for filter dropdowns
+    useEffect(() => {
+        const loadFilterData = async () => {
+            try {
+                const [instrRes, hierRes] = await Promise.all([
+                    adminAPI.getUsers('?role=instructor&limit=500'),
+                    adminAPI.getRegionHierarchy()
+                ]);
+                if (instrRes?.data) setInstructorsList(instrRes.data);
+                if (hierRes?.data) setRegionHierarchy(hierRes.data);
+            } catch (err) {
+                console.error('Failed to load filter data for reports:', err);
+            }
+        };
+        loadFilterData();
+    }, []);
 
-    const instructorsData = [
-        { id: 'INST-2026-0001', name: 'Chamara Perera', email: 'chamara@example.com', district: 'Anuradhapura', zone: formatZoneName('Nuwaragam Palatha'), farmersCount: 5, status: 'Active' },
-        { id: 'INST-2026-0002', name: 'Nimali Jayasinghe', email: 'nimali.j@example.com', district: 'Anuradhapura', zone: formatZoneName('Nuwaragam Palatha'), farmersCount: 0, status: 'Active' },
-        { id: 'INST-2026-0003', name: 'Ruwan Silva', email: 'ruwan@example.com', district: 'Anuradhapura', zone: formatZoneName('Kekirawa'), farmersCount: 3, status: 'Active' },
-        { id: 'INST-2026-0004', name: 'Kumari Dissanayake', email: 'kumari@example.com', district: 'Anuradhapura', zone: formatZoneName('Kekirawa'), farmersCount: 2, status: 'Active' },
-        { id: 'INST-2026-0005', name: 'Pradeep Bandara', email: 'pradeep@example.com', district: 'Anuradhapura', zone: formatZoneName('Huruluwewa'), farmersCount: 3, status: 'Active' },
-        { id: 'INST-2026-0006', name: 'Tharindu Rajapaksa', email: 'tharindu@example.com', district: 'Anuradhapura', zone: formatZoneName('Huruluwewa'), farmersCount: 2, status: 'Active' },
-        { id: 'INST-2026-0007', name: 'Sunil Hettiarachchi', email: 'sunil.h@example.com', district: 'Anuradhapura', zone: formatZoneName('Medawachchiya'), farmersCount: 3, status: 'Active' }
-    ];
+    // Derive zone and division lists from region hierarchy
+    const zonesList = Object.keys(regionHierarchy);
+    const divisionsList = zonesList.flatMap(z => regionHierarchy[z] || []);
 
-    // Mock Data mirroring Engagement.jsx
-    const engagementData = [
-        { id: 'INST-2026-0001', name: 'Chamara Perera', zone: formatZoneName('Nuwaragam Palatha'), divisions: 'Central, East, Mihintale', farmersCount: 5, rating: 4.8 },
-        { id: 'INST-2026-0003', name: 'Ruwan Silva', zone: formatZoneName('Kekirawa'), divisions: 'Kekirawa, Ipalogama, Palagala', farmersCount: 3, rating: 4.5 },
-        { id: 'INST-2026-0005', name: 'Pradeep Bandara', zone: formatZoneName('Huruluwewa'), divisions: 'Galenbindunuwewa, Kahatagasdigiliya, Horowpothana', farmersCount: 3, rating: 4.2 },
-        { id: 'INST-2026-0007', name: 'Sunil Hettiarachchi', zone: formatZoneName('Medawachchiya'), divisions: 'Medawachchiya, Kanadara', farmersCount: 3, rating: 4.7 }
-    ];
+    // NOTE: Mock data removed - Reports now fetch real data from API
+    // API endpoints used:
+    // - GET /api/admin/users?role=farmer&limit=1000  (Farmers Data)
+    // - GET /api/admin/users?role=instructor&limit=1000  (Instructors Data)
+    // - GET /api/admin/engagement?limit=1000  (Engagement Data)
 
     // Filter Handlers
     const openFilterModal = (type) => {
@@ -93,7 +98,7 @@ const Reports = () => {
     };
 
     const handleCancelGeneration = () => {
-        abortControllerRef.current = true;
+        cancelledRef.current = true;
         setIsGenerating(false);
         showToast('Report generation cancelled', 'info');
     };
@@ -104,38 +109,25 @@ const Reports = () => {
     };
 
     const handleGenerateReport = async () => {
-        // Validation for date range if dates are provided
-        if (filters.startDate && filters.endDate) {
-            if (new Date(filters.startDate) > new Date(filters.endDate)) {
-                showToast('Start date cannot be after end date', 'error');
-                return;
-            }
-        }
-
         setIsGenerating(true);
-        abortControllerRef.current = false;
+        cancelledRef.current = false;
         showToast(`Preparing ${currentReportType} report...`, 'info');
-
-        // Simulate a small delay to allow cancellation
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        if (abortControllerRef.current) return;
 
         try {
             if (currentReportType === 'farmers') {
-                handleFarmersReport();
+                await handleFarmersReport();
             } else if (currentReportType === 'instructors') {
-                handleInstructorsReport();
+                await handleInstructorsReport();
             } else if (currentReportType === 'engagement') {
-                handleEngagementReport();
+                await handleEngagementReport();
             }
 
-            if (!abortControllerRef.current) {
+            if (!cancelledRef.current) {
                 showToast('Report generated successfully!', 'success');
                 setIsFilterModalOpen(false);
             }
         } catch (error) {
-            if (!abortControllerRef.current) {
+            if (!cancelledRef.current) {
                 showToast('Error generating report', 'error');
             }
         } finally {
@@ -189,12 +181,24 @@ const Reports = () => {
         }
 
         doc.save(`${filename}.pdf`);
+
+        // Add to history
+        addToReportHistory(filename, 'PDF', data.length);
     };
 
     const generateCSV = (columns, data, filename) => {
+        // Sanitize a cell value to prevent CSV injection (OWASP)
+        const safeCsvCell = (val) => {
+            const str = String(val ?? '');
+            // Prefix with tab if value starts with a formula-triggering character
+            const sanitized = /^[=+\-@|]/.test(str) ? `\t${str}` : str;
+            // Wrap in quotes and escape any internal double-quotes
+            return `"${sanitized.replace(/"/g, '""')}"`;
+        };
+
         const csvContent = [
-            columns.join(','),
-            ...data.map(row => row.map(cell => `"${cell}"`).join(','))
+            columns.map(safeCsvCell).join(','),
+            ...data.map(row => row.map(safeCsvCell).join(','))
         ].join('\n');
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -206,272 +210,368 @@ const Reports = () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+
+        // Add to history
+        addToReportHistory(filename, 'CSV', data.length);
+    };
+
+    // Add report to generation history
+    const addToReportHistory = (filename, format, recordCount) => {
+        const newReport = {
+            id: Date.now(),
+            name: filters.reportName || filename,
+            type: currentReportType.charAt(0).toUpperCase() + currentReportType.slice(1),
+            format: format,
+            records: recordCount,
+            generatedAt: new Date().toLocaleString(),
+            filters: {
+                method: filters.method,
+                zone: filters.zone,
+                status: filters.status,
+                division: filters.division
+            }
+        };
+
+        const updatedHistory = [newReport, ...reportHistory].slice(0, 50); // Keep last 50 reports
+        setReportHistory(updatedHistory);
+        localStorage.setItem('agriconnect_report_history', JSON.stringify(updatedHistory));
     };
 
     // Report Handlers
-    const handleFarmersReport = () => {
-        let filteredData = farmersData;
+    const handleFarmersReport = async () => {
+        try {
+            const response = await adminAPI.getUsers('?role=farmer&limit=1000');
+            
+            let filteredData = response.data || response || [];
 
-        // Filter by Status
-        if (filters.status !== 'All') {
-            filteredData = filteredData.filter(f => f.status === filters.status);
-        }
+            // Filter by method (zone / instructor / division)
+            if (filters.method === 'zone' && filters.zone !== 'All') {
+                filteredData = filteredData.filter(f =>
+                    (f.farmerDetail?.zone || '') === filters.zone
+                );
+            } else if (filters.method === 'instructor' && filters.instructor !== 'All') {
+                if (filters.instructor === '') {
+                    // Unassigned farmers
+                    filteredData = filteredData.filter(f =>
+                        !f.instructor || f.instructor === 'Not Assigned'
+                    );
+                } else {
+                    filteredData = filteredData.filter(f =>
+                        (f.instructor || '') === filters.instructor
+                    );
+                }
+            } else if (filters.method === 'division' && filters.division !== 'All') {
+                filteredData = filteredData.filter(f =>
+                    (f.farmerDetail?.instructor_division || '') === filters.division
+                );
+            }
 
-        // Filter by Method
-        if (filters.method === 'zone' && filters.zone !== 'All') {
-            filteredData = filteredData.filter(f => f.location === filters.zone);
-        } else if (filters.method === 'instructor' && filters.instructor !== 'All') {
-            filteredData = filteredData.filter(f => f.instructor === filters.instructor);
-        } else if (filters.method === 'division' && filters.division !== 'All') {
-            filteredData = filteredData.filter(f => f.division === filters.division);
-        }
+            // Filter by Status (case-insensitive)
+            if (filters.status !== 'All') {
+                filteredData = filteredData.filter(f =>
+                    (f.status || '').toLowerCase() === filters.status.toLowerCase()
+                );
+            }
 
-        const columns = ['ID', 'Name', 'Email', 'District', 'Zone', 'Assigned Instructor', 'Status'];
-        const data = filteredData.map(f => [f.id, f.name, f.email, f.district, f.location, f.instructor, f.status]);
-        const filename = filters.reportName ? filters.reportName.replace(/\s+/g, '_').toLowerCase() : 'agriconnect_farmers_report';
-        
-        if (filters.format === 'CSV') {
-            generateCSV(columns, data, filename);
-        } else {
-            generatePDF('User Management Report', 'Registered Farmers List', columns, data, filename);
+            const columns = ['ID', 'Name', 'Email', 'District', 'Zone', 'Division', 'Assigned Instructor', 'Status'];
+            const data = filteredData.map(f => [
+                f.displayId || f.farmerDetail?.farmer_id || `FARM-${f.id}`,
+                f.full_name || 'N/A',
+                f.email || 'N/A',
+                f.farmerDetail?.district || 'N/A',
+                f.farmerDetail?.zone ? formatZoneName(f.farmerDetail.zone) : 'N/A',
+                f.farmerDetail?.instructor_division || 'N/A',
+                f.instructor || 'Not Assigned',
+                f.status || 'N/A'
+            ]);
+            const filename = filters.reportName ? filters.reportName.replace(/\s+/g, '_').toLowerCase() : 'agriconnect_farmers_report';
+
+            if (filters.format === 'CSV') {
+                generateCSV(columns, data, filename);
+            } else {
+                generatePDF('User Management Report', 'Registered Farmers List', columns, data, filename);
+            }
+        } catch (error) {
+            console.error('Error generating farmers report:', error);
+            showToast('Error generating report', 'error');
+            setIsGenerating(false);
         }
     };
 
-    const handleInstructorsReport = () => {
-        let filteredData = instructorsData;
+    const handleInstructorsReport = async () => {
+        try {
+            const response = await adminAPI.getUsers('?role=instructor&limit=1000');
+            
+            let filteredData = response.data || response || [];
 
-        // Filter by Status
-        if (filters.status !== 'All') {
-            filteredData = filteredData.filter(i => i.status === filters.status);
-        }
+            // Filter by Status (case-insensitive)
+            if (filters.status !== 'All') {
+                filteredData = filteredData.filter(i =>
+                    (i.status || '').toLowerCase() === filters.status.toLowerCase()
+                );
+            }
 
-        // Filter by Zone
-        if (filters.zone !== 'All') {
-            filteredData = filteredData.filter(i => i.zone === filters.zone);
-        }
+            // Filter by Zone
+            if (filters.zone !== 'All') {
+                filteredData = filteredData.filter(i =>
+                    (i.instructorDetail?.zone || i.zone || '') === filters.zone
+                );
+            }
 
-        const columns = ['ID', 'Name', 'Email', 'District', 'Zone', 'Farmers Count', 'Status'];
-        const data = filteredData.map(i => [i.id, i.name, i.email, i.district, i.zone, i.farmersCount, i.status]);
-        const filename = filters.reportName ? filters.reportName.replace(/\s+/g, '_').toLowerCase() : 'agriconnect_instructors_report';
-        
-        if (filters.format === 'CSV') {
-            generateCSV(columns, data, filename);
-        } else {
-            generatePDF('User Management Report', 'Registered Instructors List', columns, data, filename);
+            const columns = ['ID', 'Name', 'Email', 'District', 'Zone', 'Farmers Count', 'Status'];
+            const data = filteredData.map(i => [
+                i.instructorDetail?.instructor_id || `INST-${i.id}`,
+                i.full_name || 'N/A',
+                i.email || 'N/A',
+                i.instructorDetail?.district || 'N/A',
+                i.instructorDetail?.zone ? formatZoneName(i.instructorDetail.zone) : 'N/A',
+                i.farmersCount ?? '0',
+                i.status || 'N/A'
+            ]);
+            const filename = filters.reportName ? filters.reportName.replace(/\s+/g, '_').toLowerCase() : 'agriconnect_instructors_report';
+
+            if (filters.format === 'CSV') {
+                generateCSV(columns, data, filename);
+            } else {
+                generatePDF('User Management Report', 'Registered Instructors List', columns, data, filename);
+            }
+        } catch (error) {
+            console.error('Error generating instructors report:', error);
+            showToast('Error generating report', 'error');
+            setIsGenerating(false);
         }
     };
 
-    const handleEngagementReport = () => {
-        let filteredData = engagementData;
+    const handleEngagementReport = async () => {
+        try {
+            const response = await adminAPI.getInstructorEngagement();
+            
+            let filteredData = response.data || response || [];
 
-        // Filter by Zone
-        if (filters.zone !== 'All') {
-            filteredData = filteredData.filter(e => e.zone === filters.zone);
-        }
+            // Filter by Zone
+            if (filters.zone !== 'All') {
+                filteredData = filteredData.filter(e => e.zone === filters.zone);
+            }
 
-        const columns = ['Instructor ID', 'Name', 'Zone', 'Divisions', 'Assigned Farmers', 'Avg Rating'];
-        const data = filteredData.map(e => [e.id, e.name, e.zone, Array.isArray(e.divisions) ? e.divisions.join(', ') : e.divisions, e.farmersCount, e.rating > 0 ? e.rating : 'N/A']);
-        const filename = filters.reportName ? filters.reportName.replace(/\s+/g, '_').toLowerCase() : 'agriconnect_engagement_report';
-        
-        if (filters.format === 'CSV') {
-            generateCSV(columns, data, filename);
-        } else {
-            generatePDF('Engagement Report', 'Instructor-Farmer Engagement Analysis', columns, data, filename);
+            const columns = ['Instructor ID', 'Name', 'Zone', 'Assigned Farmers', 'Avg Rating'];
+            const data = filteredData.map(e => [
+                e.displayId || e.instructorId || `INSTR-${e.id}`,
+                e.full_name || e.name || 'N/A',
+                e.zone || 'N/A',
+                e.farmersCount || e.farmers_count || '0',
+                (e.averageRating || e.average_rating) ? parseFloat(e.averageRating || e.average_rating).toFixed(1) : 'N/A'
+            ]);
+            const filename = filters.reportName ? filters.reportName.replace(/\s+/g, '_').toLowerCase() : 'agriconnect_engagement_report';
+
+            if (filters.format === 'CSV') {
+                generateCSV(columns, data, filename);
+            } else {
+                generatePDF('Engagement Report', 'Instructor-Farmer Engagement Analysis', columns, data, filename);
+            }
+        } catch (error) {
+            console.error('Error generating engagement report:', error);
+            showToast('Error generating report', 'error');
+            setIsGenerating(false);
         }
     };
 
     return (
-        <div className="page active" id="reports">
-            <div className="page-title">
-                <i className="fas fa-file-alt"></i>
-                <h2>Reports</h2>
+        <div className={`${styles.page} ${styles.active}`} id="reports">
+            <div className={styles.pageTitle}>
+                <i className="fas fa-file-lines"></i>
+                <h2>{t('reports.title')}</h2>
             </div>
 
-            <div className="dashboard-grid">
+            <div className={styles.cardsGrid}>
                 {/* User Management: Farmers */}
-                <div className="card">
-                    <div className="card-header">
-                        <div className="card-title">User Management: Farmers</div>
-                        <div className="card-icon"><i className="fas fa-users"></i></div>
+                <div className={commonCardStyles.card}>
+                    <div className={styles.cardHeader}>
+                        <div className={styles.cardTitle}>{t('reports.cardFarmersTitle')}</div>
+                        <div className={styles.cardIcon}><i className="fas fa-users"></i></div>
                     </div>
-                    <div className="card-content">
-                        <p className="card-description-text">
-                            Comprehensive list of all registered farmers, including their zones, assigned instructors, and account status.
+                    <div className={styles.cardContent}>
+                        <p className={styles.cardDescriptionText}>
+                            {t('reports.cardFarmersDesc')}
                         </p>
 
-                        <button className="btn btn-primary btn-full-width" onClick={() => openFilterModal('farmers')}>
-                            <i className="fas fa-download"></i> Download Farmers Report
+                        <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnPrimary} ${commonBtnStyles.btnFullWidth}`} onClick={() => openFilterModal('farmers')}>
+                            <i className="fas fa-download"></i> {t('reports.downloadFarmers')}
                         </button>
                     </div>
                 </div>
 
                 {/* User Management: Instructors */}
-                <div className="card">
-                    <div className="card-header">
-                        <div className="card-title">User Management: Instructors</div>
-                        <div className="card-icon"><i className="fas fa-chalkboard-teacher"></i></div>
+                <div className={commonCardStyles.card}>
+                    <div className={styles.cardHeader}>
+                        <div className={styles.cardTitle}>{t('reports.cardInstructorsTitle')}</div>
+                        <div className={styles.cardIcon}><i className="fas fa-chalkboard-teacher"></i></div>
                     </div>
-                    <div className="card-content">
-                        <p className="card-description-text">
-                            Detailed report on agricultural instructors, their operating districts, zones, and farmer assignment counts.
+                    <div className={styles.cardContent}>
+                        <p className={styles.cardDescriptionText}>
+                            {t('reports.cardInstructorsDesc')}
                         </p>
 
-                        <button className="btn btn-primary btn-full-width" onClick={() => openFilterModal('instructors')}>
-                            <i className="fas fa-download"></i> Download Instructors Report
+                        <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnPrimary} ${commonBtnStyles.btnFullWidth}`} onClick={() => openFilterModal('instructors')}>
+                            <i className="fas fa-download"></i> {t('reports.downloadInstructors')}
                         </button>
                     </div>
                 </div>
 
                 {/* Engagement Report */}
-                <div className="card">
-                    <div className="card-header">
-                        <div className="card-title">Instructor-Farmer Engagement</div>
-                        <div className="card-icon"><i className="fas fa-handshake"></i></div>
+                <div className={commonCardStyles.card}>
+                    <div className={styles.cardHeader}>
+                        <div className={styles.cardTitle}>{t('reports.cardEngagementTitle')}</div>
+                        <div className={styles.cardIcon}><i className="fas fa-handshake"></i></div>
                     </div>
-                    <div className="card-content">
-                        <p className="card-description-text">
-                            Analysis of instructor performance, including farmer assignment loads, covered divisions, and farmer ratings.
+                    <div className={styles.cardContent}>
+                        <p className={styles.cardDescriptionText}>
+                            {t('reports.cardEngagementDesc')}
                         </p>
 
-                        <button className="btn btn-primary btn-full-width" onClick={() => openFilterModal('engagement')}>
-                            <i className="fas fa-download"></i> Download Engagement Report
+                        <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnPrimary} ${commonBtnStyles.btnFullWidth}`} onClick={() => openFilterModal('engagement')}>
+                            <i className="fas fa-download"></i> {t('reports.downloadEngagement')}
                         </button>
                     </div>
                 </div>
             </div>
 
             {/* Preview Section */}
-            <div className="card card-margin-top">
-                <div className="card-header">
-                    <div className="card-title">Report Generation History</div>
-                    <div className="card-icon"><i className="fas fa-history"></i></div>
+            <div className={`${commonCardStyles.card} ${styles.marginTopLg}`}>
+                <div className={styles.cardHeader}>
+                        <div className={styles.cardTitle}>{t('reports.historyTitle')}</div>
+                    <div className={styles.cardIcon}><i className="fas fa-clock-rotate-left"></i></div>
                 </div>
-                <div className="card-content">
-                    <div className="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Report Category</th>
-                                    <th>Report Name</th>
-                                    <th>Generated On</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>User Management: Farmers</td>
-                                    <td>Farmers List Q4</td>
-                                    <td>2023-10-28</td>
-                                    <td><span className="status-badge status-resolved">Success</span></td>
-                                </tr>
-                                <tr>
-                                    <td>Instructor-Farmer Engagement</td>
-                                    <td>Monthly Performance</td>
-                                    <td>2023-10-25</td>
-                                    <td><span className="status-badge status-resolved">Success</span></td>
-                                </tr>
-                                <tr>
-                                    <td>User Management: Instructors</td>
-                                    <td>Instructors Audit</td>
-                                    <td>2023-10-15</td>
-                                    <td><span className="status-badge status-resolved">Success</span></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                <div className={styles.cardContent}>
+                    {reportHistory.length === 0 ? (
+                        <div className={styles.emptyState}>
+                            <div className={styles.emptyStateIcon}>
+                                <i className="fas fa-inbox"></i>
+                            </div>
+                            <h3 className={styles.emptyStateTitle}>{t('reports.noReportsYet')}</h3>
+                            <p className={styles.emptyStateText}>{t('reports.noReportsDesc')}</p>
+                        </div>
+                    ) : (
+                        <div className={styles.historyTable}>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>{t('reports.colReportName')}</th>
+                                        <th>{t('reports.colType')}</th>
+                                        <th>{t('reports.colFormat')}</th>
+                                        <th>{t('reports.colRecords')}</th>
+                                        <th>{t('reports.colGeneratedAt')}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {reportHistory.map(report => (
+                                        <tr key={report.id}>
+                                            <td>{report.name}</td>
+                                            <td><span className={styles.typeBadge}>{report.type}</span></td>
+                                            <td><span className={styles.formatBadge}>{report.format}</span></td>
+                                            <td>{report.records}</td>
+                                            <td>{report.generatedAt}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
             </div>
 
             {/* Filter Modal */}
             {isFilterModalOpen && (
                 <ModalPortal>
-                    <div className="admin-modal active modal-flex-center" id="reportFilterModal">
-                        <div className="admin-modal-content modal-width-medium">
-                            <div className="admin-modal-header">
-                                <div className="admin-modal-title">Generate Report</div>
-                                <button className="admin-modal-close-round" onClick={closeFilterModal}>
-                                    <i className="fas fa-times"></i>
+                    <div className={`${styles.adminModal} ${styles.active} ${styles.modalFlexCenter}`} id="reportFilterModal">
+                        <div className={`${styles.adminModalContent} ${styles.modalWidthMedium}`}>
+                            <div className={styles.adminModalHeader}>
+                                <div className={styles.adminModalTitle}>{t('reports.reportModalTitle')}</div>
+                                <button className={styles.adminModalCloseRound} onClick={closeFilterModal}>
+                                    <i className="fas fa-xmark"></i>
                                 </button>
                             </div>
-                            <div className="admin-modal-body">
-                                <p className="filter-description">
-                                    Select filters for <strong>{currentReportType === 'farmers' ? 'Farmers' : currentReportType === 'instructors' ? 'Instructors' : 'Engagement'}</strong> report.
+                            <div className={styles.adminModalBody}>
+                                <p className={styles.filterDescription}>
+                                    {t('reports.filterDesc')} <strong>{currentReportType === 'farmers' ? t('reports.filterFarmers') : currentReportType === 'instructors' ? t('reports.filterInstructors') : t('reports.filterEngagement')}</strong> {t('reports.filterDescSuffix')}
                                 </p>
 
-                                <div className="admin-form-group">
-                                    <label>Report Name</label>
+                                <div className={styles.formGroup}>
+                                    <label>{t('reports.reportName')}</label>
                                     <input
                                         type="text"
-                                        className="admin-form-control"
+                                        className={styles.formControl}
                                         name="reportName"
                                         value={filters.reportName}
                                         onChange={handleFilterChange}
-                                        placeholder="Enter report name"
+                                        placeholder={t('reports.reportNamePlaceholder')}
                                     />
                                 </div>
 
                                 {currentReportType === 'farmers' && (
                                     <>
-                                        <div className="admin-form-group">
-                                            <label>Select Method</label>
+                                        <div className={styles.formGroup}>
+                                            <label>{t('reports.selectMethod')}</label>
                                             <select
-                                                className="admin-form-control select-margin-bottom"
+                                                className={`${styles.formControl} ${styles.selectMarginBottom}`}
                                                 name="method"
                                                 value={filters.method}
                                                 onChange={handleFilterChange}
                                             >
-                                                <option value="zone">Zone</option>
-                                                <option value="instructor">Assigned Instructor</option>
-                                                <option value="division">Instructor Division</option>
+                                                <option value="zone">{t('reports.groupByZone')}</option>
+                                                <option value="instructor">{t('reports.groupByInstructor')}</option>
+                                                <option value="division">{t('reports.groupByDivision')}</option>
                                             </select>
                                         </div>
 
-                                        {filters.method === 'zone' && (
-                                            <div className="admin-form-group">
-                                                <label>Zone</label>
+                                                        {filters.method === 'zone' && (
+                                            <div className={styles.formGroup}>
+                                                <label>{t('reports.groupByZone')}</label>
                                                 <select
-                                                    className="admin-form-control"
+                                                    className={styles.formControl}
                                                     name="zone"
                                                     value={filters.zone}
                                                     onChange={handleFilterChange}
                                                 >
-                                                    <option value="All">All Zones</option>
-                                                    {[...new Set(farmersData.map(f => f.location))].sort().map(zone => (
-                                                        <option key={zone} value={zone}>{zone}</option>
+                                                    <option value="All">{t('reports.allZones')}</option>
+                                                    {zonesList.map(z => (
+                                                        <option key={z} value={z}>{formatZoneName(z)}</option>
                                                     ))}
                                                 </select>
                                             </div>
                                         )}
 
                                         {filters.method === 'instructor' && (
-                                            <div className="admin-form-group">
-                                                <label>Assigned Instructor</label>
+                                            <div className={styles.formGroup}>
+                                            <label>{t('reports.groupByInstructor')}</label>
                                                 <select
-                                                    className="admin-form-control"
+                                                    className={styles.formControl}
                                                     name="instructor"
                                                     value={filters.instructor}
                                                     onChange={handleFilterChange}
                                                 >
-                                                    <option value="All">All Instructors</option>
-                                                    {[...new Set(farmersData.map(f => f.instructor))].sort().map(inst => (
-                                                        <option key={inst} value={inst}>{inst}</option>
+                                                    <option value="All">{t('reports.allInstructors')}</option>
+                                                    <option value="">{t('reports.noAssignedInstructor')}</option>
+                                                    {instructorsList.map(inst => (
+                                                        <option key={inst.id} value={inst.full_name}>
+                                                            {inst.full_name}
+                                                        </option>
                                                     ))}
                                                 </select>
                                             </div>
                                         )}
 
                                         {filters.method === 'division' && (
-                                            <div className="admin-form-group">
-                                                <label>Instructor Division</label>
+                                            <div className={styles.formGroup}>
+                                                <label>{t('reports.groupByDivision')}</label>
                                                 <select
-                                                    className="admin-form-control"
+                                                    className={styles.formControl}
                                                     name="division"
                                                     value={filters.division}
                                                     onChange={handleFilterChange}
                                                 >
-                                                    <option value="All">All Divisions</option>
-                                                    {[...new Set(farmersData.map(f => f.division))].sort().map(div => (
-                                                        <option key={div} value={div}>{div}</option>
+                                                    <option value="All">{t('reports.allDivisions')}</option>
+                                                    {divisionsList.map(d => (
+                                                        <option key={d} value={d}>{d}</option>
                                                     ))}
                                                 </select>
                                             </div>
@@ -479,124 +579,44 @@ const Reports = () => {
                                     </>
                                 )}
 
-                                {currentReportType === 'instructors' && (
-                                    <div className="admin-form-group">
-                                        <label>Zone</label>
+                                {(currentReportType === 'instructors' || currentReportType === 'engagement') && (
+                                    <div className={styles.formGroup}>
+                                        <label>{t('reports.groupByZone')}</label>
                                         <select
-                                            className="admin-form-control"
+                                            className={styles.formControl}
                                             name="zone"
                                             value={filters.zone}
                                             onChange={handleFilterChange}
                                         >
-                                            <option value="All">All Zones</option>
-                                            {[...new Set(instructorsData.map(i => i.zone))].sort().map(zone => (
-                                                <option key={zone} value={zone}>{zone}</option>
+                                            <option value="All">{t('reports.allZones')}</option>
+                                            {zonesList.map(z => (
+                                                <option key={z} value={z}>{formatZoneName(z)}</option>
                                             ))}
                                         </select>
                                     </div>
-                                )}
-
-                                {currentReportType === 'engagement' && (
-                                    <div className="admin-form-group">
-                                        <label>Zone</label>
-                                        <select
-                                            className="admin-form-control"
-                                            name="zone"
-                                            value={filters.zone}
-                                            onChange={handleFilterChange}
-                                        >
-                                            <option value="All">All Zones</option>
-                                            {[...new Set(engagementData.map(e => e.zone))].sort().map(zone => (
-                                                <option key={zone} value={zone}>{zone}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                )}
-
-                                {currentReportType !== 'farmers' && currentReportType !== 'instructors' && currentReportType !== 'engagement' && (
-                                    <>
-                                        <div className="admin-form-group">
-                                            <label>Date Range</label>
-                                            <div className="date-range-grid">
-                                                <div>
-                                                    <span className="date-label">Start Date</span>
-                                                    <input
-                                                        type="date"
-                                                        className="admin-form-control"
-                                                        name="startDate"
-                                                        value={filters.startDate}
-                                                        onChange={handleFilterChange}
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <span className="date-label">End Date</span>
-                                                    <input
-                                                        type="date"
-                                                        className="admin-form-control"
-                                                        name="endDate"
-                                                        value={filters.endDate}
-                                                        onChange={handleFilterChange}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="admin-form-group">
-                                            <div className="district-area-grid">
-                                                <div>
-                                                    <label>District</label>
-                                                    <select
-                                                        className="admin-form-control"
-                                                        name="district"
-                                                        value={filters.district}
-                                                        onChange={handleFilterChange}
-                                                    >
-                                                        <option value="All">All Districts</option>
-                                                        <option value="Anuradhapura">Anuradhapura</option>
-                                                        <option value="Polonnaruwa">Polonnaruwa</option>
-                                                        <option value="Kurunegala">Kurunegala</option>
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label>Zone</label>
-                                                    <select
-                                                        className="admin-form-control"
-                                                        name="zone"
-                                                        value={filters.zone}
-                                                        onChange={handleFilterChange}
-                                                    >
-                                                        <option value="All">All Zones</option>
-                                                        <option value="Padaviya">Padaviya</option>
-                                                        <option value="Rajanganaya">Rajanganaya</option>
-                                                        <option value="Vahalkada">Vahalkada</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </>
                                 )}
 
                                 {currentReportType !== 'engagement' && (
-                                    <div className="admin-form-group">
-                                        <label>Status</label>
+                                    <div className={styles.formGroup}>
+                                        <label>{t('reports.filterStatus')}</label>
                                         <select
-                                            className="admin-form-control"
+                                            className={styles.formControl}
                                             name="status"
                                             value={filters.status}
                                             onChange={handleFilterChange}
                                         >
-                                            <option value="All">All Status</option>
-                                            <option value="Active">Active</option>
-                                            <option value="Blocked">Blocked</option>
-                                            <option value="Deleted">Deleted</option>
+                                            <option value="All">{t('reports.allStatuses')}</option>
+                                            <option value="Active">{t('reports.statusActive')}</option>
+                                            <option value="Blocked">{t('reports.statusBlocked')}</option>
+                                            <option value="Deleted">{t('reports.statusDeleted')}</option>
                                         </select>
                                     </div>
                                 )}
 
-                                <div className="admin-form-group">
-                                    <label>Export Format</label>
-                                    <div className="export-format-group">
-                                        <label className="format-radio-label">
+                                <div className={styles.formGroup}>
+                                    <label>{t('reports.exportFormat')}</label>
+                                    <div className={styles.exportFormatGroup}>
+                                        <label className={styles.formatRadioLabel}>
                                             <input
                                                 type="radio"
                                                 name="format"
@@ -604,9 +624,9 @@ const Reports = () => {
                                                 checked={filters.format === 'PDF'}
                                                 onChange={handleFilterChange}
                                             />
-                                            <i className="fas fa-file-pdf" style={{ color: '#e74c3c' }}></i> PDF Document
+                                            <i className={`fas fa-file-pdf ${styles.iconPdf}`}></i> {t('reports.pdfDocument')}
                                         </label>
-                                        <label className="format-radio-label">
+                                        <label className={styles.formatRadioLabel}>
                                             <input
                                                 type="radio"
                                                 name="format"
@@ -614,23 +634,23 @@ const Reports = () => {
                                                 checked={filters.format === 'CSV'}
                                                 onChange={handleFilterChange}
                                             />
-                                            <i className="fas fa-file-excel" style={{ color: '#27ae60' }}></i> CSV Spreadsheet
+                                            <i className={`fas fa-file-excel ${styles.iconExcel}`}></i> {t('reports.csvSpreadsheet')}
                                         </label>
                                     </div>
                                 </div>
 
-                                <div className="admin-modal-footer">
-                                    <button 
-                                        className={`btn ${isGenerating ? 'btn-danger' : 'btn-secondary'}`} 
+                                <div className={styles.adminModalFooter}>
+                                    <button
+                                        className={`${commonBtnStyles.btn} ${isGenerating ? commonBtnStyles.btnDanger : commonBtnStyles.btnSecondary}`}
                                         onClick={closeFilterModal}
                                     >
-                                        {isGenerating ? 'Stop Generation' : 'Cancel'}
+                                        {isGenerating ? t('reports.stopGeneration') : t('reports.cancelBtn')}
                                     </button>
-                                    <button className="btn btn-send" onClick={handleGenerateReport} disabled={isGenerating}>
+                                    <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSend}`} onClick={handleGenerateReport} disabled={isGenerating}>
                                         {isGenerating ? (
-                                            <><i className="fas fa-spinner fa-spin"></i> Generating...</>
+                                            <><i className="fas fa-spinner fa-spin"></i> {t('reports.generatingLabel')}</>
                                         ) : (
-                                            <><i className={filters.format === 'PDF' ? "fas fa-file-pdf" : "fas fa-file-excel"}></i> Generate & Download</>
+                                            <><i className={filters.format === 'PDF' ? "fas fa-file-pdf" : "fas fa-file-excel"}></i> {t('reports.generateDownload')}</>
                                         )}
                                     </button>
                                 </div>

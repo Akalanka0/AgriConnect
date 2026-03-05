@@ -1,8 +1,13 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
-import { sequelize, User, FarmerDetail, InstructorDetail, SystemSetting } from '../../models/index.js';
+import { sequelize, User, FarmerDetail, InstructorDetail, SystemSetting, GeneratedId } from '../../models/index.js';
 import { sendVerificationEmail } from '../../services/emailService.js';
+
+// Demo account identifiers — allows re-registration without corrupting production data
+const DEMO_NICS = ['123456789V', '987654321V'];
+const DEMO_FARMER_IDS = ['FARM-2026-DEMO', 'FARM-2025-0001', 'F-TEST-001'];
+const DEMO_INSTRUCTOR_IDS = ['INST-2026-0001', 'INST-2025-0001', 'I-TEST-001'];
 
 /**
  * Register a new user (farmer or instructor only)
@@ -64,41 +69,19 @@ export const registerUser = async (userData) => {
         });
 
         // Allow reuse of specific demo NICs
-        const isDemoNIC = ['123456789V', '987654321V'].includes(userData.nic);
+        const isDemoNIC = DEMO_NICS.includes(userData.nic);
 
         if (existingNIC && !isDemoNIC) {
             throw new Error('NIC_EXISTS: NIC already registered');
         } else if (existingNIC && isDemoNIC) {
-            // If it's a demo NIC, we need to handle it.
-            // Since NIC is unique in the DB (likely), we might have a constraint issue if we just proceed to create.
-            // If the user with this NIC is the SAME as the one we are re-registering (by email), it was handled above by destroying the user.
-            // But if another user has this NIC, we have a problem.
-            
-            // However, the logic at the top deletes the user if the EMAIL matches the demo email.
-            // If the user is trying to register with a DIFFERENT email but the DEMO NIC, we should probably block it or handle it.
-            // But based on the request "reuse 123456789V", we assume it's for the demo flow.
-            
-            // The constraint on the DB for NIC needs to be respected.
-            // If we are here, it means a user exists with this NIC.
-            // If that user was NOT deleted (because email didn't match), we can't create a new user with the same NIC due to DB unique constraint.
-            
-            // So we must delete the OLD user who has this NIC to free it up, 
-            // OR we assume the "delete old user by email" above already cleared it if it was the same user.
-            
-            // If existingNIC is not null here, it means there is a user with this NIC.
-            // We should destroy that user to allow reuse of the NIC, similar to how we destroy by email.
-             await existingNIC.destroy({ transaction });
+            // Destroy existing user holding this demo NIC to allow re-registration
+            await existingNIC.destroy({ transaction });
         }
 
         // Hash password
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(userData.password, saltRounds);
 
-        // Determine if the user is the tester
-        const isTester = userData.email === process.env.DEV_EMAIL_BYPASS;
-
-        // Demo accounts should still require OTP verification (but OTP will be shown in response)
-        const shouldBypassVerification = false;
         const verificationToken = crypto.randomInt(100000, 1000000).toString();
         const verificationTokenExpires = new Date(Date.now() + 10 * 60 * 1000);
 
@@ -111,7 +94,7 @@ export const registerUser = async (userData) => {
             nic: userData.nic,
             phone: userData.phone,
             status: 'active',
-            email_verified: shouldBypassVerification,
+            email_verified: false,
             verification_token: verificationToken,
             verification_token_expires: verificationTokenExpires
         }, { transaction });
@@ -134,7 +117,8 @@ export const registerUser = async (userData) => {
                 const generatedId = await GeneratedId.findOne({
                     where: { 
                         code: userData.farmer_id,
-                        type: 'farmer'
+                        type: 'farmer',
+                        status: 'active'
                     },
                     transaction
                 });
@@ -149,14 +133,12 @@ export const registerUser = async (userData) => {
                     // Mark generated ID as used
                     await generatedId.update({ status: 'used' }, { transaction });
                 } else {
-                    throw new Error('INVALID_FARMER_ID: Farmer ID not found');
+                    throw new Error('INVALID_FARMER_ID: Farmer ID not available or not found');
                 }
             } else {
                 // Check if assigned (but allow demo IDs to be reassigned)
                 if (farmerDetail.user_id) {
-                    const isDemoFarmerId = userData.farmer_id.trim() === 'FARM-2026-DEMO' || 
-                                         userData.farmer_id.trim() === 'FARM-2025-0001' || 
-                                         userData.farmer_id.trim() === 'F-TEST-001';
+                    const isDemoFarmerId = DEMO_FARMER_IDS.includes(userData.farmer_id.trim());
                     
                     if (isDemoFarmerId) {
                         // It's fine, we will overwrite the user_id below.
@@ -180,11 +162,9 @@ export const registerUser = async (userData) => {
                 transaction
             });
 
-            if (instructorDetail.user_id) {
+            if (instructorDetail && instructorDetail.user_id) {
                 // If it's the specific demo ID, we allow reassignment
-                const isDemoInstructorId = userData.instructor_id.trim() === 'INST-2026-0001' || 
-                                         userData.instructor_id.trim() === 'INST-2025-0001' ||
-                                         userData.instructor_id.trim() === 'I-TEST-001';
+                const isDemoInstructorId = DEMO_INSTRUCTOR_IDS.includes(userData.instructor_id.trim());
                 
                 if (isDemoInstructorId) {
                     // Update the existing record to point to the new user
@@ -197,7 +177,8 @@ export const registerUser = async (userData) => {
                 const generatedId = await GeneratedId.findOne({
                     where: { 
                         code: userData.instructor_id,
-                        type: 'instructor'
+                        type: 'instructor',
+                        status: 'active'
                     },
                     transaction
                 });
@@ -212,11 +193,8 @@ export const registerUser = async (userData) => {
                     // Mark generated ID as used
                     await generatedId.update({ status: 'used' }, { transaction });
                 } else {
-                    // If not in GeneratedId and not in InstructorDetail, create it (fallback for custom IDs if allowed)
-                    await InstructorDetail.create({
-                        user_id: user.id,
-                        instructor_id: userData.instructor_id
-                    }, { transaction });
+                    // Do not allow custom IDs; must be generated by admin and active
+                    throw new Error('INVALID_INSTRUCTOR_ID: Instructor ID not available or not found');
                 }
             }
         }
@@ -244,6 +222,13 @@ export const registerUser = async (userData) => {
             status: user.status,
             created_at: user.created_at
         };
+
+        // Add generated ID based on role
+        if (userData.role === 'farmer' && userData.farmer_id) {
+            userResponse.farmer_id = userData.farmer_id;
+        } else if (userData.role === 'instructor' && userData.instructor_id) {
+            userResponse.instructor_id = userData.instructor_id;
+        }
 
         return {
             success: true,

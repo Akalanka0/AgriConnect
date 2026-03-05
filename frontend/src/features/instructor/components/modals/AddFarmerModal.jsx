@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
+import styles from '../../styles/InstructorModals.module.css';
+import commonStyles from '../../styles/InstructorCommon.module.css';
+import commonBtnStyles from '@/components/common/styles/Button.module.css';
 
 const AddFarmerModal = ({ isOpen, onClose, onSubmit }) => {
+    const { t } = useTranslation('instructor');
     const [formData, setFormData] = useState({
         name: '',
         location: '',
@@ -20,58 +26,60 @@ const AddFarmerModal = ({ isOpen, onClose, onSubmit }) => {
         onClose();
     };
 
-    return (
-        <div className="theme-instructor">
-            <div className="instructor-modal" style={{ display: 'flex' }}>
-                <div className="instructor-modal-content">
-                    <div className="instructor-modal-header">
-                        <h3 className="instructor-modal-title">Add New Farmer</h3>
-                        <span className="instructor-close" onClick={onClose}>&times;</span>
-                    </div>
-                    <div className="instructor-modal-body">
-                        <form onSubmit={handleSubmit}>
-                            <div className="form-group">
-                                <label>Name</label>
-                                <input
-                                    type="text"
-                                    name="name"
-                                    className="form-control"
-                                    value={formData.name}
-                                    onChange={handleChange}
-                                    required
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Location</label>
-                                <input
-                                    type="text"
-                                    name="location"
-                                    className="form-control"
-                                    value={formData.location}
-                                    onChange={handleChange}
-                                    required
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Contact Number</label>
-                                <input
-                                    type="text"
-                                    name="contact"
-                                    className="form-control"
-                                    value={formData.contact}
-                                    onChange={handleChange}
-                                    required
-                                />
-                            </div>
-                            <div className="instructor-modal-footer">
-                                <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-                                <button type="submit" className="btn btn-success">Add Farmer</button>
-                            </div>
-                        </form>
-                    </div>
+    return createPortal(
+        <div
+            className={styles.instructorModalFlex}
+            onClick={onClose}
+        >
+            <div className={`${styles.instructorModalContent} ${commonStyles.customScrollbar}`} onClick={e => e.stopPropagation()}>
+                <div className={styles.instructorModalHeader}>
+                    <h3 className={styles.instructorModalTitle}>{t('addFarmer.title')}</h3>
+                    <span className={styles.instructorClose} onClick={onClose}>&times;</span>
+                </div>
+                <div className={`${styles.instructorModalBody} ${commonStyles.customScrollbar}`}>
+                    <form onSubmit={handleSubmit}>
+                        <div className="form-group mb-3">
+                            <label className="form-label">{t('addFarmer.nameLabel')}</label>
+                            <input
+                                type="text"
+                                name="name"
+                                className="form-control"
+                                value={formData.name}
+                                onChange={handleChange}
+                                required
+                            />
+                        </div>
+                        <div className="form-group mb-3">
+                            <label className="form-label">{t('addFarmer.locationLabel')}</label>
+                            <input
+                                type="text"
+                                name="location"
+                                className="form-control"
+                                value={formData.location}
+                                onChange={handleChange}
+                                required
+                            />
+                        </div>
+                        <div className="form-group mb-4">
+                            <label className="form-label">{t('addFarmer.contactNumber')}</label>
+                            <input
+                                type="text"
+                                name="contact"
+                                className="form-control"
+                                value={formData.contact}
+                                onChange={handleChange}
+                                required
+                            />
+                        </div>
+                        <div className={styles.instructorModalFooter}>
+                            <button type="button" className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSecondary}`} onClick={onClose}>{t('addFarmer.cancelBtn')}</button>
+                            <button type="submit" className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSuccess}`}>{t('addFarmer.addBtn')}</button>
+                        </div>
+                    </form>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

@@ -75,4 +75,9 @@ export const instructorAPI = {
      */
     getRegionHierarchy: () => apiService.get('/instructor/region-hierarchy'),
     getAssignedRegions: () => apiService.get('/instructor/assigned-regions'),
+
+    /**
+     * Ratings
+     */
+    getRatings: (params) => apiService.get('/instructor/ratings', params),
 };

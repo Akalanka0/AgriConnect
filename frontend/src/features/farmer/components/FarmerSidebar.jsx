@@ -1,34 +1,36 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { NavLink } from 'react-router-dom';
-import '@/features/farmer/styles/FarmerCore.css';
+import { useTranslation } from 'react-i18next';
+import styles from '../styles/FarmerSidebar.module.css';
 
 const FarmerSidebar = ({ isActive, onLogout }) => {
+    const { t } = useTranslation('farmer');
     const menuItems = [
-        { path: '/farmer', exact: true, icon: 'fas fa-home', label: 'Home' },
-        { path: '/farmer/crop', icon: 'fas fa-clipboard-list', label: 'Crop Plans' },
-        { path: '/farmer/activity', icon: 'fas fa-tasks', label: 'Activities' },
-        { path: '/farmer/pest', icon: 'fas fa-bug', label: 'Pest Management' },
-        { path: '/farmer/harvest', icon: 'fas fa-boxes', label: 'Harvest' },
-        { path: '/farmer/meeting', icon: 'fas fa-calendar-alt', label: 'Calendar & Meetings' },
-        { path: '/farmer/alerts', icon: 'fas fa-cloud-sun', label: 'Weather' },
-        { path: '/farmer/settings', icon: 'fas fa-cog', label: 'Settings' }
+        { path: '/farmer', exact: true, icon: 'fas fa-home', label: t('sidebar.home') },
+        { path: '/farmer/crop', icon: 'fas fa-clipboard-list', label: t('sidebar.cropPlans') },
+        { path: '/farmer/activity', icon: 'fas fa-tasks', label: t('sidebar.activities') },
+        { path: '/farmer/pest', icon: 'fas fa-bug', label: t('sidebar.pest') },
+        { path: '/farmer/harvest', icon: 'fas fa-boxes', label: t('sidebar.harvest') },
+        { path: '/farmer/meeting', icon: 'fas fa-calendar-alt', label: t('sidebar.calendar') },
+        { path: '/farmer/alerts', icon: 'fas fa-cloud-sun', label: t('sidebar.weather') },
+        { path: '/farmer/settings', icon: 'fas fa-cog', label: t('sidebar.settings') }
     ];
 
     return (
-        <div className={`sidebar ${isActive ? 'active' : ''}`} id="sidebar">
-            <div className="sidebar-header">
-                <div className="logo"><i className="fas fa-seedling"></i></div>
+        <div className={`${styles.sidebar} ${isActive ? styles.sidebarActive : ''}`} id="sidebar">
+            <div className={styles.sidebarHeader}>
+                <div className={styles.logo}><i className="fas fa-seedling"></i></div>
                 <h1>AgriConnect</h1>
             </div>
 
-            <div className="sidebar-menu">
+            <div className={styles.sidebarMenu}>
                 {menuItems.map((item) => (
                     <NavLink
                         key={item.path}
                         to={item.path}
                         end={item.exact}
-                        className={({ isActive }) => `menu-item ${isActive ? 'active' : ''}`}
+                        className={({ isActive }) => `${styles.menuItem} ${isActive ? styles.active : ''}`}
                     >
                         <i className={item.icon}></i>
                         <span className="menu-text">{item.label}</span>
@@ -36,10 +38,10 @@ const FarmerSidebar = ({ isActive, onLogout }) => {
                 ))}
             </div>
 
-            <div className="sidebar-footer">
-                <button className="logout-btn" onClick={onLogout}>
-                    <i className="fas fa-sign-out-alt"></i>
-                    <span className="menu-text">Log Out</span>
+            <div className={styles.sidebarFooter}>
+                <button className={styles.logoutBtn} onClick={onLogout}>
+                    <i className="fas fa-right-from-bracket"></i>
+                    <span className="menu-text">{t('sidebar.logout')}</span>
                 </button>
             </div>
         </div>

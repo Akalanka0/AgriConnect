@@ -92,6 +92,16 @@ export const registerUserController = async (req, res) => {
             });
         }
 
+        if (error.message.includes('MAINTENANCE_MODE')) {
+            return res.status(503).json({
+                success: false,
+                error: {
+                    code: 'MAINTENANCE_MODE',
+                    message: 'System is currently under maintenance. Registration is temporarily disabled.'
+                }
+            });
+        }
+
         if (error.message.includes('EMAIL_EXISTS')) {
             return res.status(409).json({
                 success: false,
@@ -108,6 +118,46 @@ export const registerUserController = async (req, res) => {
                 error: {
                     code: 'NIC_EXISTS',
                     message: 'NIC already registered'
+                }
+            });
+        }
+
+        if (error.message.includes('FARMER_ID_ASSIGNED')) {
+            return res.status(409).json({
+                success: false,
+                error: {
+                    code: 'FARMER_ID_ASSIGNED',
+                    message: error.message.split(':').slice(1).join(':').trim() || 'Farmer ID is already assigned'
+                }
+            });
+        }
+
+        if (error.message.includes('INSTRUCTOR_ID_EXISTS')) {
+            return res.status(409).json({
+                success: false,
+                error: {
+                    code: 'INSTRUCTOR_ID_EXISTS',
+                    message: error.message.split(':').slice(1).join(':').trim() || 'Instructor ID already exists'
+                }
+            });
+        }
+
+        if (error.message.includes('INVALID_FARMER_ID')) {
+            return res.status(400).json({
+                success: false,
+                error: {
+                    code: 'INVALID_FARMER_ID',
+                    message: 'Farmer ID is invalid or not available'
+                }
+            });
+        }
+
+        if (error.message.includes('INVALID_INSTRUCTOR_ID')) {
+            return res.status(400).json({
+                success: false,
+                error: {
+                    code: 'INVALID_INSTRUCTOR_ID',
+                    message: 'Instructor ID is invalid or not available'
                 }
             });
         }
@@ -133,7 +183,7 @@ export const registerUserController = async (req, res) => {
                 success: false,
                 error: {
                     code: 'DUPLICATE_ENTRY',
-                    message: error.errors && error.errors.length > 0 ? error.errors[0].message : (error.message || 'Duplicate entry. This record already exists')
+                    message: 'Duplicate entry. This record already exists'
                 }
             });
         }
@@ -144,7 +194,7 @@ export const registerUserController = async (req, res) => {
             success: false,
             error: {
                 code: 'INTERNAL_ERROR',
-                message: error.message || 'An error occurred during registration'
+                message: 'An error occurred during registration'
             }
         });
     }
@@ -436,6 +486,16 @@ export const loginUserController = async (req, res) => {
             });
         }
 
+        if (error.message.includes('MAINTENANCE_MODE')) {
+            return res.status(503).json({
+                success: false,
+                error: {
+                    code: 'MAINTENANCE_MODE',
+                    message: 'The system is currently under maintenance. Only administrators can access the system. Please try again later.'
+                }
+            });
+        }
+
         if (error.message.includes('ACCOUNT_')) {
             const status = error.message.split('_')[1].toLowerCase();
             return res.status(403).json({
@@ -453,7 +513,7 @@ export const loginUserController = async (req, res) => {
             success: false,
             error: {
                 code: 'INTERNAL_ERROR',
-                message: error.message || 'An error occurred during login'
+                message: 'An error occurred during login'
             }
         });
     }

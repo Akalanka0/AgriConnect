@@ -1,0 +1,522 @@
+/* Global Semantic Color System - Reduces Hardcoded Values */
+
+/* ===== SEMANTIC COLOR TOKENS ===== */
+
+/* Universal Neutral Scale */
+:root {
+  /* Neutral Colors - Used across all themes */
+  --neutral-white: #ffffff;
+  --neutral-50: #f8f9fa;
+  --neutral-100: #e9ecef;
+  --neutral-200: #dee2e6;
+  --neutral-300: #ced4da;
+  --neutral-400: #adb5bd;
+  --neutral-500: #6c757d;
+  --neutral-600: #495057;
+  --neutral-700: #343a40;
+  --neutral-800: #212529;
+  --neutral-900: #000000;
+
+  /* Universal State Colors - Same across all themes */
+  --state-success: #10b981;
+  --state-success-hover: #059669;
+  --state-warning: #f59e0b;
+  --state-warning-hover: #d97706;
+  --state-danger: #ef4444;
+  --state-danger-hover: #dc2626;
+  --state-info: #3b82f6;
+  --state-info-hover: #2563eb;
+  --state-error: var(--state-danger);
+
+  /* Universal Shadows */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+
+  /* Modal Overlay */
+  --modal-overlay-bg: rgba(0, 0, 0, 0.5);
+  
+  /* Modal Content */
+  --modal-bg: rgba(255, 255, 255, 0.95);
+  --modal-border: rgba(255, 255, 255, 0.2);
+  --modal-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+
+  /* Universal Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Z-Index Management System */
+  --z-base: 1;
+  --z-dropdown: 100;
+  --z-tooltip: 200;
+  --z-sticky: 500;
+  --z-modal-backdrop: 8999;
+  --z-modal: 9000;
+  --z-popover: 9500;
+
+  /* RGBA Color Variants for Auth Theme (Semantic, not hardcoded) */
+  --primary-rgba-10: rgba(22, 192, 168, 0.1);
+  --primary-rgba-15: rgba(22, 192, 168, 0.15);
+  --primary-rgba-20: rgba(22, 192, 168, 0.2);
+  --primary-rgba-25: rgba(22, 192, 168, 0.25);
+
+  /* RGBA Color Variants for Instructor Theme (Blue) */
+  --instructor-rgba-10: rgba(21, 101, 192, 0.1);
+  --instructor-rgba-15: rgba(21, 101, 192, 0.15);
+  --instructor-rgba-20: rgba(21, 101, 192, 0.2);
+  --instructor-rgba-25: rgba(21, 101, 192, 0.25);
+
+  /* RGBA Color Variants for Farmer Theme (Green) */
+  --farmer-rgba-10: rgba(46, 125, 50, 0.1);
+  --farmer-rgba-15: rgba(46, 125, 50, 0.15);
+  --farmer-rgba-20: rgba(46, 125, 50, 0.2);
+  --farmer-rgba-25: rgba(46, 125, 50, 0.25);
+
+  /* RGBA Color Variants for Admin Theme (Brown) */
+  --admin-rgba-10: rgba(93, 64, 55, 0.1);
+  --admin-rgba-15: rgba(93, 64, 55, 0.15);
+  --admin-rgba-20: rgba(93, 64, 55, 0.2);
+  --admin-rgba-25: rgba(93, 64, 55, 0.25);
+
+  /* State Color Background Variants */
+  --state-success-bg: #e8f5e9;
+  --state-success-border: #c8e6c9;
+  --state-success-dark: #1b5e20;
+  --state-success-light: #a5d6a7;
+  
+  --state-warning-bg: #fff3e0;
+  --state-warning-border: #ffe0b2;
+  --state-warning-dark: #e65100;
+  --state-warning-light: #ffcc80;
+  
+  --state-danger-bg: #ffebee;
+  --state-danger-border: #ffcdd2;
+  --state-danger-dark: #b71c1c;
+  --state-danger-light: #e57373;
+  
+  --state-info-bg: #e3f2fd;
+  --state-info-border: #bbdefb;
+  --state-info-dark: #0d47a1;
+  --state-info-light: #64b5f6;
+
+  /* Input Focus/Hover Shadow Combinations */
+  --shadow-input-default: 0 2px 8px var(--primary-rgba-15);
+  --shadow-input-hover: 0 4px 12px var(--primary-rgba-20);
+  --shadow-input-focus: 0 0 0 4px var(--primary-rgba-20), 0 4px 12px var(--primary-rgba-25);
+
+  /* Modal Shadow Combinations */
+  --shadow-modal: 0 8px 32px var(--primary-rgba-10);
+
+  /* White Overlay for Glass Morphism Effects */
+  --overlay-white-20: rgba(255, 255, 255, 0.2);
+
+  /* Universal Spacing Scale */
+  --space-xs: 0.25rem;   /* 4px */
+  --space-sm: 0.5rem;    /* 8px */
+  --space-md: 1rem;      /* 16px */
+  --space-lg: 1.5rem;    /* 24px */
+  --space-xl: 2rem;      /* 32px */
+  --space-2xl: 3rem;     /* 48px */
+
+  /* Universal Border Radius */
+  --radius-sm: 0.25rem;  /* 4px */
+  --radius-md: 0.5rem;   /* 8px */
+  --radius-lg: 1rem;     /* 16px */
+  --radius-xl: 1.5rem;   /* 24px */
+  --radius-full: 9999px;
+
+  /* Universal Typography */
+  --font-primary: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --font-heading: 'Outfit', 'Segoe UI', sans-serif;
+  
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  
+  /* Responsive Typography Overrides for Hero Section */
+  --text-hero-lg: 2.8rem;     /* 992px breakpoint */
+  --text-hero-md: 2.4rem;     /* 768px breakpoint */
+  --text-hero-sm: 2rem;       /* 480px breakpoint */
+  --text-hero-body: 1.15rem;  /* Hero paragraph at 768px */
+
+  /* Universal Line Heights */
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.6;
+  --line-height-relaxed: 1.7;
+  --line-height-loose: 1.8;
+
+  /* Universal Transform Values */
+  --transform-lift: translateY(-3px);
+  --transform-lift-sm: translateY(-1px);
+  --transform-rotate-hover: rotate(15deg);
+  --transform-scale-hover: scale(1.1);
+
+  /* Universal Backdrop Filters */
+  --backdrop-blur-xs: blur(5px);
+  --backdrop-blur-sm: blur(10px);
+  --backdrop-blur-md: blur(20px);
+
+  /* Universal Opacity */
+  --opacity-high: 0.9;
+  --opacity-medium: 0.7;
+  --opacity-low: 0.5;
+
+  /* Universal Animations */
+  --animation-quick: 0.2s ease-out;
+  --animation-normal: 0.3s ease-in-out;
+
+  /* Icon & UI Element Sizes */
+  --icon-size-sm: 1.5rem;
+  --icon-size-md: 1.7rem;
+  --icon-size-lg: 3.5rem;
+  --icon-container-size: 70px;
+  --icon-container-size-lg: 1.8rem;
+
+  /* Component-Specific Spacing */
+  --card-min-width: 320px;
+  --heading-underline-width: 80px;
+  --heading-underline-height: 4px;
+  --heading-underline-offset: -10px;
+  --heading-underline-radius: 2px;
+  
+  /* Hero Section Spacing */
+  --hero-padding-top: 7.5rem;      /* 120px */
+  --hero-padding-bottom: 6.25rem;  /* 100px */
+  --hero-padding-tablet: 8.75rem;  /* 140px (tablet variant) */
+  
+  /* Typography Sizes - Home Page */
+  --text-section-desc: 1.15rem;    /* Description text in features, stakeholders, vision/mission */
+  --text-vm-heading: 1.9rem;       /* Vision/Mission card headings */
+  --text-vm-icon: 1.2em;           /* Vision/Mission card icons */
+  --text-footer-h4: 1.35rem;       /* Footer section headings */
+  
+  /* Footer Styling */
+  --footer-h4-underline-offset: -8px;
+  --footer-h4-underline-width: 40px;
+  --footer-h4-underline-height: 3px;
+  --footer-p-line-height: 1.8;
+  
+  /* Responsive Button Width */
+  --btn-responsive-width: 220px;
+  
+  /* Content Width Constraints */
+  --content-max-hero: 700px;
+  --content-max-section-desc: 650px;
+  --content-max-cta: 750px;
+  
+  /* Grid Min-Width Values */
+  --grid-min-vm-card: 420px;
+  --grid-min-footer: 260px;
+  
+  /* Button Sizing */
+  --btn-min-width: 150px;
+  
+  /* Card Accent Styling */
+  --card-accent-width: 6px;
+  
+  /* Hero Content Constraint */
+  --content-max-hero-container: 850px;
+  
+  /* Transition Values */
+  --transition-color: color 0.2s ease;
+  
+  /* Navigation Styling */
+  --nav-link-underline-height: 2px;
+
+  /* Universal Layout */
+  --sidebar-width: 250px;
+  --header-height: 70px;
+  --container-max: 1200px;
+
+  /* Home theme globally accessible for CSS Modules */
+  --home-primary: #2d5016;
+  --home-primary-dark: #1a2f0a;
+  --home-primary-light: #4a7c28;
+  --home-secondary: #ff6b35;
+  --home-secondary-dark: #e55a2b;
+  --home-secondary-light: #ff8c42;
+  --home-accent: #8bc34a;
+  --home-background: linear-gradient(135deg, #f1f8e9 0%, #e8f5e8 50%, #dcedc8 100%);
+  --home-surface: #ffffff;
+  --home-border: #c8e6c9;
+  --home-text: #1b5e20;
+  --home-text-muted: #4a6741;
+
+  /* Auth theme globally accessible for CSS Modules */
+  --auth-primary: #316c46;
+  --auth-primary-dark: #1b5e20;
+  --auth-primary-light: #4caf50;
+  --auth-secondary: #ff9800;
+  --auth-secondary-dark: #e65100;
+  --auth-secondary-light: #ffb74d;
+  --auth-accent: #b0c9b6;
+  --auth-background: linear-gradient(135deg, #b0c9b6, #316c46);
+  --auth-surface: #ffffff;
+  --auth-border: rgba(49, 108, 70, 0.1);
+  --auth-text: #263238;
+  --auth-text-muted: #78909c;
+
+  /* Admin theme globally accessible for CSS Modules */
+  --admin-primary: #5d4037;
+  --admin-primary-dark: #3e2723;
+  --admin-primary-light: #8d6e63;
+  --admin-secondary: #ff9800;
+  --admin-secondary-dark: #e65100;
+  --admin-secondary-light: #ffb74d;
+  --admin-accent: #d84315;
+  --admin-background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+  --admin-surface: #ffffff;
+  --admin-border: rgba(93, 64, 55, 0.1);
+  --admin-text: #1b1b1b;
+  --admin-text-muted: #757575;
+
+  /* Instructor theme globally accessible for CSS Modules */
+  --instructor-primary: #1565c0;
+  --instructor-primary-dark: #0d47a1;
+  --instructor-primary-light: #e3f2fd;
+  --instructor-secondary: #2e7d32;
+  --instructor-secondary-dark: #1b5e20;
+  --instructor-secondary-light: #c8e6c9;
+  --instructor-accent: #ffb74d;
+
+  /* Farmer theme globally accessible for CSS Modules */
+  --farmer-primary: #2e7d32;
+  --farmer-primary-dark: #1b5e20;
+  --farmer-primary-light: #e8f5e9;
+  --farmer-secondary: #ff9800;
+  --farmer-secondary-dark: #e65100;
+  --farmer-secondary-light: #ffb74d;
+  --farmer-accent: #ff8f00;
+
+
+  /* DEFAULT: Theme-agnostic color variables (used by CSS Modules when theme class scope not available) */
+  /* These are overridden by theme-specific classes below */
+  --color-primary: #5d4037;  /* Default to Admin Brown */
+  --color-primary-hover: #3e2723;
+  --color-primary-light: #8d6e63;
+  --color-secondary: #ff9800;
+  --color-secondary-hover: #e65100;
+  --color-secondary-light: #ffb74d;
+
+  /* Instructor theme globally accessible for CSS Modules */
+  --instructor-primary: #1565c0;
+  --instructor-primary-dark: #0d47a1;
+  --instructor-primary-light: #2196F3;
+  --instructor-secondary: #2e7d32;
+  --instructor-secondary-dark: #1b5e20;
+  --instructor-secondary-light: #4caf50;
+  --instructor-accent: #ff9800;
+  --instructor-background: linear-gradient(135deg, #f5f7fa 0%, #e3f2fd 100%);
+  --instructor-surface: #ffffff;
+  --instructor-border: rgba(255, 255, 255, 0.1);
+  --instructor-text: #212529;
+  --instructor-text-muted: #6c757d;
+
+  /* Farmer theme globally accessible for CSS Modules */
+  --farmer-primary: #2e7d32;
+  --farmer-primary-dark: #1b5e20;
+  --farmer-primary-light: #4caf50;
+  --farmer-secondary: #ff9800;
+  --farmer-secondary-dark: #e65100;
+  --farmer-secondary-light: #ffb74d;
+  --farmer-accent: #ff9800;
+  --farmer-background: linear-gradient(135deg, #f5f7fa 0%, #e8f5e9 100%);
+  --farmer-surface: #ffffff;
+  --farmer-border: rgba(46, 125, 50, 0.1);
+  --farmer-text: #1b5e20;
+  --farmer-text-muted: #757575;
+
+  /* Standardized Scrollbar Variables */
+  --scrollbar-width: 6px;
+  --scrollbar-width-lg: 8px;
+  --scrollbar-track-bg: var(--neutral-100);
+  --scrollbar-thumb-bg: var(--neutral-400);
+  --scrollbar-thumb-hover: var(--neutral-500);
+  --scrollbar-radius: 10px;
+}
+
+/* ===== THEME-SPECIFIC COLORS ===== */
+
+/* Instructor Theme - Blue */
+.theme-instructor {
+  --color-primary: #1565c0;
+  --color-primary-hover: #0d47a1;
+  --color-primary-light: #2196F3;
+  --color-secondary: #2e7d32;
+  --color-secondary-hover: #1b5e20;
+  --color-secondary-light: #4caf50;
+  --color-accent: #ffb74d;
+  --color-background: linear-gradient(135deg, #f5f7fa 0%, #e3f2fd 100%);
+  --color-surface: #ffffff;
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-text: #212529;
+  --color-text-muted: #6c757d;
+  --color-shadow-glow: 0 0 15px rgba(21, 101, 192, 0.3);
+}
+
+/* Farmer Theme - Green */
+.theme-farmer {
+  --color-primary: #2e7d32;
+  --color-primary-hover: #1b5e20;
+  --color-primary-light: #4caf50;
+  --color-secondary: #ff9800;
+  --color-secondary-hover: #e65100;
+  --color-secondary-light: #ffb74d;
+  --color-accent: #ff8f00;
+  --color-background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+  --color-surface: #ffffff;
+  --color-border: rgba(46, 125, 50, 0.1);
+  --color-text: #212529;
+  --color-text-muted: #6c757d;
+  --color-shadow-glow: 0 0 15px rgba(46, 125, 50, 0.3);
+}
+
+/* Admin Theme - Brown */
+.theme-admin {
+  --color-primary: #5d4037;
+  --color-primary-hover: #3e2723;
+  --color-primary-light: #8d6e63;
+  --color-secondary: #ff9800;
+  --color-secondary-hover: #e65100;
+  --color-secondary-light: #ffb74d;
+  --color-accent: #d84315;
+  --color-background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+  --color-surface: #ffffff;
+  --color-border: rgba(93, 64, 55, 0.1);
+  --color-text: #1b1b1b;
+  --color-text-muted: #757575;
+  --color-shadow-glow: 0 0 15px rgba(93, 64, 55, 0.3);
+}
+
+/* Auth Theme - Neutral Green */
+.theme-auth {
+  --color-primary: #316c46;
+  --color-primary-hover: #1b5e20;
+  --color-primary-light: #4caf50;
+  --color-secondary: #ff9800;
+  --color-secondary-hover: #e65100;
+  --color-secondary-light: #ffb74d;
+  --color-accent: #b0c9b6;
+  --color-background: linear-gradient(135deg, #b0c9b6, #316c46);
+  --color-surface: #ffffff;
+  --color-border: rgba(49, 108, 70, 0.1);
+  --color-text: #263238;
+  --color-text-muted: #78909c;
+  --color-shadow-glow: 0 0 15px rgba(49, 108, 70, 0.3);
+}
+
+/* Home Theme - Agricultural Vibrant */
+.theme-home {
+  --color-primary: #2d5016;
+  --color-primary-hover: #1a2f0a;
+  --color-primary-light: #4a7c28;
+  --color-secondary: #ff6b35;
+  --color-secondary-hover: #e55a2b;
+  --color-secondary-light: #ff8c42;
+  --color-accent: #8bc34a;
+  --color-background: linear-gradient(135deg, #f1f8e9 0%, #e8f5e8 50%, #dcedc8 100%);
+  --color-surface: #ffffff;
+  --color-border: #c8e6c9;
+  --color-text: #1b5e20;
+  --color-text-muted: #4a6741;
+  --color-shadow-glow: 0 0 25px rgba(45, 80, 22, 0.2);
+}
+
+/* ===== SEMANTIC COLOR MAPPINGS ===== */
+
+/* All semantic color mappings are defined directly within each theme class above */
+/* No redundant variable indirection needed - themes use --color-* directly */
+
+/* ===== GLOBAL SCROLLBAR STYLES ===== */
+
+/* Standard scrollbar utility classes - use these instead of duplicating in each file */
+.scrollbarStandard {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb-bg) var(--scrollbar-track-bg);
+}
+
+.scrollbarStandard::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+}
+
+.scrollbarStandard::-webkit-scrollbar-track {
+  background: var(--scrollbar-track-bg);
+  border-radius: var(--scrollbar-radius);
+}
+
+.scrollbarStandard::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-bg);
+  border-radius: var(--scrollbar-radius);
+}
+
+.scrollbarStandard::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* Themed scrollbar - use for theme-specific colored scrollbars */
+.scrollbarThemed {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary) var(--scrollbar-track-bg);
+}
+
+.scrollbarThemed::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+}
+
+.scrollbarThemed::-webkit-scrollbar-track {
+  background: var(--scrollbar-track-bg);
+  border-radius: var(--scrollbar-radius);
+}
+
+.scrollbarThemed::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border-radius: var(--scrollbar-radius);
+}
+/* ===== ACCESSIBILITY SUPPORT ===== */
+
+/* Keyboard Navigation - Visible focus indicator for all interactive elements */
+:focus-visible {
+  outline: 2px solid var(--auth-primary);
+  outline-offset: 2px;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--auth-primary);
+  outline-offset: 2px;
+}
+
+a:focus-visible {
+  outline: 2px solid var(--auth-primary);
+  outline-offset: 2px;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--auth-primary);
+  outline-offset: 2px;
+}
+
+/* Reduced Motion Support - Respects user accessibility preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.scrollbarThemed::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary-hover);
+}

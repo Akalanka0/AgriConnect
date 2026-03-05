@@ -9,15 +9,25 @@ const __dirname = path.dirname(__filename);
 // Ensure env vars are loaded
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
-// Gmail SMTP configuration
-const createTransporter = () => {
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.GMAIL_EMAIL,
-      pass: process.env.GMAIL_APP_PASSWORD
-    }
-  });
+const CURRENT_YEAR = new Date().getFullYear();
+
+// Gmail SMTP — lazily-initialized singleton; connection is reused across all sends
+let _transporter = null;
+
+const getTransporter = () => {
+  if (!process.env.GMAIL_EMAIL || !process.env.GMAIL_APP_PASSWORD) {
+    throw new Error('Missing Gmail SMTP configuration. Set GMAIL_EMAIL and GMAIL_APP_PASSWORD in backend/.env');
+  }
+  if (!_transporter) {
+    _transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.GMAIL_EMAIL,
+        pass: process.env.GMAIL_APP_PASSWORD
+      }
+    });
+  }
+  return _transporter;
 };
 
 /**
@@ -28,10 +38,6 @@ const createTransporter = () => {
  */
 export const sendVerificationEmail = async (to, verificationToken, fullName) => {
   try {
-    if (!process.env.GMAIL_EMAIL || !process.env.GMAIL_APP_PASSWORD) {
-      throw new Error('Missing Gmail SMTP configuration. Set GMAIL_EMAIL and GMAIL_APP_PASSWORD in backend/.env');
-    }
-    
     const mailOptions = {
       from: process.env.GMAIL_EMAIL,
       to: to,
@@ -65,13 +71,13 @@ export const sendVerificationEmail = async (to, verificationToken, fullName) => 
           <div style="text-align: center; color: #999; font-size: 12px; margin-top: 30px;">
             <p>This email was sent to ${to} because you registered for an AgriConnect account.</p>
             <p>If you didn't create an account, please ignore this email.</p>
-            <p>&copy; 2026 AgriConnect. All rights reserved.</p>
+            <p>&copy; ${CURRENT_YEAR} AgriConnect. All rights reserved.</p>
           </div>
         </div>
       `
     };
     
-    const transporter = createTransporter();
+    const transporter = getTransporter();
     await transporter.sendMail(mailOptions);
     console.log(`✅ Verification email sent to ${to}`);
     return { success: true, message: 'Verification email sent successfully' };
@@ -89,9 +95,6 @@ export const sendVerificationEmail = async (to, verificationToken, fullName) => 
  */
 export const sendPasswordResetEmail = async (to, resetCode, fullName) => {
   try {
-    if (!process.env.GMAIL_EMAIL || !process.env.GMAIL_APP_PASSWORD) {
-      throw new Error('Missing Gmail SMTP configuration. Set GMAIL_EMAIL and GMAIL_APP_PASSWORD in backend/.env');
-    }
     const mailOptions = {
       from: process.env.GMAIL_EMAIL,
       to: to,
@@ -124,13 +127,13 @@ export const sendPasswordResetEmail = async (to, resetCode, fullName) => {
           </div>
           
           <div style="text-align: center; color: #999; font-size: 12px; margin-top: 30px;">
-            <p>&copy; 2026 AgriConnect. All rights reserved.</p>
+            <p>&copy; ${CURRENT_YEAR} AgriConnect. All rights reserved.</p>
           </div>
         </div>
       `
     };
     
-    const transporter = createTransporter();
+    const transporter = getTransporter();
     await transporter.sendMail(mailOptions);
     console.log(`✅ Password reset email sent to ${to}`);
     return { success: true, message: 'Password reset email sent successfully' };
@@ -148,10 +151,6 @@ export const sendPasswordResetEmail = async (to, resetCode, fullName) => {
  */
 export const sendAdminInvitationEmail = async (to, fullName, tempPassword) => {
   try {
-    if (!process.env.GMAIL_EMAIL || !process.env.GMAIL_APP_PASSWORD) {
-      throw new Error('Missing Gmail SMTP configuration. Set GMAIL_EMAIL and GMAIL_APP_PASSWORD in backend/.env');
-    }
-    
     const mailOptions = {
       from: process.env.GMAIL_EMAIL,
       to: to,
@@ -189,13 +188,13 @@ export const sendAdminInvitationEmail = async (to, fullName, tempPassword) => {
           
           <div style="text-align: center; color: #999; font-size: 12px; margin-top: 30px;">
             <p>This is an automated invitation. If you were not expecting this, please contact the system administrator.</p>
-            <p>&copy; 2026 AgriConnect. All rights reserved.</p>
+            <p>&copy; ${CURRENT_YEAR} AgriConnect. All rights reserved.</p>
           </div>
         </div>
       `
     };
     
-    const transporter = createTransporter();
+    const transporter = getTransporter();
     await transporter.sendMail(mailOptions);
     console.log(`✅ Admin invitation email sent to ${to}`);
     return { success: true, message: 'Admin invitation email sent successfully' };
@@ -208,10 +207,7 @@ export const sendAdminInvitationEmail = async (to, fullName, tempPassword) => {
 // Test email configuration
 export const testEmailService = async () => {
   try {
-    if (!process.env.GMAIL_EMAIL || !process.env.GMAIL_APP_PASSWORD) {
-      throw new Error('Missing Gmail SMTP configuration. Set GMAIL_EMAIL and GMAIL_APP_PASSWORD in backend/.env');
-    }
-    const transporter = createTransporter();
+    const transporter = getTransporter();
     await transporter.verify();
     console.log('✅ Gmail SMTP service is ready to send emails');
     return true;

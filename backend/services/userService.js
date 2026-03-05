@@ -1,5 +1,6 @@
 import { User, FarmerDetail, InstructorDetail } from '../models/index.js';
 import sequelize from '../config/db.js';
+import { Op } from 'sequelize';
 
 /**
  * Shared user service for cross-module operations
@@ -44,9 +45,9 @@ export class UserService {
         };
 
         if (search) {
-            whereClause[sequelize.Sequelize.Op.or] = [
-                { full_name: { [sequelize.Sequelize.Op.like]: `%${search}%` } },
-                { email: { [sequelize.Sequelize.Op.like]: `%${search}%` } }
+            whereClause[Op.or] = [
+                { full_name: { [Op.like]: `%${search}%` } },
+                { email: { [Op.like]: `%${search}%` } }
             ];
         }
 
@@ -146,14 +147,14 @@ export class UserService {
     static async getAvailableInstructors(filters = {}) {
         const whereClause = {
             role: 'instructor',
-            is_active: true
+            status: 'active'
         };
 
         if (filters.region) {
             whereClause['$instructorDetail.region$'] = filters.region;
         }
 
-        return await User.findAll({
+        const instructors = await User.findAll({
             where: whereClause,
             include: [
                 {
@@ -164,6 +165,23 @@ export class UserService {
             ],
             order: [['full_name', 'ASC']]
         });
+
+        // Transform data to match frontend expectations
+        return instructors.map(instructor => ({
+            id: instructor.instructorDetail.instructor_id, // Reference ID (INST-XXXX)
+            dbId: instructor.id, // Database ID
+            name: instructor.full_name,
+            zone: instructor.instructorDetail.zone || 'Not Assigned',
+            division: instructor.instructorDetail.assigned_divisions?.[0] || 'Not Assigned',
+            assigned_divisions: instructor.instructorDetail.assigned_divisions || [],
+            specialization: instructor.instructorDetail.specialization,
+            experience: instructor.instructorDetail.experience,
+            qualifications: instructor.instructorDetail.qualifications,
+            average_rating: instructor.instructorDetail.average_rating,
+            email: instructor.email,
+            phone: instructor.phone,
+            profilePicture: instructor.avatar || instructor.profile_picture || null
+        }));
     }
 
     /**
@@ -173,7 +191,7 @@ export class UserService {
         return await User.findAll({
             where: {
                 role: 'farmer',
-                is_active: true
+                status: 'active'
             },
             include: [
                 {

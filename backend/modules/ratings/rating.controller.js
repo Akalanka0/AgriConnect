@@ -1,4 +1,5 @@
 import { InstructorRating, InstructorDetail, FarmerDetail, User } from '../../models/index.js';
+import { updateInstructorAverageRating, getInstructorRatingStats } from '../../services/ratingService.js';
 
 // Submit instructor rating from farmer
 export const submitInstructorRating = async (req, res) => {
@@ -243,38 +244,6 @@ export const getMyRatings = async (req, res) => {
             success: false,
             error: { message: 'Failed to fetch your ratings' }
         });
-    }
-};
-
-// Helper function to update instructor average rating
-const updateInstructorAverageRating = async (instructorId) => {
-    try {
-        const ratings = await InstructorRating.findAll({
-            where: { 
-                instructor_id: instructorId,
-                status: 'approved'
-            }
-        });
-
-        if (ratings.length === 0) {
-            // Update instructor detail with 0 rating
-             await InstructorDetail.update(
-                { average_rating: 0, rating_count: 0 },
-                { where: { instructor_id: instructorId } }
-            );
-            return;
-        }
-
-        const sum = ratings.reduce((acc, r) => acc + r.rating, 0);
-        const average = parseFloat((sum / ratings.length).toFixed(1));
-
-        await InstructorDetail.update(
-            { average_rating: average, rating_count: ratings.length },
-            { where: { instructor_id: instructorId } }
-        );
-
-    } catch (error) {
-        console.error('Error updating average rating:', error);
     }
 };
 

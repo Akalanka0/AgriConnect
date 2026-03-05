@@ -1,40 +1,47 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { NavLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
-const AdminSidebar = ({ activePage, sidebarActive, handleNavigation, logout, location }) => {
+import styles from '../styles/AdminSidebar.module.css';
+
+const AdminSidebar = ({ sidebarActive, onNavigate, logout }) => {
+    const { t } = useTranslation('admin');
     const menuItems = [
-        { id: 'home', icon: 'fas fa-home', label: 'Home', path: '/admin' },
-        { id: 'users', icon: 'fas fa-users', label: 'User Management', path: '/admin/users' },
-        { id: 'engagement', icon: 'fas fa-handshake', label: 'Instructor-Farmer', path: '/admin/engagement' },
-        { id: 'reports', icon: 'fas fa-file-alt', label: 'Reports', path: '/admin/reports' },
-        { id: 'ids', icon: 'fas fa-id-card', label: 'User ID Management', path: '/admin/ids' },
-        { id: 'settings', icon: 'fas fa-cog', label: 'Settings', path: '/admin/settings' }
+        { id: 'home', icon: 'fas fa-home', label: t('sidebar.home'), path: '/admin' },
+        { id: 'users', icon: 'fas fa-users', label: t('sidebar.users'), path: '/admin/users' },
+        { id: 'engagement', icon: 'fas fa-handshake', label: t('sidebar.engagement'), path: '/admin/engagement' },
+        { id: 'reports', icon: 'fas fa-file-lines', label: t('sidebar.reports'), path: '/admin/reports' },
+        { id: 'ids', icon: 'fas fa-id-card', label: t('sidebar.ids'), path: '/admin/ids' },
+        { id: 'settings', icon: 'fas fa-cog', label: t('sidebar.settings'), path: '/admin/settings' }
     ];
 
     return (
-        <div className={`admin-sidebar ${sidebarActive ? 'active' : ''}`}>
-            <div className="admin-sidebar-header">
-                <div className="logo"><i className="fas fa-seedling"></i></div>
+        <div className={`${styles.sidebar} ${sidebarActive ? styles.active : ''}`}>
+            <div className={styles.header}>
+                <div className={styles.logo}><i className="fas fa-seedling"></i></div>
                 <h1>AgriConnect</h1>
             </div>
 
-            <div className="admin-sidebar-menu">
+            <div className={styles.menu}>
                 {menuItems.map((item) => (
-                    <div
+                    <NavLink
                         key={item.id}
-                        className={`menu-item ${activePage === (item.id === 'home' ? undefined : item.id) || (item.id === 'home' && location.pathname === '/admin') ? 'active' : ''}`}
-                        onClick={() => handleNavigation(item.path)}
+                        to={item.path}
+                        end={item.id === 'home'}
+                        className={({ isActive }) => `${styles.menuItem} ${isActive ? styles.active : ''}`}
+                        onClick={onNavigate}
                     >
                         <i className={item.icon}></i>
-                        <span className="menu-text">{item.label}</span>
-                    </div>
+                        <span className={styles.menuText}>{item.label}</span>
+                    </NavLink>
                 ))}
             </div>
 
-            <div className="admin-sidebar-footer">
-                <button className="logout-btn" onClick={logout}>
-                    <i className="fas fa-sign-out-alt"></i>
-                    <span className="menu-text">Log Out</span>
+            <div className={styles.footer}>
+                <button className={styles.logoutBtn} onClick={logout}>
+                    <i className="fas fa-right-from-bracket"></i>
+                    <span className={styles.menuText}>{t('sidebar.logout')}</span>
                 </button>
             </div>
         </div>
@@ -42,11 +49,9 @@ const AdminSidebar = ({ activePage, sidebarActive, handleNavigation, logout, loc
 };
 
 AdminSidebar.propTypes = {
-    activePage: PropTypes.string,
     sidebarActive: PropTypes.bool.isRequired,
-    handleNavigation: PropTypes.func.isRequired,
-    logout: PropTypes.func.isRequired,
-    location: PropTypes.object.isRequired
+    onNavigate: PropTypes.func,
+    logout: PropTypes.func.isRequired
 };
 
 export default AdminSidebar;

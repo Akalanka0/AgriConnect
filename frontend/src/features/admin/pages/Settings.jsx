@@ -1,9 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
+import { useOutletContext } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { adminAPI } from '@/services/adminService';
 import StatusBadge from '../components/StatusBadge';
-import { useToast } from '../components/Toast';
-import ConfirmModal from '../components/ConfirmModal';
-import '../styles/AdminDash.css';
+import StatCard from '../components/StatCard';
+import styles from '../styles/AdminSettings.module.css';
+import ConfirmModal from '@/components/common/feedback/ConfirmModal';
+import commonCardStyles from '@/components/common/styles/Card.module.css';
+import commonBtnStyles from '@/components/common/styles/Button.module.css';
+import { getStoredUser, setStoredUser } from '@/utils/userStorage';
 
 // Portal Component for Absolute Isolation
 const ModalPortal = ({ children }) => {
@@ -11,14 +17,11 @@ const ModalPortal = ({ children }) => {
 };
 
 const Settings = () => {
-    // API Base
-    const API_BASE = '/api/admin';
-
     // State for Profile Settings
     const [profile, setProfile] = useState({
-        name: 'Super Admin',
-        email: 'admin@agriconnect.lk',
-        role: 'Super Admin',
+        name: '',
+        email: '',
+        role: '',
         avatar: null
     });
 
@@ -47,86 +50,115 @@ const Settings = () => {
     const fileInputRef = useRef(null);
 
     // Context and State
-    const { showToast } = useToast();
+    const { showToast } = useOutletContext();
+    const { t } = useTranslation('admin');
     const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
     const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
     const [isAddingAdmin, setIsAddingAdmin] = useState(false);
     const [confirmConfig, setConfirmConfig] = useState({
         isOpen: false,
         id: null,
-        name: ''
+        name: '',
+        title: '',
+        message: '',
+        confirmText: '',
+        type: 'warning',
+        action: null
     });
+
+    const openConfirm = ({ title, message, confirmText = '', type = 'warning', action, id = null, name = '' }) => {
+        setConfirmConfig({
+            isOpen: true,
+            id,
+            name,
+            title,
+            message,
+            confirmText,
+            type,
+            action
+        });
+    };
+
+    const closeConfirm = () => {
+        setConfirmConfig({
+            isOpen: false,
+            id: null,
+            name: '',
+            title: '',
+            message: '',
+            confirmText: '',
+            type: 'warning',
+            action: null
+        });
+    };
+
+    const executeConfirm = async () => {
+        if (typeof confirmConfig.action === 'function') {
+            await confirmConfig.action();
+        }
+        closeConfirm();
+    };
 
     // Fetch Admins
     const fetchAdmins = async () => {
         setLoadingAdmins(true);
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_BASE}/users?role=admin`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            const data = await response.json();
+            const data = await adminAPI.getUsers('?role=admin');
             
-            if (data.success) {
-                // Map backend data to frontend format
-                const mappedAdmins = data.data.map(admin => ({
+            // Map backend data to frontend format
+            const adminData = data.data || data;
+            if (Array.isArray(adminData)) {
+                const mappedAdmins = adminData.map(admin => ({
                     id: admin.id,
                     name: admin.full_name,
                     email: admin.email,
-                    role: admin.email === 'admin@agriconnect.lk' ? 'Super Admin' : (admin.role === 'admin' ? 'Admin' : admin.role),
-                    status: admin.status.charAt(0).toUpperCase() + admin.status.slice(1),
-                    lastActive: 'Recently' // Placeholder for last active
+                    role: admin.is_super_admin ? 'Super Admin' : 'Admin',
+                    status: admin.status ? admin.status.charAt(0).toUpperCase() + admin.status.slice(1) : 'Active'
                 }));
                 setAdmins(mappedAdmins);
-            } else {
-                showToast(data.error?.message || 'Failed to fetch admins', 'error');
             }
         } catch (error) {
             console.error('Error fetching admins:', error);
-            showToast('Failed to connect to server', 'error');
+            showToast(error.message || t('settings.toastConnectFailed'), 'error');
         } finally {
             setLoadingAdmins(false);
         }
     };
 
+    // Mapping between camelCase state keys and snake_case DB keys
+    const settingsKeyMap = {
+        maintenance_mode: 'maintenanceMode',
+    };
+    const reverseSettingsKeyMap = Object.fromEntries(
+        Object.entries(settingsKeyMap).map(([k, v]) => [v, k])
+    );
+
     // Fetch System Settings
     const fetchSystemSettings = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_BASE}/settings`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+            const data = await adminAPI.getSystemSettings();
+            const rawSettings = data.data || data;
+            const mappedSettings = {};
+            Object.keys(rawSettings).forEach(key => {
+                const stateKey = settingsKeyMap[key] || key;
+                mappedSettings[stateKey] = rawSettings[key];
             });
-            const data = await response.json();
-            if (data.success) {
-                setSystemConfig(prev => ({
-                    ...prev,
-                    ...data.data
-                }));
-            }
+            setSystemConfig(prev => ({ ...prev, ...mappedSettings }));
         } catch (error) {
             console.error('Error fetching system settings:', error);
         }
     };
 
     useEffect(() => {
-        // Load real user data from localStorage
-        const userData = localStorage.getItem('user');
-        if (userData) {
-            try {
-                const user = JSON.parse(userData);
-                setProfile({
-                    name: user.full_name || 'Admin User',
-                    email: user.email || 'admin@agriconnect.lk',
-                    role: user.role === 'admin' ? 'Super Admin' : user.role,
-                    avatar: user.avatar || null
-                });
-            } catch (e) {
-                console.error('Error parsing user data:', e);
-            }
+        // Load real user data from storage
+        const user = getStoredUser();
+        if (user) {
+            setProfile({
+                name: user.full_name || 'Admin User',
+                email: user.email || '',
+                role: user.role === 'admin' ? 'Admin' : user.role,
+                avatar: user.avatar || user.profile_picture || null
+            });
         }
         fetchAdmins();
         fetchSystemSettings();
@@ -135,49 +167,39 @@ const Settings = () => {
     // Handlers
     const handleProfileUpdate = async (e) => {
         e.preventDefault();
-        
+
         if (!selectedFile) {
-            showToast('No changes to save', 'info');
+            showToast(t('settings.toastNoChanges'), 'info');
             return;
         }
 
         setIsUpdatingProfile(true);
         try {
-            const token = localStorage.getItem('token');
             const formData = new FormData();
             formData.append('avatar', selectedFile);
 
-            const response = await fetch(`${API_BASE}/profile`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                body: formData
-            });
+            const data = await adminAPI.updateProfile(formData);
+            const avatarUrl = data?.data?.avatar || data?.avatar;
 
-            const data = await response.json();
+            showToast(t('settings.toastPhotoUpdated'), 'success');
 
-            if (data.success) {
-                showToast('Profile photo updated successfully!', 'success');
-                
-                // Update local storage user data
-                const userData = JSON.parse(localStorage.getItem('user'));
-                userData.avatar = data.data.avatar;
-                localStorage.setItem('user', JSON.stringify(userData));
-                
-                // Update state
-                setProfile(prev => ({ ...prev, avatar: data.data.avatar }));
-                setSelectedFile(null);
-
-                // Notify layout
-                window.dispatchEvent(new Event('storage'));
-                window.dispatchEvent(new Event('user-updated'));
-            } else {
-                showToast(data.error?.message || 'Failed to update profile', 'error');
+            // Update local storage user data
+            const userData = getStoredUser();
+            if (userData) {
+                userData.avatar = avatarUrl;
+                setStoredUser(userData);
             }
+
+            // Update state
+            setProfile(prev => ({ ...prev, avatar: avatarUrl }));
+            setSelectedFile(null);
+
+            // Notify layout
+            window.dispatchEvent(new Event('storage'));
+            window.dispatchEvent(new Event('user-updated'));
         } catch (error) {
             console.error('Error updating profile:', error);
-            showToast('Network error while updating profile', 'error');
+            showToast(error.message || t('settings.toastProfileUpdateFailed'), 'error');
         } finally {
             setIsUpdatingProfile(false);
         }
@@ -186,36 +208,22 @@ const Settings = () => {
     const handlePasswordChange = async (e) => {
         e.preventDefault();
         if (passwordData.new !== passwordData.confirm) {
-            showToast('New passwords do not match!', 'error');
+            showToast(t('settings.toastPasswordMismatch'), 'error');
             return;
         }
 
         setIsUpdatingPassword(true);
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_BASE}/password`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    currentPassword: passwordData.current,
-                    newPassword: passwordData.new
-                })
+            await adminAPI.updatePassword({
+                currentPassword: passwordData.current,
+                newPassword: passwordData.new
             });
 
-            const data = await response.json();
-
-            if (data.success) {
-                showToast('Password updated successfully!', 'success');
-                setPasswordData({ current: '', new: '', confirm: '' });
-            } else {
-                showToast(data.error?.message || 'Failed to update password', 'error');
-            }
+            showToast(t('settings.toastPasswordUpdated'), 'success');
+            setPasswordData({ current: '', new: '', confirm: '' });
         } catch (error) {
             console.error('Error updating password:', error);
-            showToast('Network error while updating password', 'error');
+            showToast(error.message || t('settings.toastPasswordFailed'), 'error');
         } finally {
             setIsUpdatingPassword(false);
         }
@@ -223,91 +231,87 @@ const Settings = () => {
 
     const handleSystemToggle = async (key) => {
         const newValue = !systemConfig[key];
-        
-        // Update local state first for responsiveness
-        setSystemConfig(prev => ({ ...prev, [key]: newValue }));
+        const dbKey = reverseSettingsKeyMap[key] || key;
 
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_BASE}/settings/${key}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ value: newValue })
-            });
-
-            const data = await response.json();
-            if (data.success) {
-                showToast(`${key} setting updated!`, 'info');
-            } else {
-                // Revert state if backend update fails
+        const applyToggle = async () => {
+            setSystemConfig(prev => ({ ...prev, [key]: newValue }));
+            try {
+                await adminAPI.updateSetting(dbKey, newValue);
+                showToast(
+                    newValue ? t('settings.maintenanceEnabledToast') : t('settings.maintenanceDisabledToast'),
+                    newValue ? 'warning' : 'success'
+                );
+            } catch (error) {
+                console.error(`Error updating ${key}:`, error);
                 setSystemConfig(prev => ({ ...prev, [key]: !newValue }));
-                showToast(data.error?.message || `Failed to update ${key}`, 'error');
+                showToast(error.message || t('settings.toastSettingFailed'), 'error');
             }
-        } catch (error) {
-            console.error(`Error updating ${key}:`, error);
-            // Revert state on error
-            setSystemConfig(prev => ({ ...prev, [key]: !newValue }));
-            showToast('Network error while updating setting', 'error');
+        };
+
+        // Show confirmation only when enabling maintenance mode
+        if (key === 'maintenanceMode' && newValue === true) {
+            openConfirm({
+                title: t('settings.enableMaintenanceTitle'),
+                message: t('settings.enableMaintenanceMsg'),
+                confirmText: t('settings.enableMaintenanceConfirm'),
+                type: 'warning',
+                action: applyToggle
+            });
+        } else {
+            await applyToggle();
         }
     };
 
     const handleAddAdmin = async (e) => {
         e.preventDefault();
-        
+
         if (!newAdmin.name || !newAdmin.email) {
-            showToast('Please fill in all fields', 'warning');
+            showToast(t('settings.toastFillAllFields'), 'warning');
             return;
         }
 
         setIsAddingAdmin(true);
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_BASE}/invite`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    fullName: newAdmin.name,
-                    email: newAdmin.email
-                })
+            await adminAPI.inviteAdmin({
+                fullName: newAdmin.name,
+                email: newAdmin.email
             });
 
-            const data = await response.json();
-
-            if (data.success) {
-                showToast(`Invitation sent to ${newAdmin.email}!`, 'success');
-                setIsAddAdminModalOpen(false);
-                setNewAdmin({ name: '', email: '' });
-                fetchAdmins(); // Refresh the list
-            } else {
-                showToast(data.error?.message || 'Failed to send invitation', 'error');
-            }
+            showToast(t('settings.toastInvitationSent', { email: newAdmin.email }), 'success');
+            setIsAddAdminModalOpen(false);
+            setNewAdmin({ name: '', email: '' });
+            fetchAdmins(); // Refresh the list
         } catch (error) {
             console.error('Error inviting admin:', error);
-            showToast('Network error while sending invitation', 'error');
+            showToast(error.message || t('settings.toastInviteFailed'), 'error');
         } finally {
             setIsAddingAdmin(false);
         }
     };
 
     const handleDeleteAdmin = (id, name) => {
-        setConfirmConfig({
-            isOpen: true,
+        openConfirm({
+            title: t('settings.removeAdminTitle'),
+            message: t('settings.removeAdminMsg', { name }),
+            confirmText: t('settings.removeAdminConfirm'),
+            type: 'danger',
             id,
-            name
+            name,
+            action: confirmDeleteAdmin
         });
     };
 
     const confirmDeleteAdmin = async () => {
-        const id = confirmConfig.id;
-        setAdmins(admins.filter(admin => admin.id !== id));
-        showToast(`${confirmConfig.name} has been removed.`, 'success');
-        setConfirmConfig({ isOpen: false, id: null, name: '' });
+        try {
+            const id = confirmConfig.id;
+            await adminAPI.deleteUser(id);
+            setAdmins(admins.filter(admin => admin.id !== id));
+            showToast(t('settings.toastAdminRemoved', { name: confirmConfig.name }), 'success');
+            closeConfirm();
+        } catch (error) {
+            console.error('Error deleting admin:', error);
+            showToast(error.message || t('settings.toastRemoveFailed'), 'error');
+        }
     };
 
     const handlePhotoClick = () => {
@@ -318,11 +322,11 @@ const Settings = () => {
         const file = e.target.files[0];
         if (file) {
             if (file.size > 2 * 1024 * 1024) {
-                showToast('File size exceeds 2MB limit', 'warning');
+                showToast(t('settings.toastFileTooLarge'), 'warning');
                 return;
             }
             if (!['image/jpeg', 'image/png'].includes(file.type)) {
-                showToast('Only JPG and PNG files are allowed', 'warning');
+                showToast(t('settings.toastInvalidFileType'), 'warning');
                 return;
             }
 
@@ -336,195 +340,202 @@ const Settings = () => {
     };
 
     const handleRemovePhoto = async () => {
-        if (!window.confirm('Are you sure you want to remove your profile picture?')) return;
-
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_BASE}/profile/picture`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            await adminAPI.removeProfilePicture();
 
-            const data = await response.json();
+            showToast(t('settings.toastPictureRemoved'), 'success');
 
-            if (data.success) {
-                showToast('Profile picture removed successfully', 'success');
-
-                // Update local storage
-                const userData = JSON.parse(localStorage.getItem('user'));
+            // Update local storage
+            const userData = getStoredUser();
+            if (userData) {
                 userData.avatar = null;
-                localStorage.setItem('user', JSON.stringify(userData));
-
-                // Update state
-                setProfile(prev => ({ ...prev, avatar: null }));
-                setSelectedFile(null);
-
-                // Notify layout
-                window.dispatchEvent(new Event('storage'));
-                window.dispatchEvent(new Event('user-updated'));
-            } else {
-                showToast(data.error?.message || 'Failed to remove profile picture', 'error');
+                setStoredUser(userData);
             }
+
+            // Update state
+            setProfile(prev => ({ ...prev, avatar: null }));
+            setSelectedFile(null);
+
+            // Notify layout
+            window.dispatchEvent(new Event('storage'));
+            window.dispatchEvent(new Event('user-updated'));
         } catch (error) {
             console.error('Error removing profile picture:', error);
-            showToast('Network error while removing profile picture', 'error');
+            showToast(error.message || t('settings.toastPictureRemoveFailed'), 'error');
         }
     };
 
+    const requestRemovePhoto = () => {
+        openConfirm({
+            title: t('settings.removeProfilePicture'),
+            message: t('settings.removeProfilePictureMsg'),
+            confirmText: t('settings.removeBtn'),
+            type: 'warning',
+            action: handleRemovePhoto
+        });
+    };
+
     return (
-        <div className="page active" id="settings">
-            <div className="page-title">
+        <div className={`${styles.page} ${styles.active}`} id="settings">
+            <div className={styles.pageTitle}>
                 <i className="fas fa-cog"></i>
-                <h2>Settings</h2>
+                <h2>{t('settings.title')}</h2>
             </div>
 
-            <div className="dashboard-grid two-columns">
+            <div className={`${styles.dashboardGrid} ${styles.twoColumns}`}>
 
                 {/* 1. Profile Settings */}
-                <div className="card">
-                    <div className="card-header">
-                        <div className="card-title">My Profile</div>
-                        <div className="card-icon"><i className="fas fa-user-circle"></i></div>
+                <div className={commonCardStyles.card}>
+                    <div className={commonCardStyles.cardHeader}>
+                        <div className={commonCardStyles.cardTitle}>{t('settings.myProfile')}</div>
+                        <div className={commonCardStyles.cardIcon}><i className="fas fa-user-circle"></i></div>
                     </div>
-                    <div className="card-content">
+                    <div className={commonCardStyles.cardContent}>
                         <form onSubmit={handleProfileUpdate}>
-                            <div className="profile-header">
-                                <div className="profile-avatar-large" style={{
-                                    backgroundImage: profile.avatar ? `url(${profile.avatar})` : 'none',
-                                    backgroundColor: profile.avatar ? 'transparent' : 'var(--primary)'
-                                }}>
-                                    {!profile.avatar && profile.name.charAt(0)}
+                            <div className={styles.profileHeader}>
+                                <div
+                                    className={`${styles.profileAvatarLarge} ${profile.avatar ? styles.hasAvatar : styles.noAvatar}`}
+                                >
+                                    {profile.avatar ? (
+                                        <img src={profile.avatar} alt={t('settings.profileAlt')} className={styles.profileAvatarImg} />
+                                    ) : (
+                                        profile.name.charAt(0)
+                                    )}
                                 </div>
                                 <div>
                                     <input
                                         type="file"
                                         ref={fileInputRef}
-                                        style={{ display: 'none' }}
+                                        className={styles.hiddenFileInput}
                                         accept="image/jpeg, image/png"
                                         onChange={handlePhotoChange}
                                     />
-                                    <div className="profile-actions">
-                                        <button type="button" className="btn btn-outline btn-sm" onClick={handlePhotoClick}>
-                                            <i className="fas fa-camera"></i> Change
+                                    <div className={styles.profileActions}>
+                                        <button type="button" className={`${commonBtnStyles.btn} ${commonBtnStyles.btnOutline} ${commonBtnStyles.btnSm}`} onClick={handlePhotoClick}>
+                                            <i className="fas fa-camera"></i> {t('settings.changePicture')}
                                         </button>
                                         {profile.avatar && (
-                                            <button type="button" className="btn btn-outline btn-sm btn-danger-outline" onClick={handleRemovePhoto}>
+                                            <button type="button" className={`${commonBtnStyles.btn} ${commonBtnStyles.btnOutline} ${commonBtnStyles.btnSm} ${commonBtnStyles.btnDangerOutline}`} onClick={requestRemovePhoto}>
                                                 <i className="fas fa-trash"></i>
                                             </button>
                                         )}
                                     </div>
-                                    <div className="profile-hint">Allowed: JPG, PNG (Max 2MB)</div>
+                                    <div className={styles.profileHint}>{t('settings.profileHint')}</div>
                                 </div>
                             </div>
 
-                            <div className="form-group">
-                                <label>Name</label>
+                            <div className={styles.formGroup}>
+                                <label>{t('settings.nameLabel')}</label>
                                 <input
                                     type="text"
-                                    className="form-control input-disabled"
+                                    className={`${styles.formControl} ${styles.inputDisabled}`}
                                     value={profile.name}
                                     disabled
                                 />
                             </div>
-                            <div className="form-group">
-                                <label>Email Address</label>
+                            <div className={styles.formGroup}>
+                                <label>{t('settings.emailLabel')}</label>
                                 <input
                                     type="email"
-                                    className="form-control input-disabled"
+                                    className={`${styles.formControl} ${styles.inputDisabled}`}
                                     value={profile.email}
                                     disabled
                                 />
                             </div>
-                            <button type="submit" className="btn btn-primary" disabled={isUpdatingProfile}>
-                                {isUpdatingProfile ? <><i className="fas fa-spinner fa-spin"></i> Updating...</> : 'Update Profile'}
+                            <button type="submit" className={`${commonBtnStyles.btn} ${commonBtnStyles.btnPrimary}`} disabled={isUpdatingProfile}>
+                                {isUpdatingProfile ? <><i className="fas fa-spinner fa-spin"></i> {t('settings.updating')}</> : t('settings.updateProfile')}
                             </button>
                         </form>
                     </div>
                 </div>
 
                 {/* 2. Security Settings */}
-                <div className="card">
-                    <div className="card-header">
-                        <div className="card-title">Security</div>
-                        <div className="card-icon"><i className="fas fa-lock"></i></div>
+                <div className={commonCardStyles.card}>
+                    <div className={commonCardStyles.cardHeader}>
+                        <div className={commonCardStyles.cardTitle}>{t('settings.security')}</div>
+                        <div className={commonCardStyles.cardIcon}><i className="fas fa-lock"></i></div>
                     </div>
-                    <div className="card-content">
+                    <div className={commonCardStyles.cardContent}>
                         <form onSubmit={handlePasswordChange}>
-                            <div className="form-group">
-                                <label>Current Password</label>
+                            <div className={styles.formGroup}>
+                                <label>{t('settings.currentPassword')}</label>
                                 <input
                                     type="password"
-                                    className="form-control"
+                                    className={styles.formControl}
                                     value={passwordData.current}
                                     onChange={(e) => setPasswordData({ ...passwordData, current: e.target.value })}
                                 />
                             </div>
-                            <div className="form-group">
-                                <label>New Password</label>
+                            <div className={styles.formGroup}>
+                                <label>{t('settings.newPassword')}</label>
                                 <input
                                     type="password"
-                                    className="form-control"
+                                    className={styles.formControl}
                                     value={passwordData.new}
                                     onChange={(e) => setPasswordData({ ...passwordData, new: e.target.value })}
                                 />
                             </div>
-                            <div className="form-group">
-                                <label>Confirm New Password</label>
+                            <div className={styles.formGroup}>
+                                <label>{t('settings.confirmPassword')}</label>
                                 <input
                                     type="password"
-                                    className="form-control"
+                                    className={styles.formControl}
                                     value={passwordData.confirm}
                                     onChange={(e) => setPasswordData({ ...passwordData, confirm: e.target.value })}
                                 />
                             </div>
-                            <button type="submit" className="btn btn-primary" disabled={isUpdatingPassword}>
-                                {isUpdatingPassword ? <><i className="fas fa-spinner fa-spin"></i> Updating...</> : 'Update Password'}
+                            <button type="submit" className={`${commonBtnStyles.btn} ${commonBtnStyles.btnPrimary}`} disabled={isUpdatingPassword}>
+                                {isUpdatingPassword ? <><i className="fas fa-spinner fa-spin"></i> {t('settings.updating')}</> : t('settings.updatePassword')}
                             </button>
                         </form>
                     </div>
                 </div>
             </div>
 
-            {/* 3. Admin Management (Super Admin Only) */}
-            {profile.role === 'Super Admin' && (
-                <div className="card" style={{ marginTop: '1.5rem' }}>
-                    <div className="card-header">
-                        <div className="card-title">Admin Team Management</div>
-                        <button className="btn btn-sm btn-primary" onClick={() => setIsAddAdminModalOpen(true)}>
-                            <i className="fas fa-plus"></i> Add New Admin
+            {/* 3. Admin Management */}
+            {profile.role && (
+                <div className={`${commonCardStyles.card} ${styles.settingsCardMargin}`}>
+                    <div className={commonCardStyles.cardHeader}>
+                        <div className={commonCardStyles.cardTitle}>{t('settings.adminTeam')}</div>
+                        <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSm} ${commonBtnStyles.btnPrimary}`} onClick={() => setIsAddAdminModalOpen(true)}>
+                            <i className="fas fa-plus"></i> {t('settings.addNewAdmin')}
                         </button>
                     </div>
-                    <div className="card-content">
-                        <div className="table-container">
+                    <div className={commonCardStyles.cardContent}>
+                        <div className={`${styles.dashboardGrid} ${styles.dashboardGridNoMargin} ${styles.settingsStatsMargin}`}>
+                            <StatCard
+                                label={t('settings.totalAdmins')}
+                                value={admins.length}
+                                icon="fas fa-user-shield"
+                                color="blue"
+                            />
+                        </div>
+                        <div className={styles.tableContainer}>
                             <table>
                                 <thead>
                                     <tr>
-                                        <th>Name</th>
-                                        <th>Email</th>
-                                        <th>Role</th>
-                                        <th>Status</th>
-                                        <th>Last Active</th>
-                                        <th>Actions</th>
+                                        <th>{t('settings.colName')}</th>
+                                        <th>{t('settings.colEmail')}</th>
+                                        <th>{t('settings.colRole')}</th>
+                                        <th>{t('settings.colStatus')}</th>
+                                        <th>{t('settings.colActions')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {admins.map(admin => (
                                         <tr key={admin.id}>
-                                            <td style={{ fontWeight: '500' }}>{admin.name}</td>
+                                            <td className={styles.adminNameCell}>{admin.name}</td>
                                             <td>{admin.email}</td>
                                             <td>
-                                                <span className={`user-role ${admin.role === 'Super Admin' ? 'role-admin' : 'role-instructor'}`}>
+                                                <span className={`${styles.userRole} ${admin.role === 'Super Admin' ? styles.roleAdmin : styles.roleInstructor}`}>
                                                     {admin.role}
                                                 </span>
                                             </td>
                                             <td><StatusBadge status={admin.status} /></td>
-                                            <td>{admin.lastActive}</td>
                                             <td>
-                                                {admin.role !== 'Super Admin' && admin.role !== 'admin' && (
+                                                {admin.role !== 'Super Admin' && (
                                                     <button
-                                                        className="btn btn-sm btn-danger btn-icon-only"
+                                                        className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSm} ${commonBtnStyles.btnDanger} ${commonBtnStyles.btnIconOnly}`}
                                                         onClick={() => handleDeleteAdmin(admin.id, admin.name)}
                                                     >
                                                         <i className="fas fa-trash"></i>
@@ -540,27 +551,27 @@ const Settings = () => {
                 </div>
             )}
 
-            {/* 4. System Configuration (Super Admin Only) */}
-            {profile.role === 'Super Admin' && (
-                <div className="card" style={{ marginTop: '1.5rem' }}>
-                    <div className="card-header">
-                        <div className="card-title">System Configuration</div>
-                        <div className="card-icon"><i className="fas fa-cogs"></i></div>
+            {/* 4. System Configuration */}
+            {profile.role && (
+                <div className={`${commonCardStyles.card} ${styles.settingsCardMargin}`}>
+                    <div className={commonCardStyles.cardHeader}>
+                        <div className={commonCardStyles.cardTitle}>{t('settings.systemConfig')}</div>
+                        <div className={commonCardStyles.cardIcon}><i className="fas fa-cogs"></i></div>
                     </div>
-                    <div className="card-content">
-                        <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', marginBottom: 0 }}>
-                            <div className="status-item">
-                                <div className="status-info">
-                                    <span className="status-label">Maintenance Mode</span>
-                                    <span className="status-value">{systemConfig.maintenanceMode ? 'Enabled' : 'Disabled'}</span>
+                    <div className={commonCardStyles.cardContent}>
+                        <div className={`${styles.dashboardGrid} ${styles.dashboardGridNoMargin}`}>
+                            <div className={styles.statusItem}>
+                                <div className={styles.statusInfo}>
+                                    <span className={styles.statusLabel}>{t('settings.maintenanceMode')}</span>
+                                    <span className={styles.statusValue}>{systemConfig.maintenanceMode ? t('settings.maintenanceEnabled') : t('settings.maintenanceDisabled')}</span>
                                 </div>
-                                <label className="switch">
+                                <label className={styles.switch}>
                                     <input
                                         type="checkbox"
                                         checked={systemConfig.maintenanceMode}
                                         onChange={() => handleSystemToggle('maintenanceMode')}
                                     />
-                                    <span className="slider round"></span>
+                                    <span className={`${styles.slider} ${styles.round}`}></span>
                                 </label>
                             </div>
                         </div>
@@ -568,60 +579,70 @@ const Settings = () => {
                 </div>
             )}
 
+            <ConfirmModal
+                isOpen={confirmConfig.isOpen}
+                onClose={closeConfirm}
+                onConfirm={executeConfirm}
+                title={confirmConfig.title}
+                message={confirmConfig.message}
+                confirmText={confirmConfig.confirmText}
+                type={confirmConfig.type}
+            />
+
             {/* Add Admin Modal */}
             {isAddAdminModalOpen && (
                 <ModalPortal>
-                    <div className="admin-modal active">
-                        <div className="admin-modal-content" style={{ width: '450px' }}>
-                            <div className="admin-modal-header">
-                                <div className="admin-modal-title">Add New Admin</div>
-                                <button className="admin-modal-close-round" onClick={() => setIsAddAdminModalOpen(false)}>
-                                    <i className="fas fa-times"></i>
+                    <div className={`${styles.modalOverlay} ${styles.active}`}>
+                        <div className={`${styles.modal} ${styles.modalContentSmall}`}>
+                            <div className={styles.modalHeader}>
+                                <div className={styles.modalTitle}>{t('settings.addAdminTitle')}</div>
+                                <button className={styles.modalCloseRound} onClick={() => setIsAddAdminModalOpen(false)}>
+                                    <i className="fas fa-xmark"></i>
                                 </button>
                             </div>
                             <form onSubmit={handleAddAdmin}>
-                                <div className="admin-modal-body">
-                                    <div className="admin-form-group">
-                                        <label>Name</label>
+                                <div className={styles.modalBody}>
+                                    <div className={styles.formGroup}>
+                                        <label>{t('settings.inviteAdminName')}</label>
                                         <input
                                             type="text"
-                                            className="admin-form-control"
+                                            className={styles.formControl}
                                             required
                                             value={newAdmin.name}
                                             onChange={(e) => setNewAdmin({ ...newAdmin, name: e.target.value })}
                                         />
                                     </div>
-                                    <div className="admin-form-group">
-                                        <label>Email Address</label>
+                                    <div className={styles.formGroup}>
+                                        <label>{t('settings.inviteAdminEmail')}</label>
                                         <input
                                             type="email"
-                                            className="admin-form-control"
+                                            className={styles.formControl}
                                             required
                                             value={newAdmin.email}
                                             onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })}
                                         />
                                     </div>
                                 </div>
-                                <div className="admin-modal-footer">
+                                <div className={styles.modalFooter}>
                                     <button
                                         type="button"
-                                        className="btn btn-secondary"
+                                        className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSecondary}`}
                                         onClick={() => setIsAddAdminModalOpen(false)}
                                         disabled={isAddingAdmin}
                                     >
-                                        Cancel
+                                        {t('settings.cancelBtn')}
                                     </button>
                                     <button
                                         type="submit"
-                                        className="btn btn-send"
+                                        className={`${commonBtnStyles.btn} ${commonBtnStyles.btnPrimary}`}
                                         disabled={isAddingAdmin}
                                     >
                                         {isAddingAdmin ? (
                                             <>
-                                                <i className="fas fa-spinner fa-spin"></i> Sending...
+                                                <i className="fas fa-spinner fa-spin"></i> {t('settings.sending')}
                                             </>
                                         ) : (
-                                            'Send Invitation'
+                                            t('settings.sendInvitation')
                                         )}
                                     </button>
                                 </div>
@@ -634,12 +655,12 @@ const Settings = () => {
             {/* Confirmation Modal */}
             <ConfirmModal
                 isOpen={confirmConfig.isOpen}
-                onClose={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
-                onConfirm={confirmDeleteAdmin}
-                title="Remove Admin"
-                message={`Are you sure you want to remove ${confirmConfig.name}? They will no longer have administrative access.`}
-                confirmText="Remove Admin"
-                type="danger"
+                onClose={closeConfirm}
+                onConfirm={executeConfirm}
+                title={confirmConfig.title}
+                message={confirmConfig.message}
+                confirmText={confirmConfig.confirmText}
+                type={confirmConfig.type}
             />
         </div>
     );

@@ -1,12 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import styles from '../styles/Activities.module.css';
+import commonCardStyles from '@/components/common/styles/Card.module.css';
+import commonBtnStyles from '@/components/common/styles/Button.module.css';
+import ConfirmModal from '@/components/common/feedback/ConfirmModal';
+import { getAccessToken } from '@/utils/authStorage';
 
 const Activities = () => {
     const { showToast } = useOutletContext();
+    const { t } = useTranslation('farmer');
     const [activities, setActivities] = useState([]);
     const [availableLocations, setAvailableLocations] = useState([]);
     const [availableCrops, setAvailableCrops] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, id: null });
     const [activityForm, setActivityForm] = useState({
         activityType: '',
         activityCrop: '',
@@ -19,8 +27,8 @@ const Activities = () => {
     // Fetch activities and profile data
     const fetchData = async () => {
         try {
-            const token = localStorage.getItem('token');
-            
+            const token = getAccessToken();
+
             // Fetch activities
             const actRes = await fetch('/api/farmer/activities', {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -57,7 +65,7 @@ const Activities = () => {
             }
         } catch (error) {
             console.error('Error fetching data:', error);
-            showToast('Failed to load data', 'error');
+            showToast(t('common.loadError'), 'error');
         } finally {
             setLoading(false);
         }
@@ -69,12 +77,12 @@ const Activities = () => {
 
     const handleActivitySubmit = async () => {
         if (!activityForm.activityType || !activityForm.activityCrop || !activityForm.activityDate) {
-            showToast('Please fill in all required fields', 'error');
+            showToast(t('common.fillRequired'), 'error');
             return;
         }
 
         try {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             const res = await fetch('/api/farmer/activities', {
                 method: 'POST',
                 headers: {
@@ -93,7 +101,7 @@ const Activities = () => {
 
             const data = await res.json();
             if (res.ok && data.success) {
-                showToast('Activity logged successfully!');
+                showToast(t('activities.logSuccess'));
                 setActivityForm({
                     activityType: '',
                     activityCrop: '',
@@ -108,15 +116,13 @@ const Activities = () => {
             }
         } catch (error) {
             console.error('Error submitting activity:', error);
-            showToast('Failed to log activity', 'error');
+            showToast(t('activities.logError'), 'error');
         }
     };
 
     const handleDeleteActivity = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this activity?')) return;
-
         try {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             const res = await fetch(`/api/farmer/activities/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -124,67 +130,74 @@ const Activities = () => {
 
             const data = await res.json();
             if (res.ok && data.success) {
-                showToast('Activity deleted successfully');
+                showToast(t('activities.deleteSuccess'));
                 fetchData(); // Refresh list
             } else {
                 showToast(data.error?.message || 'Failed to delete activity', 'error');
             }
         } catch (error) {
             console.error('Error deleting activity:', error);
-            showToast('Failed to delete activity', 'error');
+            showToast(t('activities.deleteError'), 'error');
         }
     };
 
+    const requestDeleteActivity = (id) => setConfirmConfig({ isOpen: true, id });
+    const closeConfirm = () => setConfirmConfig({ isOpen: false, id: null });
+    const executeDeleteActivity = async () => {
+        await handleDeleteActivity(confirmConfig.id);
+        closeConfirm();
+    };
+
     return (
-        <div className="page active" id="activity" style={{ display: 'block' }}>
-            <div className="page-title">
+        <div className={styles.page}>
+            <div className={styles.pageTitle}>
                 <i className="fas fa-tasks"></i>
-                <h2>Activity Management</h2>
+                <h2>{t('activities.title')}</h2>
             </div>
 
-            <div className="cards-grid">
-                <div className="card">
-                    <div className="card-header">
-                        <div className="card-title">Log Activity</div>
-                        <div className="card-icon"><i className="fas fa-tasks"></i></div>
+            <div className={styles.cardsGrid}>
+                <div className={commonCardStyles.card}>
+                    <div className={commonCardStyles.cardHeader}>
+                        <div className={commonCardStyles.cardTitle}>{t('activities.logActivity')}</div>
+                        <div className={commonCardStyles.cardIcon}><i className="fas fa-tasks"></i></div>
                     </div>
-                    <div className="card-content">
-                        <div className="form-group">
-                            <label>Activity Type</label>
+                    <div className={commonCardStyles.cardContent}>
+                        <div className={styles.formGroup}>
+                            <label>{t('activities.activityType')}</label>
                             <select
-                                className="form-control"
+                                className={styles.formControl}
                                 value={activityForm.activityType}
                                 onChange={(e) => setActivityForm({ ...activityForm, activityType: e.target.value })}
                             >
-                                <option value="">Select type</option>
-                                <option value="planting">Planting</option>
-                                <option value="irrigation">Irrigation</option>
-                                <option value="fertilizing">Fertilizing</option>
-                                <option value="pest_control">Pest Control</option>
-                                <option value="harvesting">Harvesting</option>
-                                <option value="other">Other</option>
+                                <option value="">{t('activities.selectType')}</option>
+                                <option value="planting">{t('activities.planting')}</option>
+                                <option value="irrigation">{t('activities.irrigation')}</option>
+                                <option value="fertilizing">{t('activities.fertilizing')}</option>
+                                <option value="pest_control">{t('activities.pestControl')}</option>
+                                <option value="harvesting">{t('activities.harvesting')}</option>
+                                <option value="other">{t('activities.other')}</option>
                             </select>
                         </div>
-                        <div className="form-group">
-                            <label>Crop</label>
+                        <div className={styles.formGroup}>
+                            <label>{t('activities.crop_label')}</label>
                             <select
-                                className="form-control"
+                                className={styles.formControl}
                                 value={activityForm.activityCrop}
                                 onChange={(e) => setActivityForm({ ...activityForm, activityCrop: e.target.value })}
                             >
-                                <option value="">Select crop</option>
+                                <option value="">{t('activities.selectCrop')}</option>
                                 {availableCrops.map((crop) => (
                                     <option key={crop.id} value={crop.name}>
                                         {crop.name}
                                     </option>
                                 ))}
-                                <option value="other">Other</option>
+                                <option value="other">{t('activities.other')}</option>
                             </select>
                         </div>
-                        <div className="form-group">
-                            <label>Instructor Division</label>
+                        <div className={styles.formGroup}>
+                            <label>{t('activities.instructorDivision')}</label>
                             <select
-                                className="form-control"
+                                className={styles.formControl}
                                 value={activityForm.instructorDivision}
                                 onChange={(e) => {
                                     const selectedValue = e.target.value;
@@ -194,7 +207,7 @@ const Activities = () => {
                                     }));
                                 }}
                             >
-                                <option value="">Select division</option>
+                                <option value="">{t('activities.selectDiv')}</option>
                                 {availableLocations.map((loc, idx) => (
                                     <option key={idx} value={`${loc.zone} - ${loc.instructorDivision}`}>
                                         {loc.zone} - {loc.instructorDivision}
@@ -202,80 +215,90 @@ const Activities = () => {
                                 ))}
                             </select>
                         </div>
-                        <div className="form-group">
-                            <label>Location</label>
+                        <div className={styles.formGroup}>
+                            <label>{t('activities.location')}</label>
                             <input
                                 type="text"
-                                className="form-control"
+                                className={styles.formControl}
                                 value={activityForm.fieldLocation}
                                 onChange={(e) => setActivityForm({ ...activityForm, fieldLocation: e.target.value })}
-                                placeholder="Enter location (e.g., Field A, North Plot)"
+                                placeholder={t('activities.locationPlaceholder')}
                             />
                         </div>
-                        <div className="form-group">
-                            <label>Date</label>
+                        <div className={styles.formGroup}>
+                            <label>{t('activities.date')}</label>
                             <input
                                 type="date"
-                                className="form-control"
+                                className={styles.formControl}
                                 value={activityForm.activityDate}
                                 onChange={(e) => setActivityForm({ ...activityForm, activityDate: e.target.value })}
                             />
                         </div>
-                        <div className="form-group">
-                            <label>Notes</label>
+                        <div className={styles.formGroup}>
+                            <label>{t('activities.notes')}</label>
                             <textarea
-                                className="form-control"
+                                className={styles.formControl}
                                 value={activityForm.activityNotes}
                                 onChange={(e) => setActivityForm({ ...activityForm, activityNotes: e.target.value })}
                             />
                         </div>
-                        <button className="btn btn-primary" onClick={handleActivitySubmit}>
-                            <i className="fas fa-save"></i> Log Activity
+                        <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnPrimary}`} onClick={handleActivitySubmit}>
+                            <i className="fas fa-save"></i> {t('activities.logBtn')}
                         </button>
                     </div>
                 </div>
 
                 {/* Recent Activities Card */}
-                <div className="card wider-card">
-                    <div className="card-header">
-                        <div className="card-title">Recent Activities</div>
-                        <div className="card-icon"><i className="fas fa-history"></i></div>
+                <div className={`${commonCardStyles.card} ${styles.widerCard}`}>
+                    <div className={commonCardStyles.cardHeader}>
+                        <div className={commonCardStyles.cardTitle}>{t('activities.recentActivities')}</div>
+                        <div className={commonCardStyles.cardIcon}><i className="fas fa-clock-rotate-left"></i></div>
                     </div>
-                    <div className="card-content">
-                        <div className="activities-list">
+                    <div className={commonCardStyles.cardContent}>
+                        <div className={styles.activitiesList}>
                             {loading ? (
-                                <div style={{ textAlign: 'center', padding: '20px' }}>Loading activities...</div>
+                                <div className={styles.activitiesLoading}>{t('activities.loading')}</div>
                             ) : activities.length > 0 ? (
                                 activities.map((activity) => (
-                                    <div className="activity-item" key={activity.id}>
-                                        <div className="activity-info">
-                                            <div className="activity-header">
-                                                <h4>{activity.type.charAt(0).toUpperCase() + activity.type.slice(1)}</h4>
-                                            </div>
-                                            <div className="activity-details">
-                                                <p><strong>Crop:</strong> {activity.crop}</p>
-                                                {activity.location && <p><strong>Location:</strong> {activity.location}</p>}
-                                                {activity.instructor_division && <p><strong>Instructor Division:</strong> {activity.instructor_division}</p>}
-                                                <p>{activity.notes}</p>
-                                            </div>
+                                    <div className={styles.activityItem} key={activity.id}>
+                                        <div className={styles.activityItemHeader}>
+                                            <h4>{activity.type.charAt(0).toUpperCase() + activity.type.slice(1)}</h4>
+                                            <span className={styles.activityDate}>{new Date(activity.date).toLocaleDateString()}</span>
                                         </div>
-                                        <div className="activity-side">
-                                            <span className="activity-date">{new Date(activity.date).toLocaleDateString()}</span>
-                                            <div className="activity-actions">
-                                                <button className="btn btn-secondary" onClick={() => handleDeleteActivity(activity.id)}>Delete</button>
+                                        <div className={styles.activityDetails}>
+                                            <p><strong>{t('activities.crop_label')}:</strong> {activity.crop}</p>
+                                            {activity.location && <p><strong>{t('activities.loc_label')}:</strong> {activity.location}</p>}
+                                            {activity.instructor_division && <p><strong>{t('activities.div_label')}:</strong> {activity.instructor_division}</p>}
+                                        </div>
+                                        <div className={styles.activityBottomRow}>
+                                            <div className={styles.activityNotesCol}>
+                                                {activity.notes && <p className={styles.activityNotes}>{activity.notes}</p>}
+                                            </div>
+                                            <div className={styles.activityActions}>
+                                                <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSecondary}`} onClick={() => requestDeleteActivity(activity.id)}>{t('activities.delete')}</button>
                                             </div>
                                         </div>
                                     </div>
                                 ))
                             ) : (
-                                <div style={{ textAlign: 'center', color: '#666', padding: '20px' }}>
-                                    No activities logged yet
+                                <div className={styles.activitiesEmpty}>
+                                    {t('activities.noActivities')}
                                 </div>
                             )}
                         </div>
                     </div>
                 </div>
             </div>
+
+            <ConfirmModal
+                isOpen={confirmConfig.isOpen}
+                onClose={closeConfirm}
+                onConfirm={executeDeleteActivity}
+                title={t('activities.deleteModal.title')}
+                message={t('activities.deleteModal.message')}
+                confirmText={t('activities.deleteModal.confirm')}
+                type="danger"
+            />
         </div>
     );
 };

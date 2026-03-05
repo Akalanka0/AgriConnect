@@ -1,13 +1,15 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import '@/features/auth/styles/Login.css';
+import { useTranslation } from 'react-i18next';
+import styles from '../styles/Login.module.css';
 
 // Components
-import { useToast } from '@/features/admin/components/Toast';
+import { useToast } from '@/components/common/feedback/ToastProvider';
 import AuthLayout from '@/features/auth/components/AuthLayout';
 import LoginForm from '@/features/auth/components/LoginForm';
 import RegisterForm from '@/features/auth/components/RegisterForm';
 import ForgotPasswordModal from '@/features/auth/components/ForgotPasswordModal';
+import VerificationModal from '@/features/auth/components/VerificationModal';
 
 // Utilities
 import {
@@ -17,20 +19,29 @@ import {
   validateRoleId,
   checkPasswordStrength
 } from '@/features/auth/utils/validation';
+import { setAccessToken } from '@/utils/authStorage';
+import { setStoredUser } from '@/utils/userStorage';
+
+let hasRunBackendConnectionCheck = false;
 
 const Login = () => {
   const { showToast } = useToast();
+  const { t } = useTranslation('auth');
   const [isLogin, setIsLogin] = useState(true);
   const [role, setRole] = useState('farmer');
   const [showPassword, setShowPassword] = useState({});
   const [showForgotModal, setShowForgotModal] = useState(false);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState('');
   const [resetEmail, setResetEmail] = useState('');
   const [resetEmailError, setResetEmailError] = useState('');
   const [passwordStrength, setPasswordStrength] = useState('');
   const [loading, setLoading] = useState(false);
+  const [maintenanceBanner, setMaintenanceBanner] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   const [resetStep, setResetStep] = useState('email');
   const [otp, setOtp] = useState(['', '', '', '']);
+  const otpRefs = useRef([]);
   const [showResetPassword, setShowResetPassword] = useState({ new: false, confirm: false });
   const [newPasswordData, setNewPasswordData] = useState({ password: '', confirmPassword: '' });
 
@@ -58,23 +69,25 @@ const Login = () => {
 
   // Check backend connection on mount
   useEffect(() => {
+    if (hasRunBackendConnectionCheck) {
+      return;
+    }
+
+    hasRunBackendConnectionCheck = true;
+
     const checkConnection = async () => {
       try {
-        console.log('Checking backend connection...');
         const response = await fetch('/api/auth/test');
         const data = await response.json();
-        console.log('Backend connection status:', data);
-        if (response.ok) {
-          showToast('Connected to backend successfully', 'success');
-        } else {
-            console.error('Backend returned error:', data);
+        if (!response.ok) {
+          console.error('Backend returned error:', data);
         }
       } catch (error) {
         console.error('Backend connection failed:', error);
-        showToast('Cannot connect to backend server', 'error');
+        showToast(t('toast.connectionError'), 'error');
       }
     };
-    
+
     checkConnection();
   }, [showToast]);
 
@@ -109,8 +122,7 @@ const Login = () => {
 
     try {
       const loginUrl = `/api/auth/login`;
-      console.log('Attempting login to:', loginUrl);
-      
+
       const response = await fetch(loginUrl, {
         method: 'POST',
         headers: {
@@ -125,6 +137,7 @@ const Login = () => {
       const data = await response.json();
 
       if (response.ok) {
+
         if (loginData.rememberMe) {
           localStorage.setItem('agriConnectUsername', loginData.username);
           localStorage.setItem('agriConnectRemember', 'true');
@@ -133,9 +146,11 @@ const Login = () => {
           localStorage.removeItem('agriConnectRemember');
         }
         // Store JWT token and user info
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        showToast('Login successful! Redirecting...', 'success');
+        setAccessToken(data.token);
+        setStoredUser(data.user);
+
+
+        showToast(t('toast.loginSuccess'), 'success');
         setTimeout(() => {
           // Redirect based on role from backend response
           if (data.user.role === 'admin') navigate('/admin');
@@ -143,19 +158,22 @@ const Login = () => {
           else navigate('/farmer');
         }, 800);
       } else {
-        if (data.message && data.message.includes('ACCOUNT_NOT_VERIFIED')) {
-          showToast('Account not verified. Please check your email.', 'error');
+        if (data.error?.code === 'MAINTENANCE_MODE' || (data.error?.message || data.message || '').includes('maintenance')) {
+          setMaintenanceBanner(true);
+        } else if (data.message && data.message.includes('ACCOUNT_NOT_VERIFIED')) {
+          showToast(t('toast.notVerified'), 'error');
           setTimeout(() => {
             navigate(`/verify?email=${encodeURIComponent(loginData.username)}`);
           }, 1000);
         } else {
+          setMaintenanceBanner(false);
           const errorMessage = data.error?.message || data.message || 'Login failed. Please try again.';
           showToast(errorMessage, 'error');
         }
       }
     } catch (error) {
       console.error('Login error:', error);
-      showToast('Network error. Please try again later.', 'error');
+      showToast(t('toast.networkError'), 'error');
     } finally {
       setLoading(false);
     }
@@ -204,7 +222,6 @@ const Login = () => {
       }
 
       const registerUrl = `/api/auth/register`;
-      console.log('Attempting registration to:', registerUrl);
 
       const response = await fetch(registerUrl, {
         method: 'POST',
@@ -217,21 +234,22 @@ const Login = () => {
       const data = await response.json();
 
       if (response.ok) {
-        showToast('Account created successfully! Please verify your email.', 'success');
+        showToast(t('toast.registerSuccess'), 'success');
         setRegisterData({
           fullName: '', email: '', nic: '', phone: '',
           farmerId: '', instructorId: '', password: '', confirmPassword: ''
         });
         setTimeout(() => {
-          navigate(`/verify?email=${encodeURIComponent(registrationPayload.email)}`);
-        }, 800);
+          setVerificationEmail(registrationPayload.email);
+          setShowVerificationModal(true);
+        }, 500);
       } else {
         const errorMessage = data.error?.message || data.message || 'Registration failed. Please try again.';
         showToast(errorMessage, 'error');
       }
     } catch (error) {
       console.error('Registration error:', error);
-      showToast('Network error. Please try again later.', 'error');
+      showToast(t('toast.networkError'), 'error');
     } finally {
       setLoading(false);
     }
@@ -272,7 +290,7 @@ const Login = () => {
       }
     } catch (error) {
       console.error('Forgot password error:', error);
-      showToast('Network error. Please try again later.', 'error');
+      showToast(t('toast.networkError'), 'error');
     } finally {
       setResetLoading(false);
     }
@@ -300,7 +318,7 @@ const Login = () => {
       const data = await response.json();
 
       if (response.ok) {
-        showToast('OTP Verified! Create your new password.', 'success');
+        showToast(t('toast.otpVerified'), 'success');
         setResetStep('password');
         setResetEmailError('');
       } else {
@@ -342,7 +360,7 @@ const Login = () => {
       const data = await response.json();
 
       if (response.ok) {
-        showToast('Password updated successfully!', 'success');
+        showToast(t('toast.passwordUpdated'), 'success');
         setShowForgotModal(false);
         setResetStep('email');
         setResetEmail('');
@@ -365,15 +383,13 @@ const Login = () => {
     setOtp(newOtp);
 
     if (value && index < 3) {
-      const nextInput = document.getElementById(`otp-${index + 1}`);
-      if (nextInput) nextInput.focus();
+      otpRefs.current[index + 1]?.focus();
     }
   };
 
   const handleOtpKeyDown = (index, e) => {
     if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      const prevInput = document.getElementById(`otp-${index - 1}`);
-      if (prevInput) prevInput.focus();
+      otpRefs.current[index - 1]?.focus();
     }
   };
 
@@ -383,11 +399,10 @@ const Login = () => {
     setLoginData(prev => ({ ...prev, username, password }));
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setErrors({});
-    showToast('Credentials auto-filled! You can now sign in.', 'success');
+    showToast(t('toast.credentialsFilled'), 'success');
   };
-
   return (
-    <div className="login-container">
+    <div className={styles.loginContainer}>
       <ForgotPasswordModal
         showForgotModal={showForgotModal}
         setShowForgotModal={setShowForgotModal}
@@ -399,6 +414,7 @@ const Login = () => {
         setResetEmailError={setResetEmailError}
         resetLoading={resetLoading}
         otp={otp}
+        otpRefs={otpRefs}
         handleOtpChange={handleOtpChange}
         handleOtpKeyDown={handleOtpKeyDown}
         handleResetPassword={handleResetPassword}
@@ -410,7 +426,24 @@ const Login = () => {
         setShowResetPassword={setShowResetPassword}
       />
 
+      <VerificationModal
+        showVerificationModal={showVerificationModal}
+        setShowVerificationModal={setShowVerificationModal}
+        verificationEmail={verificationEmail}
+      />
+
       <AuthLayout>
+        {maintenanceBanner && (
+          <div className={styles.maintenanceBanner}>
+            <div className={styles.maintenanceBannerIcon}>
+              <i className="fas fa-triangle-exclamation"></i>
+            </div>
+            <div className={styles.maintenanceBannerText}>
+              <strong>{t('maintenance.title')}</strong>
+              <p>{t('maintenance.message')}</p>
+            </div>
+          </div>
+        )}
         {isLogin ? (
           <LoginForm
             loginData={loginData}

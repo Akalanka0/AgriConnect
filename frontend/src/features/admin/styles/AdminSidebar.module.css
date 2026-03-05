@@ -1,0 +1,127 @@
+/* Admin Sidebar Modular Styles */
+
+/* Import semantic color system */
+@import url('../../../shared/semantic-colors.css');
+
+.sidebar {
+    width: var(--sidebar-width, 250px);
+    background: linear-gradient(135deg, var(--admin-primary), var(--admin-primary-dark));
+    color: var(--neutral-white);
+    position: fixed;
+    height: 100vh;
+    z-index: 100;
+    box-shadow: var(--shadow-md);
+    transition: var(--transition-normal);
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    padding: var(--space-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    height: var(--header-height, 70px);
+}
+
+.logo {
+    font-size: 1.8em;
+    background: var(--neutral-white);
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--admin-primary);
+    box-shadow: var(--shadow-sm);
+}
+
+.logo i {
+    color: var(--admin-primary);
+    font-size: .9em;
+}
+
+.header h1 {
+    font-size: 1.2em;
+    white-space: nowrap;
+    font-weight: 600;
+    color: var(--neutral-white);
+    text-shadow: var(--shadow-sm);
+    margin: 0;
+}
+
+.menu {
+    padding: var(--space-lg) 0;
+    flex: 1;
+}
+
+.menuItem {
+    padding: var(--space-md) var(--space-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    cursor: pointer;
+    transition: var(--transition-normal);
+    border-left: 4px solid transparent;
+    white-space: nowrap;
+    color: var(--neutral-white);
+    text-decoration: none;
+}
+
+.menuItem:hover {
+    background: rgba(255, 255, 255, 0.1);
+    opacity: 1;
+}
+
+.menuItem.active {
+    background: rgba(255, 255, 255, 0.15);
+    opacity: 1;
+    border-left-color: var(--admin-secondary);
+}
+
+.footer {
+    margin-top: auto;
+    border-top: 1px solid var(--neutral-200);
+}
+
+.logoutBtn {
+    padding: var(--space-md) var(--space-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    cursor: pointer;
+    transition: var(--transition-normal);
+    border-left: 4px solid transparent;
+    white-space: nowrap;
+    color: var(--neutral-white);
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    font-size: var(--text-base);
+}
+
+.logoutBtn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-left-color: var(--admin-secondary);
+}
+
+.logoutBtn i {
+    font-size: 1.2em;
+    width: 24px;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+
+    .sidebar.active {
+        transform: translateX(0);
+    }
+}

@@ -1,12 +1,56 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import styles from '../styles/InstructorSettings.module.css';
+import commonBtnStyles from '@/components/common/styles/Button.module.css';
+import ConfirmModal from '@/components/common/feedback/ConfirmModal';
+import { getAccessToken } from '@/utils/authStorage';
+import { getStoredUser, setStoredUser } from '@/utils/userStorage';
 
 const InstructorSettings = () => {
     const { openModal, showToast } = useOutletContext();
+    const { t } = useTranslation('instructor');
     const [isLoading, setIsLoading] = useState(true);
     const [isUpdatingPicture, setIsUpdatingPicture] = useState(false);
     const [isSavingProfessional, setIsSavingProfessional] = useState(false);
+    const [confirmConfig, setConfirmConfig] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        confirmText: '',
+        type: 'warning',
+        action: null
+    });
     const fileInputRef = useRef(null);
+
+    const openConfirm = ({ title, message, confirmText = '', type = 'warning', action }) => {
+        setConfirmConfig({
+            isOpen: true,
+            title,
+            message,
+            confirmText,
+            type,
+            action
+        });
+    };
+
+    const closeConfirm = () => {
+        setConfirmConfig({
+            isOpen: false,
+            title: '',
+            message: '',
+            confirmText: '',
+            type: 'warning',
+            action: null
+        });
+    };
+
+    const executeConfirm = async () => {
+        if (typeof confirmConfig.action === 'function') {
+            await confirmConfig.action();
+        }
+        closeConfirm();
+    };
 
     const [passwords, setPasswords] = useState({
         currentPassword: '',
@@ -28,6 +72,7 @@ const InstructorSettings = () => {
         fullName: '',
         email: '',
         phone: '',
+        instructorId: '', // Add instructor ID field
         district: 'Anuradhapura',
         zone: '',
         assignedDivisions: [],
@@ -40,7 +85,7 @@ const InstructorSettings = () => {
 
     const fetchHierarchy = useCallback(async () => {
         try {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             const response = await fetch('/api/instructor/region-hierarchy', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -55,7 +100,7 @@ const InstructorSettings = () => {
 
     const fetchProfile = useCallback(async () => {
         try {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             const response = await fetch('/api/instructor/profile', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -67,25 +112,26 @@ const InstructorSettings = () => {
                     fullName: user.full_name || '',
                     email: user.email || '',
                     phone: user.phone || '',
+                    instructorId: user.instructor_id || '', // Use generated instructor_id
                     district: details.district || 'Anuradhapura',
                     zone: details.zone || '',
-                    assignedDivisions: Array.isArray(details.assigned_divisions) 
-                        ? details.assigned_divisions 
-                        : (typeof details.assigned_divisions === 'string' 
-                            ? JSON.parse(details.assigned_divisions || '[]') 
+                    assignedDivisions: Array.isArray(details.assigned_divisions)
+                        ? details.assigned_divisions
+                        : (typeof details.assigned_divisions === 'string'
+                            ? JSON.parse(details.assigned_divisions || '[]')
                             : []),
                     takenDivisions: details.takenDivisions || [],
                     specialization: details.specialization || '',
                     experience: details.experience || 0,
                     qualifications: details.qualifications || '',
-                    profilePicture: user.profile_picture || ''
+                    profilePicture: user.avatar || user.profile_picture || ''
                 });
             } else {
-                showToast(result.error?.message || 'Failed to fetch profile', 'error');
+                showToast(result.error?.message || t('settings.toastFetchFailed'), 'error');
             }
         } catch (error) {
             console.error('Error fetching profile:', error);
-            showToast('An error occurred while fetching profile', 'error');
+            showToast(t('settings.toastFetchError'), 'error');
         } finally {
             setIsLoading(false);
         }
@@ -98,7 +144,7 @@ const InstructorSettings = () => {
 
     const fetchTakenDivisions = async (zone) => {
         try {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             const response = await fetch(`/api/instructor/taken-divisions?zone=${encodeURIComponent(zone)}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -113,8 +159,8 @@ const InstructorSettings = () => {
 
     const handleProfileChange = (field, value) => {
         if (field === 'zone') {
-            setProfileData({ 
-                ...profileData, 
+            setProfileData({
+                ...profileData,
                 [field]: value,
                 assignedDivisions: [], // Reset divisions when area changes
                 takenDivisions: [] // Temporarily clear while fetching
@@ -130,12 +176,27 @@ const InstructorSettings = () => {
         const file = e.target.files[0];
         if (!file) return;
 
+        const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
+
+        if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+            showToast(t('settings.toastInvalidFileType'), 'error');
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+        }
+
+        if (file.size > MAX_IMAGE_SIZE) {
+            showToast(t('settings.toastFileTooLarge'), 'error');
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+        }
+
         setIsUpdatingPicture(true);
         const formData = new FormData();
         formData.append('profile_picture', file);
 
         try {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             const response = await fetch('/api/instructor/profile/picture', {
                 method: 'POST',
                 headers: {
@@ -152,28 +213,23 @@ const InstructorSettings = () => {
                     ...prev,
                     profilePicture: result.data.profile_picture
                 }));
-                
+
                 // Update local storage user data to reflect change immediately in layout
-                const userStr = localStorage.getItem('user');
-                if (userStr) {
-                    const user = JSON.parse(userStr);
+                const user = getStoredUser();
+                if (user) {
                     user.profile_picture = result.data.profile_picture;
                     user.avatar = result.data.profile_picture;
-                    localStorage.setItem('user', JSON.stringify(user));
-                    
-                    // Force a reload or dispatch an event if needed, 
-                    // but usually layout will pick up on next mount or if we had a context.
-                    // Ideally we should use a context for user data.
+                    setStoredUser(user);
                     window.dispatchEvent(new Event('storage'));
                 }
 
-                showToast('Profile picture updated successfully', 'success');
+                showToast(t('settings.toastPictureUpdated'), 'success');
             } else {
-                showToast(result.error?.message || 'Failed to update profile picture', 'error');
+                showToast(result.error?.message || t('settings.toastPictureUpdateFailed'), 'error');
             }
         } catch (error) {
             console.error('Error updating profile picture:', error);
-            showToast('An error occurred while updating profile picture', 'error');
+            showToast(t('settings.toastPictureUpdateError'), 'error');
         } finally {
             setIsUpdatingPicture(false);
             if (fileInputRef.current) {
@@ -185,19 +241,19 @@ const InstructorSettings = () => {
     const toggleDivision = (division) => {
         const currentDivisions = [...profileData.assignedDivisions];
         const index = currentDivisions.indexOf(division);
-        
+
         if (index === -1) {
             currentDivisions.push(division);
         } else {
             currentDivisions.splice(index, 1);
         }
-        
+
         setProfileData({ ...profileData, assignedDivisions: currentDivisions });
     };
 
     const saveProfile = async () => {
         try {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             const response = await fetch('/api/instructor/profile', {
                 method: 'PUT',
                 headers: {
@@ -220,33 +276,33 @@ const InstructorSettings = () => {
             if (result.success) {
                 // Update localStorage with new profile info
                 try {
-                    const userStr = localStorage.getItem('user');
-                    const user = userStr ? JSON.parse(userStr) : {};
+                    const user = getStoredUser() || {};
                     user.full_name = profileData.fullName;
                     user.email = profileData.email;
                     user.phone = profileData.phone;
-                    localStorage.setItem('user', JSON.stringify(user));
+                    setStoredUser(user);
                 } catch (error) {
-                    console.error('Error updating user profile in localStorage:', error);
+                    console.error('Error updating user profile in storage:', error);
                 }
-                
+
                 // Notify layout
                 window.dispatchEvent(new Event('userProfileUpdated'));
-                
-                showToast('Profile settings saved successfully!', 'success');
+                window.dispatchEvent(new Event('user-updated'));
+
+                showToast(t('settings.toastProfileSaved'), 'success');
             } else {
-                showToast(result.error?.message || 'Failed to save profile', 'error');
+                showToast(result.error?.message || t('settings.toastProfileSaveFailed'), 'error');
             }
-        } catch (error) { 
+        } catch (error) {
             console.error('Error saving profile:', error);
-            showToast('An error occurred while saving profile', 'error');
+            showToast(t('settings.toastProfileSaveError'), 'error');
         }
     };
 
     const saveProfessionalDetails = async () => {
         setIsSavingProfessional(true);
         try {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             const response = await fetch('/api/instructor/profile', {
                 method: 'PUT',
                 headers: {
@@ -261,13 +317,13 @@ const InstructorSettings = () => {
             });
             const result = await response.json();
             if (result.success) {
-                showToast('Professional details saved successfully!', 'success');
+                showToast(t('settings.toastProfessionalSaved'), 'success');
             } else {
-                showToast(result.error?.message || 'Failed to save professional details', 'error');
+                showToast(result.error?.message || t('settings.toastProfessionalSaveFailed'), 'error');
             }
         } catch (error) {
             console.error('Error saving professional details:', error);
-            showToast('An error occurred while saving professional details', 'error');
+            showToast(t('settings.toastProfessionalSaveError'), 'error');
         } finally {
             setIsSavingProfessional(false);
         }
@@ -275,17 +331,22 @@ const InstructorSettings = () => {
 
     const changePassword = async () => {
         if (!passwords.currentPassword || !passwords.newPassword || !passwords.confirmPassword) {
-            showToast('Please fill in all password fields', 'error');
+            showToast(t('settings.toastFillAllPasswords'), 'error');
+            return;
+        }
+
+        if (passwords.newPassword.length < 8) {
+            showToast(t('settings.toastPasswordTooShort'), 'error');
             return;
         }
 
         if (passwords.newPassword !== passwords.confirmPassword) {
-            showToast('New passwords do not match', 'error');
+            showToast(t('settings.toastPasswordMismatch'), 'error');
             return;
         }
 
         try {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             const response = await fetch('/api/instructor/password', {
                 method: 'PUT',
                 headers: {
@@ -299,24 +360,22 @@ const InstructorSettings = () => {
             });
             const result = await response.json();
             if (result.success) {
-                showToast('Password changed successfully!', 'success');
+                showToast(t('settings.toastPasswordChanged'), 'success');
                 setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
             } else {
-                showToast(result.error?.message || 'Failed to change password', 'error');
+                showToast(result.error?.message || t('settings.toastPasswordChangeFailed'), 'error');
             }
         } catch (error) {
             console.error('Error changing password:', error);
-            showToast('An error occurred while changing password', 'error');
+            showToast(t('settings.toastPasswordChangeError'), 'error');
         }
     };
 
     // Handle profile picture removal
     const handlePictureRemove = async () => {
-        if (!window.confirm('Are you sure you want to remove your profile picture?')) return;
-
         setIsUpdatingPicture(true);
         try {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             const response = await fetch('/api/instructor/profile/picture', {
                 method: 'DELETE',
                 headers: {
@@ -332,77 +391,119 @@ const InstructorSettings = () => {
                     ...prev,
                     profilePicture: null
                 }));
-                
+
                 // Update local storage user data
-                const userStr = localStorage.getItem('user');
-                if (userStr) {
-                    const user = JSON.parse(userStr);
+                const user = getStoredUser();
+                if (user) {
                     user.profile_picture = null;
                     user.avatar = null;
-                    localStorage.setItem('user', JSON.stringify(user));
-                    
-                    // Notify layout
+                    setStoredUser(user);
                     window.dispatchEvent(new Event('storage'));
+                    window.dispatchEvent(new Event('user-updated'));
+                    window.dispatchEvent(new Event('userProfileUpdated'));
                 }
 
-                showToast('Profile picture removed successfully', 'success');
+                showToast(t('settings.toastPictureRemoved'), 'success');
             } else {
-                showToast(result.error?.message || 'Failed to remove profile picture', 'error');
+                showToast(result.error?.message || t('settings.toastPictureRemoveFailed'), 'error');
             }
         } catch (error) {
             console.error('Error removing profile picture:', error);
-            showToast('An error occurred while removing profile picture', 'error');
+            showToast(t('settings.toastPictureRemoveError'), 'error');
         } finally {
             setIsUpdatingPicture(false);
         }
     };
 
+    const requestPictureRemove = () => {
+        openConfirm({
+            title: t('settings.removeProfilePictureTitle'),
+            message: t('settings.removeProfilePictureMsg'),
+            confirmText: t('settings.removeProfilePictureConfirm'),
+            type: 'warning',
+            action: handlePictureRemove
+        });
+    };
+
+    const requestDeleteAccount = () => {
+        openConfirm({
+            title: t('settings.deleteAccountTitle'),
+            message: t('settings.deleteAccountMsg'),
+            confirmText: t('settings.deleteAccountConfirm'),
+            type: 'danger',
+            action: async () => showToast(t('settings.toastAccountDeletion'))
+        });
+    };
+
     if (isLoading) {
-        return <div className="loading-container">Loading settings...</div>;
+        return <div className={styles.loadingContainer}>{t('settings.loading')}</div>;
     }
 
     return (
         <>
-            <div className="settings-container">
+            <div className={styles.settingsContainer}>
                 {/* Profile Settings */}
-                <div className="settings-section">
-                    <div className="settings-header">
+                <div className={styles.settingsSection}>
+                    <div className={styles.settingsHeader}>
                         <i className="fas fa-user-circle"></i>
-                        <h3>Profile Settings</h3>
+                        <h3>{t('settings.profileSettings')}</h3>
                     </div>
 
-                    <div className="profile-picture">
-                        <img src={profileData.profilePicture ? (profileData.profilePicture.startsWith('http') ? profileData.profilePicture : `/${profileData.profilePicture}`) : "https://via.placeholder.com/100"} alt="Profile" 
-                             style={{width: '100px', height: '100px', objectFit: 'cover', borderRadius: '50%'}}
-                        />
-                        <div className="profile-picture-actions">
-                            <input 
-                                type="file" 
-                                ref={fileInputRef} 
-                                style={{ display: 'none' }} 
+                    <div className={styles.profilePicture}>
+                        {profileData.profilePicture ? (
+                            <img
+                                src={profileData.profilePicture.startsWith('http') ? profileData.profilePicture : `/${profileData.profilePicture}`}
+                                alt={t('settings.profileAlt')}
+                                className={styles.settingsProfileImg}
+                            />
+                        ) : (
+                            <div className={styles.profileAvatarPlaceholder}>
+                                {(profileData.fullName || 'Instructor')
+                                    .split(' ')
+                                    .map((name) => name[0])
+                                    .join('')
+                                    .substring(0, 2)
+                                    .toUpperCase()}
+                            </div>
+                        )}
+                        <div className={`${styles.profilePictureActions} ${commonBtnStyles.btnGroup}`}>
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                className={styles.fileInputHidden}
                                 onChange={handlePictureUpload}
                                 accept="image/*"
                             />
-                            <button 
-                                className="btn btn-primary" 
+                            <button
+                                className={`${commonBtnStyles.btn} ${commonBtnStyles.btnPrimary}`}
                                 onClick={() => fileInputRef.current?.click()}
                                 disabled={isUpdatingPicture}
                             >
-                                <i className={`fas ${isUpdatingPicture ? 'fa-spinner fa-spin' : 'fa-upload'}`}></i> 
-                                {isUpdatingPicture ? ' Uploading...' : ' Upload Photo'}
+                                <i className={`fas ${isUpdatingPicture ? 'fa-spinner fa-spin' : 'fa-upload'}`}></i>
+                                {isUpdatingPicture ? ` ${t('settings.uploading')}` : ` ${t('settings.uploadPhoto')}`}
                             </button>
-                            <button 
-                                className="btn btn-secondary" 
-                                onClick={handlePictureRemove}
+                            <button
+                                className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSecondary}`}
+                                onClick={requestPictureRemove}
                                 disabled={isUpdatingPicture || !profileData.profilePicture}
                             >
-                                <i className="fas fa-trash"></i> Remove
+                                <i className="fas fa-trash"></i> {t('settings.removePhoto')}
                             </button>
                         </div>
                     </div>
 
                     <div className="form-group">
-                        <label>Full Name</label>
+                        <label>{t('settings.instructorId')}</label>
+                        <input
+                            type="text"
+                            className={`form-control ${styles.inputDisabled}`}
+                            value={profileData.instructorId}
+                            disabled
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label>{t('settings.fullName')}</label>
                         <input
                             type="text"
                             className="form-control"
@@ -411,7 +512,7 @@ const InstructorSettings = () => {
                         />
                     </div>
                     <div className="form-group">
-                        <label>Email Address</label>
+                        <label>{t('settings.email')}</label>
                         <input
                             type="email"
                             className="form-control"
@@ -420,7 +521,7 @@ const InstructorSettings = () => {
                         />
                     </div>
                     <div className="form-group">
-                        <label>Phone Number</label>
+                        <label>{t('settings.phone')}</label>
                         <input
                             type="text"
                             className="form-control"
@@ -429,32 +530,25 @@ const InstructorSettings = () => {
                         />
                     </div>
 
-                    <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                    <div className={`form-row ${styles.settingsFormRow}`}>
                         <div className="form-group">
-                            <label>District</label>
+                            <label>{t('settings.district')}</label>
                             <input
                                 type="text"
-                                className="form-control"
+                                className={`form-control ${styles.inputDisabled}`}
                                 value={profileData.district}
                                 disabled
-                                style={{ backgroundColor: '#f8f9fa', cursor: 'not-allowed' }}
                             />
-                            <small style={{ color: '#6c757d' }}>District is fixed to your assigned region.</small>
+                            <small className={styles.settingsHelperText}>{t('settings.districtNote')}</small>
                         </div>
                         <div className="form-group">
-                            <label>Zone</label>
-                            <select 
+                            <label>{t('settings.zone')}</label>
+                            <select
                                 value={profileData.zone}
                                 onChange={(e) => handleProfileChange('zone', e.target.value)}
-                                style={{
-                                    width: '100%',
-                                    padding: '10px',
-                                    borderRadius: '8px',
-                                    border: '1px solid #ddd',
-                                    backgroundColor: '#fff'
-                                }}
+                                className={styles.zoneSelect}
                             >
-                                <option value="" disabled>Select Zone</option>
+                                <option value="" disabled>{t('settings.selectZone')}</option>
                                 {Object.keys(hierarchyData).map(zone => (
                                     <option key={zone} value={zone}>{zone}</option>
                                 ))}
@@ -463,74 +557,52 @@ const InstructorSettings = () => {
                     </div>
 
                     <div className="form-group">
-                        <label>Assigned Instructor Divisions</label>
-                        <div className="divisions-grid" style={{ 
-                            display: 'flex', 
-                            flexWrap: 'wrap', 
-                            gap: '10px', 
-                            padding: '15px', 
-                            borderRadius: '8px', 
-                            border: '1px solid #eee', 
-                            backgroundColor: '#fff',
-                            minHeight: '50px'
-                        }}>
+                        <label>{t('settings.assignedDivisions')}</label>
+                        <div className={`${styles.divisionsGridContainer}`}>
                             {profileData.zone && hierarchyData[profileData.zone] ? (
                                 hierarchyData[profileData.zone].map(division => {
                                     const isTaken = profileData.takenDivisions.includes(division);
                                     const isActive = profileData.assignedDivisions.includes(division);
-                                    
+
                                     return (
-                                        <div 
+                                        <div
                                             key={division}
-                                            className={`division-chip ${isActive ? 'active' : ''} ${isTaken ? 'taken' : ''}`}
+                                            className={`${styles.divisionChip} ${isActive ? styles.active : ''} ${isTaken ? styles.taken : ''}`}
                                             onClick={() => !isTaken && toggleDivision(division)}
-                                            style={{
-                                                padding: '8px 15px',
-                                                borderRadius: '20px',
-                                                border: '1px solid',
-                                                borderColor: isActive ? 'var(--primary)' : (isTaken ? '#eee' : '#ddd'),
-                                                backgroundColor: isActive ? '#e8f5e9' : (isTaken ? '#fafafa' : '#f5f5f5'),
-                                                color: isActive ? 'var(--primary)' : (isTaken ? '#ccc' : '#666'),
-                                                cursor: isTaken ? 'not-allowed' : 'pointer',
-                                                fontSize: '0.9rem',
-                                                transition: 'all 0.2s ease',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '5px',
-                                                opacity: isTaken ? 0.7 : 1
-                                            }}
                                             title={isTaken ? 'This division is already assigned to another instructor' : ''}
                                         >
-                                            <i className={`fas ${isActive ? 'fa-check-circle' : (isTaken ? 'fa-lock' : 'fa-circle')}`}></i>
+                                            <i className={`fas ${isActive ? 'fa-circle-check' : (isTaken ? 'fa-lock' : 'fa-circle')}`}></i>
                                             {division}
                                         </div>
                                     );
                                 })
                             ) : (
-                                <p style={{ color: '#6c757d', fontSize: '0.9rem', margin: 0 }}>
-                                    {profileData.zone ? 'No divisions found for this zone' : 'Please select a zone first'}
+                                <p className={styles.noDivisionsText}>
+                                    {profileData.zone ? t('settings.noDivisionsForZone') : t('settings.selectZoneFirst')}
                                 </p>
                             )}
                         </div>
-                        <small style={{ color: '#6c757d', marginTop: '5px', display: 'block' }}>
-                            Select all divisions you are responsible for in the {profileData.zone}.
+                        <small className={styles.divisionsSelectionNote}>
+                            {t('settings.divisionsNote')} {profileData.zone}.
                         </small>
                     </div>
 
-                    <button className="btn btn-primary" onClick={saveProfile}>
-                        <i className="fas fa-save"></i> Save Changes
-                    </button>
+                    <div className={styles.sectionActions}>
+                        <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnPrimary}`} onClick={saveProfile}>
+                            <i className="fas fa-save"></i> {t('settings.saveChanges')}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Professional Details (New attractive section) */}
-                <div className="settings-section">
-                    <div className="settings-header">
+                <div className={styles.settingsSection}>
+                    <div className={styles.settingsHeader}>
                         <i className="fas fa-briefcase"></i>
-                        <h3>Professional Details</h3>
+                        <h3>{t('settings.professionalDetails')}</h3>
                     </div>
 
                     <div className="form-group">
-                        <label>Specialization</label>
+                        <label>{t('settings.specialization')}</label>
                         <input
                             type="text"
                             className="form-control"
@@ -539,7 +611,7 @@ const InstructorSettings = () => {
                         />
                     </div>
                     <div className="form-group">
-                        <label>Experience (Years)</label>
+                        <label>{t('settings.experience')}</label>
                         <input
                             type="number"
                             className="form-control"
@@ -548,7 +620,7 @@ const InstructorSettings = () => {
                         />
                     </div>
                     <div className="form-group">
-                        <label>Qualifications</label>
+                        <label>{t('settings.qualifications')}</label>
                         <textarea
                             className="form-control"
                             rows="4"
@@ -557,79 +629,89 @@ const InstructorSettings = () => {
                         ></textarea>
                     </div>
 
-                    <button 
-                        className="btn btn-primary" 
-                        onClick={saveProfessionalDetails}
-                        disabled={isSavingProfessional}
-                    >
-                        <i className={`fas ${isSavingProfessional ? 'fa-spinner fa-spin' : 'fa-save'}`}></i> 
-                        {isSavingProfessional ? ' Saving...' : ' Save Professional Details'}
-                    </button>
+                    <div className={styles.sectionActions}>
+                        <button
+                            className={`${commonBtnStyles.btn} ${commonBtnStyles.btnPrimary}`}
+                            onClick={saveProfessionalDetails}
+                            disabled={isSavingProfessional}
+                        >
+                            <i className={`fas ${isSavingProfessional ? 'fa-spinner fa-spin' : 'fa-save'}`}></i>
+                            {isSavingProfessional ? ` ${t('settings.saving')}` : ` ${t('settings.saveProfessional')}`}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Security Settings */}
-                <div className="settings-section">
-                    <div className="settings-header">
+                <div className={styles.settingsSection}>
+                    <div className={styles.settingsHeader}>
                         <i className="fas fa-shield-alt"></i>
-                        <h3>Security</h3>
+                        <h3>{t('settings.security')}</h3>
                     </div>
                     <div className="form-group">
-                        <label>Current Password</label>
-                        <input 
-                            type="password" 
-                            className="form-control" 
-                            placeholder="Enter current password" 
+                        <label>{t('settings.currentPassword')}</label>
+                        <input
+                            type="password"
+                            className="form-control"
+                            placeholder={t('settings.currentPasswordPlaceholder')}
                             value={passwords.currentPassword}
-                            onChange={(e) => setPasswords({...passwords, currentPassword: e.target.value})}
+                            onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
                         />
                     </div>
                     <div className="form-group">
-                        <label>New Password</label>
-                        <input 
-                            type="password" 
-                            className="form-control" 
-                            placeholder="Leave blank to keep current" 
+                        <label>{t('settings.newPassword')}</label>
+                        <input
+                            type="password"
+                            className="form-control"
+                            placeholder={t('settings.newPasswordPlaceholder')}
                             value={passwords.newPassword}
-                            onChange={(e) => setPasswords({...passwords, newPassword: e.target.value})}
+                            onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
                         />
                     </div>
                     <div className="form-group">
-                        <label>Confirm Password</label>
-                        <input 
-                            type="password" 
-                            className="form-control" 
-                            placeholder="Confirm new password" 
+                        <label>{t('settings.confirmPassword')}</label>
+                        <input
+                            type="password"
+                            className="form-control"
+                            placeholder={t('settings.confirmPasswordPlaceholder')}
                             value={passwords.confirmPassword}
-                            onChange={(e) => setPasswords({...passwords, confirmPassword: e.target.value})}
+                            onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })}
                         />
                     </div>
-                    <button className="btn btn-secondary" onClick={changePassword}>
-                        <i className="fas fa-key"></i> Change Password
-                    </button>
+                    <div className={styles.sectionActions}>
+                        <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSecondary}`} onClick={changePassword}>
+                            <i className="fas fa-key"></i> {t('settings.changePassword')}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Danger Zone */}
-                <div className="settings-section">
-                    <div className="settings-header">
+                <div className={styles.settingsSection}>
+                    <div className={styles.settingsHeader}>
                         <i className="fas fa-exclamation-triangle"></i>
-                        <h3>Danger Zone</h3>
+                        <h3>{t('settings.dangerZone')}</h3>
                     </div>
 
-                    <p style={{ color: 'var(--gray)', marginBottom: '20px', textAlign: 'center' }}>
-                        Once you delete your account, there is no going back. Please be certain.
+                    <p className={styles.dangerZoneText}>
+                        {t('settings.dangerZoneText')}
                     </p>
-                    <div className="settings-actions" style={{ display: 'flex', justifyContent: 'center' }}>
-                        <button className="btn btn-danger" onClick={() => {
-                            if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-                                showToast('Account deletion request submitted');
-                            }
-                        }}>
-                            <i className="fas fa-trash"></i> Delete Account
+                    <div className={styles.dangerZoneActions}>
+                        <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnDanger}`} onClick={requestDeleteAccount}>
+                            <i className="fas fa-trash"></i> {t('settings.deleteAccount')}
                         </button>
                     </div>
                 </div>
 
             </div>
+
+            <ConfirmModal
+                isOpen={confirmConfig.isOpen}
+                onClose={closeConfirm}
+                onConfirm={executeConfirm}
+                title={confirmConfig.title}
+                message={confirmConfig.message}
+                confirmText={confirmConfig.confirmText}
+                type={confirmConfig.type}
+            />
         </>
     );
 };

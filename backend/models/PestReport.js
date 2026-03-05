@@ -58,26 +58,24 @@ const PestReport = sequelize.define('PestReport', {
         allowNull: false
     },
     farmer_attachments: {
-        type: DataTypes.TEXT,
+        type: DataTypes.JSON,
         allowNull: true,
-        get() {
-            const rawValue = this.getDataValue('farmer_attachments');
-            return rawValue ? JSON.parse(rawValue) : [];
-        },
-        set(value) {
-            this.setDataValue('farmer_attachments', JSON.stringify(value));
-        }
+        defaultValue: []
+    },
+    farmer_attachment_names: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        defaultValue: []
     },
     instructor_attachments: {
-        type: DataTypes.TEXT,
+        type: DataTypes.JSON,
         allowNull: true,
-        get() {
-            const rawValue = this.getDataValue('instructor_attachments');
-            return rawValue ? JSON.parse(rawValue) : [];
-        },
-        set(value) {
-            this.setDataValue('instructor_attachments', JSON.stringify(value));
-        }
+        defaultValue: []
+    },
+    instructor_attachment_names: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        defaultValue: []
     }
 }, {
     tableName: 'pest_reports',

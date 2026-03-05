@@ -1,6 +1,6 @@
 import express from 'express';
 import { authenticate, authorize } from '../../middleware/authMiddleware.js';
-import { upload, uploadToCloudinary } from '../../middleware/uploadMiddleware.js';
+import { upload, uploadToCloudinaryMiddleware } from '../../middleware/uploadMiddleware.js';
 import {
     createCrop,
     getCrops,
@@ -17,7 +17,7 @@ router.post(
     authenticate,
     authorize('admin'),
     upload.single('image'),
-    uploadToCloudinary,
+    uploadToCloudinaryMiddleware,
     createCrop
 );
 router.get('/', authenticate, authorize('admin'), getCrops);
@@ -27,7 +27,7 @@ router.put(
     authenticate,
     authorize('admin'),
     upload.single('image'),
-    uploadToCloudinary,
+    uploadToCloudinaryMiddleware,
     updateCrop
 );
 router.delete('/:id', authenticate, authorize('admin'), deleteCrop);

@@ -1,16 +1,19 @@
-import {
-    User,
-    InstructorDetail,
-    FarmerDetail,
-    PestReport,
-    CropPlan,
-    Meeting,
-    Activity,
-    Message,
-    SystemSetting,
-    Crop // Ensure Crop is explicitly imported
-} from '../../models/index.js';
-import { Sequelize, Op } from 'sequelize';
+﻿import { sequelize, User, InstructorDetail, FarmerDetail, CropPlan, PestReport, HarvestRecord, Activity, Meeting, Message, SystemSetting, Crop } from '../../models/index.js';
+import { Op } from 'sequelize';
+import { upload, uploadToCloudinaryMiddleware } from '../../middleware/uploadMiddleware.js';
+
+// Middleware for handling file uploads in messages
+export const uploadMessageAttachment = (req, res, next) => {
+    upload.single('attachment')(req, res, (err) => {
+        if (err) {
+            return res.status(400).json({
+                success: false,
+                error: { message: 'File upload failed' }
+            });
+        }
+        uploadToCloudinaryMiddleware(req, res, next);
+    });
+};
 
 /**
  * Get Instructor Dashboard Stats
@@ -88,7 +91,7 @@ export const getDashboardStats = async (req, res) => {
             where: {
                 instructor_id: userId,
                 status: { [Op.in]: ['accepted', 'pending'] },
-                meetingDate: { [Op.gte]: new Date().toISOString().split('T')[0] }
+                meeting_date: { [Op.gte]: new Date().toISOString().split('T')[0] }
             }
         });
 
@@ -118,28 +121,20 @@ export const getMyMessages = async (req, res) => {
     try {
         const userId = req.user.id;
 
-        // Helper function to format custom ID with better error handling
+        // Returns generated ID (INST-XXXX or FARM-XXXX), null for admin
+        const getDisplayId = (user) => {
+            if (!user) return null;
+            if (user.role === 'admin') return null;
+            if (user.instructorDetail?.instructor_id) return user.instructorDetail.instructor_id;
+            if (user.farmerDetail?.farmer_id) return user.farmerDetail.farmer_id;
+            return null;
+        };
+
+        // Helper function to format display name only
         const formatCustomId = (user) => {
-            if (!user) {
-                console.warn('⚠️ formatCustomId: user is null or undefined');
-                return 'Unknown User';
-            }
-            
-            if (user.role === 'admin') {
-                return 'Admin';
-            }
-            
-            // Handle missing or invalid full_name
-            const fullName = user.full_name?.trim() || 'Unknown User';
-            if (!fullName || fullName === 'null' || fullName === 'undefined') {
-                console.warn('⚠️ formatCustomId: user.full_name is empty/invalid:', user.full_name);
-                return 'Unknown User';
-            }
-            
-            // Extract first name for display
-            const firstName = fullName.split(' ')[0] || 'User';
-            const paddedId = user.id < 10 ? `0${user.id}` : String(user.id);
-            return `${firstName} (ID: INST-2026-HF${paddedId})`;
+            if (!user) return 'Unknown User';
+            if (user.role === 'admin') return 'Admin';
+            return user.full_name?.trim() || 'Unknown User';
         };
         
         // Helper function to format recipient name with better error handling
@@ -154,7 +149,7 @@ export const getMyMessages = async (req, res) => {
                 return 'All Instructors';
             }
             if (!msg.recipient) {
-                console.warn('⚠️ formatRecipientName: msg.recipient is null or undefined');
+                console.warn('formatRecipientName: msg.recipient is null or undefined');
                 return 'Unknown Recipient';
             }
             return formatCustomId(msg.recipient);
@@ -166,7 +161,7 @@ export const getMyMessages = async (req, res) => {
                     { recipient_id: userId },
                     { recipient_type: 'all' },
                     { recipient_type: 'instructors' },
-                    { recipient_type: 'select' },
+                    { recipient_type: 'select', recipient_id: userId },
                     { sender_id: userId }
                 ]
             },
@@ -174,12 +169,20 @@ export const getMyMessages = async (req, res) => {
                 {
                     model: User,
                     as: 'sender',
-                    attributes: ['id', 'full_name', 'role']
+                    attributes: ['id', 'full_name', 'role'],
+                    include: [
+                        { model: InstructorDetail, as: 'instructorDetail', required: false, attributes: ['instructor_id'] },
+                        { model: FarmerDetail, as: 'farmerDetail', required: false, attributes: ['farmer_id'] }
+                    ]
                 },
                 {
                     model: User,
                     as: 'recipient',
-                    attributes: ['id', 'full_name', 'role']
+                    attributes: ['id', 'full_name', 'role'],
+                    include: [
+                        { model: InstructorDetail, as: 'instructorDetail', required: false, attributes: ['instructor_id'] },
+                        { model: FarmerDetail, as: 'farmerDetail', required: false, attributes: ['farmer_id'] }
+                    ]
                 }
             ],
             order: [['created_at', 'DESC']]
@@ -209,8 +212,10 @@ export const getMyMessages = async (req, res) => {
                 content: msg.content,
                 sender: senderName,
                 senderId: msg.sender_id,
+                senderDisplayId: getDisplayId(msg.sender),
                 recipient: recipientName,
                 recipientId: msg.recipient_id,
+                recipientDisplayId: msg.recipient ? getDisplayId(msg.recipient) : null,
                 type: messageType,
                 date: msg.created_at ? msg.created_at.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
                 time: msg.created_at ? msg.created_at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -229,10 +234,14 @@ export const getMyMessages = async (req, res) => {
 
 export const sendMessage = async (req, res) => {
     try {
-        console.log('📩 [Instructor] Sending Message - Body:', req.body);
-        console.log('📎 [Instructor] Sending Message - File:', req.file);
         const userId = req.user.id;
+        const io = req.app.get('io'); // Get Socket.IO instance
+        
         let { subject, content, recipient_type, recipient_id, recipient_ids } = req.body;
+
+        if (!subject || !content) {
+            return res.status(400).json({ success: false, error: { message: 'Subject and content are required' } });
+        }
 
         // Handle file upload from middleware
         let attachment_url = req.body.attachment_url;
@@ -263,9 +272,50 @@ export const sendMessage = async (req, res) => {
                 content,
                 attachment_url,
                 attachment_name,
-                attachment_public_id
+                attachment_public_id,
+                message_type: req.file ? 'file' : 'text'
             }));
-            await Message.bulkCreate(messagesData);
+            const createdMessages = await Message.bulkCreate(messagesData);
+            
+            // Emit WebSocket events for each recipient
+            if (io) {
+                // Look up the instructor's generated ID
+                const senderUser = await User.findByPk(userId, {
+                    attributes: ['id', 'full_name'],
+                    include: [{ model: InstructorDetail, as: 'instructorDetail', required: false, attributes: ['instructor_id'] }]
+                });
+                const senderDisplayId = senderUser?.instructorDetail?.instructor_id || null;
+                const senderName = senderUser?.full_name || 'Instructor';
+
+                createdMessages.forEach(message => {
+                    const messageData = {
+                        id: message.id,
+                        subject: message.subject,
+                        content: message.content,
+                        recipient_type: message.recipient_type,
+                        recipient_id: message.recipient_id,
+                        sender_id: userId,
+                        sender: senderName,
+                        senderId: userId,
+                        senderDisplayId,
+                        attachment_url: message.attachment_url,
+                        attachment_name: message.attachment_name,
+                        type: 'sent',
+                        date: new Date().toISOString().split('T')[0],
+                        is_read: false
+                    };
+                    
+                    io.to(`user_${message.recipient_id}`).emit('newMessage', messageData);
+                    
+                    // Also emit to sender as 'sent' message
+                    const senderMessageData = {
+                        ...messageData,
+                        type: 'sent'
+                    };
+                    io.to(`user_${userId}`).emit('newMessage', senderMessageData);
+                });
+            }
+            
             return res.status(201).json({ success: true, message: 'Messages sent successfully' });
         } else {
             const message = await Message.create({
@@ -276,8 +326,56 @@ export const sendMessage = async (req, res) => {
                 content,
                 attachment_url,
                 attachment_name,
-                attachment_public_id
+                attachment_public_id,
+                message_type: req.file ? 'file' : 'text'
             });
+            
+            // Emit WebSocket event
+            if (io) {
+                // Look up the instructor's generated ID
+                const senderUser = await User.findByPk(userId, {
+                    attributes: ['id', 'full_name'],
+                    include: [{ model: InstructorDetail, as: 'instructorDetail', required: false, attributes: ['instructor_id'] }]
+                });
+                const senderDisplayId = senderUser?.instructorDetail?.instructor_id || null;
+                const senderName = senderUser?.full_name || 'Instructor';
+
+                const messageData = {
+                    id: message.id,
+                    subject: message.subject,
+                    content: message.content,
+                    recipient_type: message.recipient_type,
+                    recipient_id: message.recipient_id,
+                    sender_id: userId,
+                    sender: senderName,
+                    senderId: userId,
+                    senderDisplayId,
+                    attachment_url: message.attachment_url,
+                    attachment_name: message.attachment_name,
+                    type: 'received',
+                    date: new Date().toISOString().split('T')[0],
+                    is_read: false
+                };
+                
+                const senderMessageData = {
+                    ...messageData,
+                    type: 'sent'
+                };
+                
+                if (recipient_type === 'all') {
+                    io.emit('newMessage', messageData);
+                } else if (recipient_type === 'admin') {
+                    io.to('admin').emit('newMessage', messageData);
+                    io.to(`user_${userId}`).emit('newMessage', senderMessageData);
+                } else if (recipient_type === 'farmers') {
+                    io.to('farmer').emit('newMessage', messageData);
+                    io.to(`user_${userId}`).emit('newMessage', senderMessageData);
+                } else if (recipient_id) {
+                    io.to(`user_${recipient_id}`).emit('newMessage', messageData);
+                    io.to(`user_${userId}`).emit('newMessage', senderMessageData);
+                }
+            }
+            
             return res.status(201).json({ success: true, message: 'Message sent successfully', data: message });
         }
     } catch (error) {
@@ -319,6 +417,42 @@ export const markMessageAsRead = async (req, res) => {
     } catch (error) {
         console.error('Error marking message as read:', error);
         return res.status(500).json({ success: false, error: { message: 'Failed to mark message as read' } });
+    }
+};
+
+export const deleteMessage = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+        const io = req.app.get('io'); // Get Socket.IO instance
+
+        const message = await Message.findOne({
+            where: {
+                id,
+                [Op.or]: [
+                    { sender_id: userId },  // User can delete their own sent messages
+                    { recipient_id: userId },  // User can delete messages they received
+                    { recipient_type: 'all' },  // Broadcast messages
+                    { recipient_type: 'instructors' }  // Instructor broadcast messages
+                ]
+            }
+        });
+
+        if (!message) {
+            return res.status(404).json({ success: false, error: { message: 'Message not found' } });
+        }
+
+        await message.destroy();
+
+        // Emit WebSocket event for real-time update
+        if (io) {
+            io.emit('messageDeleted', { messageId: id, deletedBy: userId });
+        }
+
+        return res.status(200).json({ success: true, message: 'Message deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting message:', error);
+        return res.status(500).json({ success: false, error: { message: 'Failed to delete message' } });
     }
 };
 
@@ -405,6 +539,7 @@ export const getRecentHistory = async (req, res) => {
 export const getAssignedFarmers = async (req, res) => {
     try {
         const userId = req.user.id;
+        
         const instructor = await InstructorDetail.findOne({ where: { user_id: userId } });
 
         if (!instructor) {
@@ -446,8 +581,8 @@ export const getAssignedFarmers = async (req, res) => {
                         })),
                         // Match inside locations JSON
                         ...divisions.map(div => (
-                            Sequelize.where(
-                                Sequelize.cast(Sequelize.col('farmerDetail.locations'), 'CHAR'),
+                            sequelize.where(
+                                sequelize.literal(`CAST(JSON_UNQUOTE(farmerDetail.locations) AS CHAR)`),
                                 { [Op.like]: `%${div}%` }
                             )
                         ))
@@ -508,7 +643,12 @@ export const getAssignedFarmers = async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching assigned farmers:', error);
-        return res.status(500).json({ success: false, error: { message: 'Failed to fetch assigned farmers' } });
+        return res.status(500).json({ 
+            success: false, 
+            error: { 
+                message: 'Failed to fetch assigned farmers' 
+            } 
+        });
     }
 };
 
@@ -518,14 +658,24 @@ export const getAssignedFarmers = async (req, res) => {
 export const getFarmerDetails = async (req, res) => {
     try {
         const { id } = req.params;
-        const farmer = await User.findOne({
-            where: { id, role: 'farmer' },
-            include: [{
-                model: FarmerDetail,
-                as: 'farmerDetail'
-            }],
-            attributes: ['id', 'full_name', 'email', 'phone', 'nic', 'created_at', 'profile_picture']
-        });
+        
+        let farmer;
+        try {
+            farmer = await User.findOne({
+                where: { id, role: 'farmer' },
+                include: [{
+                    model: FarmerDetail,
+                    as: 'farmerDetail'
+                }],
+                attributes: ['id', 'full_name', 'email', 'phone', 'nic', 'created_at', 'avatar', 'profile_picture']
+            });
+        } catch (dbError) {
+            console.error('Database query error:', dbError);
+            return res.status(500).json({ 
+                success: false, 
+                error: { message: 'Failed to fetch farmer details' } 
+            });
+        }
 
         if (!farmer) {
             return res.status(404).json({ success: false, error: { message: 'Farmer not found' } });
@@ -552,7 +702,7 @@ export const getFarmerDetails = async (req, res) => {
             primaryDivision: farmer.farmerDetail?.instructor_division || 'N/A',
             locations: locations,
             joined: farmer.created_at,
-            profilePicture: farmer.profile_picture
+            profilePicture: farmer.avatar || farmer.profile_picture
         };
 
         return res.status(200).json({
@@ -561,6 +711,7 @@ export const getFarmerDetails = async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching farmer details:', error);
+        console.error('Error stack:', error.stack);
         return res.status(500).json({ success: false, error: { message: 'Failed to fetch farmer details' } });
     }
 };
@@ -582,9 +733,6 @@ export const getPestReports = async (req, res) => {
             : (typeof instructor.assigned_divisions === 'string'
                 ? JSON.parse(instructor.assigned_divisions || '[]')
                 : []);
-
-        console.log('🔍 [getPestReports] Instructor Divisions:', divisions);
-        console.log('🔍 [getPestReports] Instructor ID:', userId);
 
         const reports = await PestReport.findAll({
             where: {
@@ -617,24 +765,50 @@ export const getPestReports = async (req, res) => {
             order: [['created_at', 'DESC']]
         });
 
-        console.log(`🔍 [getPestReports] Found ${reports.length} reports`);
+        const formattedReports = reports.map(r => {
+            // Parse instructor_attachments if stored as JSON string
+            let instructorAttachments = r.instructor_attachments;
+            if (typeof instructorAttachments === 'string') {
+                try { instructorAttachments = JSON.parse(instructorAttachments); } catch (e) { instructorAttachments = instructorAttachments ? [instructorAttachments] : []; }
+            }
+            if (!Array.isArray(instructorAttachments)) instructorAttachments = instructorAttachments ? [instructorAttachments] : [];
 
-        const formattedReports = reports.map(r => ({
-            id: r.id,
-            farmerName: r.user?.full_name || 'N/A',
-            farmerId: r.user?.farmerDetail?.farmer_id || 'N/A',
-            location: `${r.user?.farmerDetail?.district || ''} - ${r.user?.farmerDetail?.zone || ''}`,
-            reportedDate: r.created_at.toISOString().split('T')[0],
-            pestName: r.name,
-            pestType: r.type,
-            pestCrop: r.crop,
-            pestSeverity: r.severity.charAt(0).toUpperCase() + r.severity.slice(1),
-            pestNotes: r.notes,
-            resolution: r.resolution,
-            status: r.status === 'pending' ? 'Pending' : r.status.charAt(0).toUpperCase() + r.status.slice(1),
-            farmerFiles: r.farmer_attachments || [],
-            attachments: r.instructor_attachments || [] // Use new field
-        }));
+            // Parse farmer_attachments if stored as JSON string
+            let farmerFiles = r.farmer_attachments;
+            if (typeof farmerFiles === 'string') {
+                try { farmerFiles = JSON.parse(farmerFiles); } catch (e) { farmerFiles = farmerFiles ? [farmerFiles] : []; }
+            }
+            if (!Array.isArray(farmerFiles)) farmerFiles = farmerFiles ? [farmerFiles] : [];
+
+            // Parse name arrays
+            let farmerFileNames = r.farmer_attachment_names;
+            if (typeof farmerFileNames === 'string') { try { farmerFileNames = JSON.parse(farmerFileNames); } catch (e) { farmerFileNames = []; } }
+            if (!Array.isArray(farmerFileNames)) farmerFileNames = [];
+
+            let attachmentNames = r.instructor_attachment_names;
+            if (typeof attachmentNames === 'string') { try { attachmentNames = JSON.parse(attachmentNames); } catch (e) { attachmentNames = []; } }
+            if (!Array.isArray(attachmentNames)) attachmentNames = [];
+
+            return {
+                id: r.id,
+                farmerName: r.user?.full_name || 'N/A',
+                farmerId: r.user?.farmerDetail?.farmer_id || 'N/A',
+                location: `${r.user?.farmerDetail?.district || ''} - ${r.user?.farmerDetail?.zone || ''}`,
+                reportedDate: r.created_at.toISOString().split('T')[0],
+                updatedAt: r.updated_at,
+                pestName: r.name,
+                pestType: r.type,
+                pestCrop: r.crop,
+                pestSeverity: r.severity.charAt(0).toUpperCase() + r.severity.slice(1),
+                pestNotes: r.notes,
+                resolution: r.resolution,
+                status: r.status === 'pending' ? 'Pending' : r.status.charAt(0).toUpperCase() + r.status.slice(1),
+                farmerFiles,
+                farmerFileNames,
+                attachments: instructorAttachments,
+                attachmentNames
+            };
+        });
 
         return res.status(200).json({ success: true, data: formattedReports });
     } catch (error) {
@@ -693,13 +867,26 @@ export const updatePestReportStatus = async (req, res) => {
 
         // Handle attachment if uploaded
         let attachments = report.instructor_attachments || [];
-        if (req.file && req.file.path) {
-            attachments.push(req.file.path);
+        if (typeof attachments === 'string') {
+            try { attachments = JSON.parse(attachments); } catch (e) { attachments = attachments ? [attachments] : []; }
         }
+        if (!Array.isArray(attachments)) attachments = attachments ? [attachments] : [];
 
         report.status = status;
         if (resolution) report.resolution = resolution;
-        report.instructor_attachments = attachments;
+        report.instructor_attachments = req.file && req.file.path
+            ? [...attachments, req.file.path]
+            : [...attachments]; // always new array so Sequelize marks field dirty
+
+        // Track original filename alongside the URL
+        let attachmentNames = report.instructor_attachment_names || [];
+        if (typeof attachmentNames === 'string') {
+            try { attachmentNames = JSON.parse(attachmentNames); } catch (e) { attachmentNames = []; }
+        }
+        if (!Array.isArray(attachmentNames)) attachmentNames = [];
+        report.instructor_attachment_names = req.file && req.file.originalname
+            ? [...attachmentNames, req.file.originalname]
+            : [...attachmentNames];
         
         await report.save();
 
@@ -752,22 +939,34 @@ export const getCropPlans = async (req, res) => {
             order: [['created_at', 'DESC']]
         });
 
-        const formattedPlans = plans.map(p => ({
-            id: p.id,
-            farmerName: p.user?.full_name || 'N/A',
-            farmerId: p.user?.farmerDetail?.farmer_id || 'N/A',
-            location: `${p.user?.farmerDetail?.district || ''} - ${p.user?.farmerDetail?.zone || ''}`,
-            submittedDate: p.created_at.toISOString().split('T')[0],
-            cropName: p.crop_name,
-            plantDate: p.plant_date,
-            harvestDate: p.harvest_date,
-            cropNotes: p.notes,
-            status: p.status === 'pending' ? 'Pending Review' : (p.status.charAt(0).toUpperCase() + p.status.slice(1)),
-            instructorFeedback: p.instructor_feedback,
-            reviewedDate: p.reviewed_at ? p.reviewed_at.toISOString().split('T')[0] : (p.status !== 'pending' ? p.updated_at.toISOString().split('T')[0] : 'N/A'),
-            farmerFiles: p.farmer_attachments || [],
-            attachments: p.instructor_attachments || []
-        }));
+        const formattedPlans = plans.map(p => {
+            let farmerFileNames = p.farmer_attachment_names;
+            if (typeof farmerFileNames === 'string') { try { farmerFileNames = JSON.parse(farmerFileNames); } catch (e) { farmerFileNames = []; } }
+            if (!Array.isArray(farmerFileNames)) farmerFileNames = [];
+
+            let attachmentNames = p.instructor_attachment_names;
+            if (typeof attachmentNames === 'string') { try { attachmentNames = JSON.parse(attachmentNames); } catch (e) { attachmentNames = []; } }
+            if (!Array.isArray(attachmentNames)) attachmentNames = [];
+
+            return {
+                id: p.id,
+                farmerName: p.user?.full_name || 'N/A',
+                farmerId: p.user?.farmerDetail?.farmer_id || 'N/A',
+                location: `${p.user?.farmerDetail?.district || ''} - ${p.user?.farmerDetail?.zone || ''}`,
+                submittedDate: p.created_at.toISOString().split('T')[0],
+                cropName: p.crop_name,
+                plantDate: p.plant_date,
+                harvestDate: p.harvest_date,
+                cropNotes: p.notes,
+                status: p.status === 'pending' ? 'Pending Review' : (p.status.charAt(0).toUpperCase() + p.status.slice(1)),
+                instructorFeedback: p.instructor_feedback,
+                reviewedDate: p.reviewed_at ? p.reviewed_at.toISOString().split('T')[0] : (p.status !== 'pending' ? p.updated_at.toISOString().split('T')[0] : 'N/A'),
+                farmerFiles: p.farmer_attachments || [],
+                farmerFileNames,
+                attachments: p.instructor_attachments || [],
+                attachmentNames
+            };
+        });
 
         return res.status(200).json({ success: true, data: formattedPlans });
     } catch (error) {
@@ -831,6 +1030,12 @@ export const updateCropPlanStatus = async (req, res) => {
         if (req.file && req.file.path) {
             const currentAttachments = Array.isArray(plan.instructor_attachments) ? plan.instructor_attachments : [];
             plan.instructor_attachments = [...currentAttachments, req.file.path];
+
+            // Track original filename
+            let currentNames = plan.instructor_attachment_names || [];
+            if (typeof currentNames === 'string') { try { currentNames = JSON.parse(currentNames); } catch (e) { currentNames = []; } }
+            if (!Array.isArray(currentNames)) currentNames = [];
+            plan.instructor_attachment_names = [...currentNames, req.file.originalname];
         }
 
         plan.reviewed_at = new Date();
@@ -864,20 +1069,29 @@ export const getProfile = async (req, res) => {
             userData.profile_picture = userData.profile_picture.replace(/\\/g, '/');
         }
 
-        // Extremely robust zone and divisions handling for frontend stability
         // Fetch valid zones from SystemSetting
         const setting = await SystemSetting.findOne({
             where: { setting_key: 'region_hierarchy' }
         });
         
-        let validZones = ['Nuwaragam Palatha', 'Kekirawa', 'Huruluwewa', 'Thambuttegama', 'Rajanganaya', 'Medawachchiya']; // Default fallback
-        if (setting) {
-            try {
-                const hierarchy = JSON.parse(setting.setting_value);
-                validZones = Object.keys(hierarchy);
-            } catch (e) {
-                console.error('Error parsing hierarchy for valid zones:', e);
-            }
+        if (!setting) {
+            console.error('Region hierarchy not found in database');
+            return res.status(500).json({ 
+                success: false, 
+                error: { message: 'Region hierarchy not configured. Please contact administrator.' } 
+            });
+        }
+
+        let validZones = [];
+        try {
+            const hierarchy = JSON.parse(setting.setting_value);
+            validZones = Object.keys(hierarchy);
+        } catch (e) {
+            console.error('Error parsing hierarchy for valid zones:', e);
+            return res.status(500).json({ 
+                success: false, 
+                error: { message: 'Invalid region hierarchy format in database.' } 
+            });
         }
 
         if (!userData.instructorDetail) {
@@ -898,7 +1112,6 @@ export const getProfile = async (req, res) => {
 
             // Fallback to a valid zone if current one is invalid
             if (!validZones.includes(currentZone)) {
-                console.log(`Invalid zone detected: "${currentZone}". Falling back to "${validZones[0]}"`);
                 userData.instructorDetail.zone = validZones[0];
             } else {
                 userData.instructorDetail.zone = currentZone;
@@ -938,6 +1151,11 @@ export const getProfile = async (req, res) => {
         });
 
         userData.instructorDetail.takenDivisions = [...new Set(takenDivisions)];
+
+        // Add instructor_id at top level for consistency with other endpoints
+        if (userData.instructorDetail && userData.instructorDetail.instructor_id) {
+            userData.instructor_id = userData.instructorDetail.instructor_id;
+        }
 
         return res.status(200).json({ success: true, data: userData });
     } catch (error) {
@@ -996,50 +1214,10 @@ export const getRegionHierarchy = async (req, res) => {
         });
 
         if (!setting) {
-            // Fallback if not in DB yet
-            const defaultHierarchy = {
-                    'Nuwaragam Palatha': [
-                        'Nuwaragam Palatha Central',
-                        'Nuwaragam Palatha East',
-                        'Mihintale',
-                        'Mahavilachchiya',
-                        'Tantirimale',
-                        'Nochchiyagama'
-                    ],
-                    'Kekirawa': [
-                        'Kekirawa',
-                        'Ipalogama',
-                        'Palagala',
-                        'Thirappane',
-                        'Maradankadawala',
-                        'Galnewa'
-                    ],
-                    'Huruluwewa': [
-                        'Galenbindunuwewa',
-                        'Kahatagasdigiliya',
-                        'Horowpothana',
-                        'Kebithigollewa',
-                        'Padaviya',
-                        'Rambewa'
-                    ],
-                    'Thambuttegama': [
-                        'Thambuttegama Town',
-                        'Talawa',
-                        'Meegalewa',
-                        'Eppawala'
-                    ],
-                    'Rajanganaya': [
-                        'Rajanganaya Left Bank',
-                        'Rajanganaya Right Bank',
-                        'Angamuwa'
-                    ],
-                    'Medawachchiya': [
-                        'Medawachchiya Town',
-                        'Punewa',
-                        'Ethakada'
-                    ]
-                };
-            return res.status(200).json({ success: true, data: defaultHierarchy });
+            return res.status(404).json({ 
+                success: false, 
+                error: { message: 'Region hierarchy not found in database. Please run migrations.' } 
+            });
         }
 
         return res.status(200).json({ 
@@ -1108,7 +1286,54 @@ export const updateProfile = async (req, res) => {
                     });
                 }
 
+                // Find divisions that were REMOVED so we can un-assign affected farmers
+                const oldDivisions = Array.isArray(detail.assigned_divisions)
+                    ? detail.assigned_divisions
+                    : (typeof detail.assigned_divisions === 'string'
+                        ? JSON.parse(detail.assigned_divisions || '[]')
+                        : []);
+                const removedDivisions = oldDivisions.filter(d => !requestedDivisions.includes(d));
+
                 detail.assigned_divisions = requestedDivisions;
+
+                // Clear instructor assignment from farmers belonging to removed divisions
+                if (removedDivisions.length > 0) {
+                    const instructorRefId = detail.instructor_id;
+                    const allFarmers = await FarmerDetail.findAll({
+                        attributes: ['id', 'locations', 'instructor_division']
+                    });
+
+                    for (const farmer of allFarmers) {
+                        let locs = Array.isArray(farmer.locations)
+                            ? farmer.locations
+                            : (typeof farmer.locations === 'string'
+                                ? JSON.parse(farmer.locations || '[]')
+                                : []);
+
+                        let changed = false;
+                        locs = locs.map(loc => {
+                            if (
+                                removedDivisions.includes(loc.instructorDivision) &&
+                                (loc.assignedInstructorId === instructorRefId ||
+                                    loc.assignedInstructorRefId === instructorRefId)
+                            ) {
+                                changed = true;
+                                return {
+                                    ...loc,
+                                    assignedInstructorId: 'Pending',
+                                    assignedInstructorName: 'No Instructor Assigned',
+                                    assignedInstructorRefId: ''
+                                };
+                            }
+                            return loc;
+                        });
+
+                        if (changed) {
+                            farmer.locations = locs;
+                            await farmer.save();
+                        }
+                    }
+                }
             }
             await detail.save();
         } else {
@@ -1146,8 +1371,8 @@ export const getInstructorRatings = async (req, res) => {
             });
         }
 
-        // Import InstructorRating model to avoid circular dependencies
-        const { InstructorRating } = await import('../models/index.js');
+        // Import models to avoid circular dependencies
+        const { InstructorRating, FarmerDetail } = await import('../../models/index.js');
 
         // Get ratings with pagination
         const page = parseInt(req.query.page) || 1;
@@ -1161,9 +1386,10 @@ export const getInstructorRatings = async (req, res) => {
             },
             include: [
                 {
-                    model: await import('../models/FarmerDetail.js').then(m => m.default),
+                    model: FarmerDetail,
                     as: 'farmer',
-                    attributes: ['farmer_id', 'district', 'zone']
+                    attributes: ['farmer_id', 'district', 'zone'],
+                    required: false
                 }
             ],
             order: [['created_at', 'DESC']],
@@ -1222,18 +1448,29 @@ export const getInstructorRatings = async (req, res) => {
 export const updateProfilePicture = async (req, res) => {
     try {
         const userId = req.user.id;
-
+        
         if (!req.file || !req.file.path) {
             return res.status(400).json({ success: false, error: { message: 'No file uploaded' } });
         }
-
+        
         const user = await User.findByPk(userId);
+        
         if (!user) {
             return res.status(404).json({ success: false, error: { message: 'User not found' } });
         }
-
+        
         user.profile_picture = req.file.path.replace(/\\/g, '/');
+        user.avatar = user.profile_picture;
         await user.save();
+
+        // Emit real-time update to all connected clients
+        const reqSocket = req.app.get('socketio');
+        if (reqSocket) {
+            reqSocket.emit('userProfileUpdated', {
+                userId: userId,
+                profile_picture: user.profile_picture
+            });
+        }
 
         return res.status(200).json({
             success: true,
@@ -1314,27 +1551,29 @@ export const getMeetings = async (req, res) => {
                     attributes: ['farmer_id']
                 }]
             }],
-            order: [['meetingDate', 'DESC']]
+            order: [['meeting_date', 'DESC']]
         });
 
         const formattedMeetings = meetings.map(m => ({
             id: m.id,
-            meetingTitle: m.meetingTitle,
-            meetingDate: m.meetingDate,
-            meetingTime: m.meetingTime,
-            meetingDuration: m.meetingDuration,
-            meetingNotes: m.meetingNotes,
-            instructorNote: m.instructorNote,
+            meetingTitle: m.meeting_title,
+            meetingDate: m.meeting_date,
+            meetingTime: m.meeting_time,
+            meetingDuration: m.meeting_duration,
+            meetingNotes: m.meeting_notes,
+            instructorNote: m.instructor_note,
             status: m.status,
             instructor_id: m.instructor_id,
             farmerName: m.farmer?.full_name || 'N/A',
             farmerId: m.farmer?.farmerDetail?.farmer_id || 'N/A',
             division: m.division || 'N/A',
-            requestedBy: m.requestedBy,
-            zoomLink: m.zoomLink,
-            suggestedDate: m.suggestedDate,
-            suggestedTime: m.suggestedTime,
-            cancelReason: m.cancelReason
+            requestedBy: m.requested_by,
+            zoomLink: m.zoom_link,
+            suggestedDate: m.suggested_date,
+            suggestedTime: m.suggested_time,
+            cancelReason: m.cancel_reason,
+            updatedAt: m.updated_at,
+            createdAt: m.created_at
         }));
 
         return res.status(200).json({ success: true, data: formattedMeetings });
@@ -1349,8 +1588,6 @@ export const getMeetings = async (req, res) => {
  */
 export const getCropCalendars = async (req, res) => {
     try {
-        console.log('--- getCropCalendars Backend Called ---');
-        
         // Safety check: is Crop model defined?
         if (!Crop) {
             console.error('CRITICAL: Crop model is UNDEFINED in instructorController');
@@ -1360,8 +1597,6 @@ export const getCropCalendars = async (req, res) => {
         const crops = await Crop.findAll({
             order: [['name', 'ASC']]
         });
-        
-        console.log(`Backend found ${crops ? crops.length : 0} crops in DB`);
         
         const formattedCrops = (crops || []).map(crop => ({
             id: crop.id,
@@ -1377,7 +1612,6 @@ export const getCropCalendars = async (req, res) => {
             success: false, 
             error: { 
                 message: 'Failed to fetch crop calendars from database',
-                details: error.message,
                 stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
             } 
         });
@@ -1468,11 +1702,15 @@ export const getReportsData = async (req, res) => {
 
         const dateFilter = {};
         if (startDate && endDate) {
-            dateFilter[Op.between] = [new Date(startDate), new Date(endDate)];
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            dateFilter[Op.between] = [new Date(startDate), end];
         } else if (startDate) {
             dateFilter[Op.gte] = new Date(startDate);
         } else if (endDate) {
-            dateFilter[Op.lte] = new Date(endDate);
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            dateFilter[Op.lte] = end;
         }
 
         let reportData = [];
@@ -1537,23 +1775,23 @@ export const getReportsData = async (req, res) => {
 
         } else if (type === 'Meetings') {
             const where = { instructor_id: userId };
-            if (Object.keys(dateFilter).length > 0) where.meetingDate = dateFilter;
+            if (Object.keys(dateFilter).length > 0) where.meeting_date = dateFilter;
             if (status && status !== 'All') where.status = status.toLowerCase();
             if (division && division !== 'All') where.division = division;
 
             const meetings = await Meeting.findAll({
                 where,
                 include: [{ model: User, as: 'farmer', attributes: ['full_name'] }],
-                order: [['meetingDate', 'DESC']]
+                order: [['meeting_date', 'DESC']]
             });
 
             columns = ['Date', 'Time', 'Farmer', 'Purpose', 'Duration', 'Status', 'Division'];
             reportData = meetings.map(m => [
-                m.meetingDate,
-                m.meetingTime,
+                m.meeting_date,
+                m.meeting_time,
                 m.farmer?.full_name || 'N/A',
-                m.meetingTitle,
-                m.meetingDuration + ' mins',
+                m.meeting_title,
+                m.meeting_duration + ' mins',
                 m.status.charAt(0).toUpperCase() + m.status.slice(1),
                 m.division || 'N/A'
             ]);
@@ -1625,11 +1863,15 @@ export const updateMeetingStatus = async (req, res) => {
         }
 
         meeting.status = status;
-        if (zoomLink) meeting.zoomLink = zoomLink;
-        if (suggestedDate) meeting.suggestedDate = suggestedDate;
-        if (suggestedTime) meeting.suggestedTime = suggestedTime;
-        if (instructorNote) meeting.instructorNote = instructorNote;
-        if (cancelReason) meeting.cancelReason = cancelReason;
+        if (status === 'accepted') {
+            meeting.suggested_date = null;
+            meeting.suggested_time = null;
+        }
+        if (zoomLink) meeting.zoom_link = zoomLink;
+        if (suggestedDate) meeting.suggested_date = suggestedDate;
+        if (suggestedTime) meeting.suggested_time = suggestedTime;
+        if (instructorNote) meeting.instructor_note = instructorNote;
+        if (cancelReason) meeting.cancel_reason = cancelReason;
 
         await meeting.save();
 

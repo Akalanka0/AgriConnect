@@ -29,16 +29,7 @@ const Message = sequelize.define('Message', {
         type: DataTypes.ENUM('all', 'farmers', 'instructors', 'select', 'admin'),
         allowNull: false
     },
-    // If recipient_type is 'select', we store the user ID here
-    // Note: For multiple users in 'select', we might need a separate mapping table, 
-    // but for now let's assume 'select' means single user or we handle multiple by creating multiple records
-    // or storing as JSON array. 
-    // The user input 'select' implies selecting specific users.
-    // The previous frontend code handled 'select' but the backend logic for multiple recipients needs care.
-    // For simplicity given the requirement "Structured data", let's assume we create one record per message broadcast.
-    // If multiple users are selected, the controller will handle creating multiple records or we use a junction table.
-    // Let's stick to simple: One message record per "Send Action".
-    // If 'select' is used with multiple users, we might create multiple rows.
+    // Specific user ID when recipient_type is 'select'
     recipient_id: {
         type: DataTypes.INTEGER,
         allowNull: true
@@ -63,9 +54,18 @@ const Message = sequelize.define('Message', {
         type: DataTypes.STRING(255),
         allowNull: true
     },
+    message_type: {
+        type: DataTypes.ENUM('text', 'file'),
+        defaultValue: 'text',
+        allowNull: false
+    },
     is_read: {
         type: DataTypes.BOOLEAN,
         defaultValue: false
+    },
+    read_at: {
+        type: DataTypes.DATE,
+        allowNull: true
     }
 }, {
     tableName: 'messages',

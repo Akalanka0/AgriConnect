@@ -99,22 +99,3 @@ export {
     InstructorRating
 };
 
-// Export default
-export default {
-    sequelize,
-    User,
-    FarmerDetail,
-    InstructorDetail,
-    GeneratedId,
-    Message,
-    SystemSetting,
-    Pest,
-    Crop,
-    Harvest,
-    Activity,
-    PestReport,
-    HarvestRecord,
-    CropPlan,
-    Meeting,
-    InstructorRating
-};

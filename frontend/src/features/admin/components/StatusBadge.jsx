@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import '../styles/StatusBadge.css';
+import styles from '../styles/StatusBadge.module.css';
 
 /**
  * Reusable Status Badge Component
@@ -12,24 +12,24 @@ import '../styles/StatusBadge.css';
 const StatusBadge = ({ status, type }) => {
     // Determine class based on status if type is not provided
     const getStatusClass = () => {
-        if (type) return `badge-${type}`;
-        
+        if (type) return styles[`badge${type.charAt(0).toUpperCase() + type.slice(1)}`];
+
         const lowerStatus = status.toLowerCase();
-        
-        if (['active', 'verified', 'approved', 'completed'].includes(lowerStatus)) {
-            return 'badge-success';
+
+        if (['active', 'verified', 'approved', 'completed', 'resolved'].includes(lowerStatus)) {
+            return styles.badgeSuccess;
         }
-        if (['pending', 'in_progress', 'review'].includes(lowerStatus)) {
-            return 'badge-warning';
+        if (['pending', 'in_progress', 'review', 'pending review'].includes(lowerStatus)) {
+            return styles.badgeWarning;
         }
-        if (['banned', 'rejected', 'suspended', 'failed', 'blocked', 'using'].includes(lowerStatus)) {
-            return 'badge-danger';
+        if (['banned', 'rejected', 'suspended', 'failed', 'blocked', 'using', 'correction'].includes(lowerStatus)) {
+            return styles.badgeDanger;
         }
-        return 'badge-info';
+        return styles.badgeInfo;
     };
 
     return (
-        <span className={`status-badge ${getStatusClass()}`}>
+        <span className={`${styles.statusBadge} ${getStatusClass()}`}>
             {status}
         </span>
     );

@@ -96,9 +96,15 @@ const User = sequelize.define('User', {
         defaultValue: 'active',
         allowNull: false
     },
-    profile_picture: {
+    avatar: {
         type: DataTypes.STRING(255),
-        allowNull: true
+        allowNull: true,
+        defaultValue: null
+    },
+    profile_picture: {
+        type: DataTypes.STRING(500),
+        allowNull: true,
+        defaultValue: null
     },
     email_verified: {
         type: DataTypes.BOOLEAN,
@@ -117,11 +123,6 @@ const User = sequelize.define('User', {
         type: DataTypes.STRING(255),
         allowNull: true,
         comment: 'Original email for demo accounts (stores actual email before timestamp modification)'
-    },
-    avatar: {
-        type: DataTypes.STRING(255),
-        allowNull: true,
-        defaultValue: null
     }
 }, {
     tableName: 'users',
@@ -145,5 +146,26 @@ const User = sequelize.define('User', {
         }
     ]
 });
+
+// Add virtual fields for generated IDs
+User.prototype.getFarmerId = async function() {
+    if (this.role !== 'farmer') return null;
+    const { FarmerDetail } = await import('./index.js');
+    const farmerDetail = await FarmerDetail.findOne({
+        where: { user_id: this.id },
+        attributes: ['farmer_id']
+    });
+    return farmerDetail ? farmerDetail.farmer_id : null;
+};
+
+User.prototype.getInstructorId = async function() {
+    if (this.role !== 'instructor') return null;
+    const { InstructorDetail } = await import('./index.js');
+    const instructorDetail = await InstructorDetail.findOne({
+        where: { user_id: this.id },
+        attributes: ['instructor_id']
+    });
+    return instructorDetail ? instructorDetail.instructor_id : null;
+};
 
 export default User;

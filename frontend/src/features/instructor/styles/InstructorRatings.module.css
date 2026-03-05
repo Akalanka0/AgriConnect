@@ -1,0 +1,217 @@
+/* InstructorRatings.module.css */
+
+.ratingsLoading,
+.ratingsError,
+.ratingsEmpty {
+    text-align: center;
+    padding: var(--space-xl);
+}
+
+.ratingsLoadingText {
+    color: var(--neutral-600);
+}
+
+.ratingsErrorText {
+    color: var(--state-danger);
+}
+
+.ratingsEmpty {
+    color: var(--neutral-600);
+}
+
+.ratingsEmptyIcon {
+    font-size: 3em;
+    margin-bottom: var(--space-xs);
+}
+
+.ratingsEmptyTitle {
+    font-size: 1.1em;
+    margin-bottom: var(--space-xs);
+}
+
+.ratingsEmptyDesc {
+    font-size: 0.9em;
+}
+
+.ratingsContainer {
+    padding: var(--space-lg);
+}
+
+.ratingsSummaryCard {
+    background: var(--neutral-50);
+    padding: var(--space-lg);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-xl);
+    border: 1px solid var(--neutral-300);
+}
+
+.ratingsHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-md);
+}
+
+.ratingsTitle {
+    margin: 0;
+    color: var(--instructor-primary);
+    font-size: 1.2em;
+}
+
+.ratingsScoreBox {
+    text-align: right;
+}
+
+.ratingsAverage {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: var(--instructor-primary);
+}
+
+.ratingsTotal {
+    font-size: 0.9em;
+    color: var(--neutral-500);
+}
+
+.ratingsDistribution {
+    margin-bottom: var(--space-md);
+}
+
+.ratingsDistRow {
+    display: flex;
+    align-items: center;
+    margin-bottom: var(--space-xs);
+}
+
+.ratingsDistLabel {
+    width: 60px;
+    font-size: 0.9em;
+}
+
+.ratingsDistBarBg {
+    flex: 1;
+    height: 8px;
+    background: var(--neutral-300);
+    border-radius: var(--radius-sm);
+    margin: 0 var(--space-xs);
+    overflow: hidden;
+}
+
+.ratingsDistBarFill {
+    height: 100%;
+    background: var(--state-warning);
+    border-radius: var(--radius-sm);
+    width: var(--rating-percent, 0%);
+}
+
+.ratingsDistCount {
+    width: 30px;
+    text-align: right;
+    font-size: 0.9em;
+}
+
+.ratingsListHeader {
+    margin-bottom: var(--space-md);
+    color: var(--state-success);
+}
+
+.ratingItem {
+    background: var(--neutral-white);
+    border: 1px solid var(--neutral-300);
+    border-radius: var(--radius-sm);
+    padding: var(--space-md);
+    margin-bottom: var(--space-md);
+}
+
+.ratingItemHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--space-xs);
+}
+
+.ratingFarmerName {
+    font-weight: 600;
+    color: var(--neutral-800);
+    margin-bottom: var(--space-xs);
+}
+
+.ratingMeta {
+    font-size: 0.85em;
+    color: var(--neutral-600);
+}
+
+.ratingCommentBox {
+    background: var(--neutral-50);
+    padding: var(--space-sm);
+    border-radius: var(--radius-sm);
+    font-size: 0.95em;
+    color: var(--neutral-600);
+    font-style: italic;
+}
+
+.ratingsPagination {
+    text-align: center;
+    margin-top: var(--space-lg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.ratingsPageBtn {
+    padding: var(--space-xs) var(--space-md);
+    background: var(--instructor-primary);
+    color: var(--neutral-white);
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background-color 0.2s, opacity 0.2s;
+}
+
+.ratingsPageBtn:hover:not(:disabled) {
+    background: var(--instructor-primary-dark);
+}
+
+.ratingsPageBtn:disabled {
+    background: var(--neutral-200);
+    color: var(--neutral-400);
+    cursor: not-allowed;
+}
+
+.ratingsPageInfo {
+    margin: 0 var(--space-md);
+    color: var(--neutral-500);
+}
+
+.starIcon {
+    font-size: 1.2em;
+    margin-right: 2px;
+    color: var(--neutral-300);
+}
+
+.starIcon.filled {
+    color: var(--state-warning);
+}
+
+@media (max-width: 640px) {
+    .ratingsHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-sm);
+    }
+
+    .ratingsScoreBox {
+        text-align: left;
+    }
+
+    .ratingItemHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-xs);
+    }
+
+    .ratingsPagination {
+        flex-wrap: wrap;
+    }
+}

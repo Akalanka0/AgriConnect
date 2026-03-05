@@ -1,0 +1,215 @@
+/* Activities.module.css */
+
+/* Import semantic color system */
+@import url('../../../shared/semantic-colors.css');
+
+.page {
+    padding: var(--space-lg);
+    flex: 1;
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.pageTitle {
+    margin-bottom: var(--space-lg);
+    color: var(--primary-dark);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.pageTitle i {
+    color: var(--primary);
+}
+
+.cardsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--space-md);
+}
+
+.widerCard {
+    grid-column: span 2;
+}
+
+@media (max-width: 992px) {
+    .widerCard {
+        grid-column: span 1;
+    }
+}
+
+/* Form Elements */
+.formGroup {
+    margin-bottom: var(--space-md);
+    width: 100%;
+}
+
+.formGroup label {
+    display: block;
+    margin-bottom: var(--space-xs);
+    font-weight: 500;
+    color: var(--dark);
+}
+
+.formControl {
+    width: 100%;
+    max-width: 100%;
+    padding: var(--space-xs) var(--space-sm);
+    border: 1px solid var(--neutral-300);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 1rem;
+    transition: var(--transition-normal);
+    display: block;
+    background: var(--neutral-white);
+    color: var(--dark);
+}
+
+.formControl:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+textarea.formControl {
+    min-height: 80px;
+    resize: vertical;
+}
+
+/* Activity Items */
+.activitiesList {
+    display: grid;
+    gap: var(--space-md);
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 5px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb-bg) var(--scrollbar-track-bg);
+}
+
+.activitiesList::-webkit-scrollbar {
+    width: var(--scrollbar-width);
+}
+
+.activitiesList::-webkit-scrollbar-track {
+    background: var(--scrollbar-track-bg);
+    border-radius: var(--scrollbar-radius);
+}
+
+.activitiesList::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb-bg);
+    border-radius: var(--scrollbar-radius);
+}
+
+.activitiesList::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+}
+
+.activityItem {
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-md);
+    background: var(--neutral-50);
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--color-primary);
+    border: 1px solid var(--neutral-200);
+    border-left: 4px solid var(--color-primary);
+    transition: box-shadow 0.2s;
+}
+
+.activityItem:hover {
+    box-shadow: var(--shadow-sm);
+}
+
+.activityItemHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-sm);
+}
+
+.activityItemHeader h4 {
+    color: var(--primary-dark);
+    margin: 0;
+}
+
+.activityDetails {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: var(--space-sm);
+}
+
+.activityDetails p {
+    margin: 0;
+    color: var(--neutral-600);
+    font-size: 0.9em;
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+}
+
+.activityBottomRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    margin-top: var(--space-xs);
+}
+
+.activityNotesCol {
+    flex: 1;
+}
+
+.activityNotes {
+    margin: 0;
+    font-size: 0.9em;
+    color: var(--neutral-600);
+}
+
+.activityDate {
+    font-size: 0.82em;
+    color: var(--neutral-500);
+    font-weight: 600;
+    white-space: nowrap;
+    background: var(--neutral-100);
+    padding: 2px var(--space-xs);
+    border-radius: var(--radius-sm);
+}
+
+.activityActions {
+    display: flex;
+    gap: var(--space-xs);
+    flex-shrink: 0;
+}
+
+.activitiesLoading,
+.activitiesEmpty {
+    text-align: center;
+    padding: 40px;
+    color: var(--gray);
+}
+
+@media (max-width: 768px) {
+    .page {
+        padding: var(--space-md);
+    }
+
+    .activityBottomRow {
+        flex-direction: column;
+    }
+
+    .activityActions {
+        justify-content: flex-start;
+    }
+}

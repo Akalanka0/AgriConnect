@@ -5,6 +5,11 @@ import cloudinary from '../../utils/cloudinary.js'; // Import cloudinary for ima
 export const createCrop = async (req, res) => {
     try {
         const { name, description } = req.body;
+
+        if (!name || !name.trim()) {
+            return res.status(400).json({ success: false, error: { message: 'Crop name is required' } });
+        }
+
         let imageUrl = null;
         let imagePublicId = null;
 
@@ -31,16 +36,14 @@ export const createCrop = async (req, res) => {
             return res.status(409).json({
                 success: false,
                 error: {
-                    message: 'Crop with this name already exists.',
-                    details: error.message
+                    message: 'Crop with this name already exists.'
                 }
             });
         }
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to create crop',
-                details: error.message
+                message: 'Failed to create crop'
             }
         });
     }
@@ -80,8 +83,7 @@ export const getCrops = async (req, res) => {
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to fetch crops',
-                details: error.message
+                message: 'Failed to fetch crops'
             }
         });
     }
@@ -110,8 +112,7 @@ export const getCropById = async (req, res) => {
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to fetch crop',
-                details: error.message
+                message: 'Failed to fetch crop'
             }
         });
     }
@@ -168,16 +169,14 @@ export const updateCrop = async (req, res) => {
             return res.status(409).json({
                 success: false,
                 error: {
-                    message: 'Crop with this name already exists.',
-                    details: error.message
+                    message: 'Crop with this name already exists.'
                 }
             });
         }
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to update crop',
-                details: error.message
+                message: 'Failed to update crop'
             }
         });
     }
@@ -213,8 +212,7 @@ export const deleteCrop = async (req, res) => {
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to delete crop',
-                details: error.message
+                message: 'Failed to delete crop'
             }
         });
     }

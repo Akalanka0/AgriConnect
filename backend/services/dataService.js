@@ -1,5 +1,6 @@
-import { CropPlan, PestReport, Activity, HarvestRecord } from '../models/index.js';
+import { CropPlan, PestReport, Activity, HarvestRecord, User, FarmerDetail, InstructorDetail, Meeting } from '../models/index.js';
 import sequelize from '../config/db.js';
+import { Op } from 'sequelize';
 
 /**
  * Shared data service for common agricultural operations
@@ -45,21 +46,21 @@ export class DataService {
             where: { user_id: farmerId },
             limit: 3,
             order: [['created_at', 'DESC']],
-            attributes: ['id', 'pest_type', 'severity', 'status', 'created_at']
+            attributes: ['id', 'type', 'name', 'crop', 'severity', 'status', 'created_at']
         });
 
         const recentActivities = await Activity.findAll({
             where: { user_id: farmerId },
             limit: 3,
             order: [['created_at', 'DESC']],
-            attributes: ['id', 'activity_type', 'description', 'created_at']
+            attributes: ['id', 'type', 'crop', 'date', 'notes', 'location', 'created_at']
         });
 
         const recentHarvests = await HarvestRecord.findAll({
             where: { user_id: farmerId },
             limit: 3,
             order: [['created_at', 'DESC']],
-            attributes: ['id', 'crop_type', 'quantity', 'unit', 'created_at']
+            attributes: ['id', 'crop', 'quantity', 'quality', 'location', 'created_at']
         });
 
         return {
@@ -164,7 +165,7 @@ export class DataService {
         const [cropPlans, pestReports, activities] = await Promise.all([
             CropPlan.findAll({
                 where: {
-                    created_at: { [sequelize.Sequelize.Op.gte]: startDate }
+                    created_at: { [Op.gte]: startDate }
                 },
                 attributes: [
                     [sequelize.fn('DATE', sequelize.col('created_at')), 'date'],
@@ -175,7 +176,7 @@ export class DataService {
             }),
             PestReport.findAll({
                 where: {
-                    created_at: { [sequelize.Sequelize.Op.gte]: startDate }
+                    created_at: { [Op.gte]: startDate }
                 },
                 attributes: [
                     [sequelize.fn('DATE', sequelize.col('created_at')), 'date'],
@@ -186,7 +187,7 @@ export class DataService {
             }),
             Activity.findAll({
                 where: {
-                    created_at: { [sequelize.Sequelize.Op.gte]: startDate }
+                    created_at: { [Op.gte]: startDate }
                 },
                 attributes: [
                     [sequelize.fn('DATE', sequelize.col('created_at')), 'date'],

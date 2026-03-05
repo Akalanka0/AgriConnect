@@ -1,0 +1,294 @@
+/* Settings.module.css */
+
+/* Import semantic color system */
+@import url('../../../shared/semantic-colors.css');
+
+.pageDisplay {
+    display: block;
+}
+
+.settingsContainer {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: var(--space-xl);
+}
+
+.settingsSection {
+    background: var(--neutral-white);
+    padding: var(--space-xl);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.settingsSection:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.settingsSection :global(.form-group) {
+    margin-bottom: var(--space-md);
+}
+
+.settingsSection :global(.form-group label) {
+    display: block;
+    margin-bottom: var(--space-xs);
+}
+
+.settingsSection :global(.form-control) {
+    width: 100%;
+}
+
+.settingsHeader {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--neutral-200);
+}
+
+.settingsHeader i {
+    font-size: 1.5em;
+    color: var(--primary);
+}
+
+.settingsHeader h3 {
+    color: var(--primary-dark);
+    font-weight: 600;
+    margin: 0;
+}
+
+.profileImageContainer {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 2px solid var(--neutral-200);
+    /* Background image and color handled via img tag and classes */
+}
+
+.profileImage {
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-full);
+    object-fit: cover;
+    display: block;
+}
+
+.profileAvatarPlaceholder {
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--primary);
+    color: var(--neutral-white);
+    font-size: 2.5rem;
+    /* Adjust as needed */
+    font-weight: bold;
+}
+
+.loadingOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--modal-overlay-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-full);
+}
+
+.hiddenInput {
+    display: none;
+}
+
+.locationsList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.locationCard {
+    padding: var(--space-md);
+    border: 1px solid var(--neutral-300);
+    border-radius: var(--radius-md);
+    background-color: var(--neutral-50);
+    position: relative;
+}
+
+.locationHeader {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: var(--space-sm);
+}
+
+.locationTitle {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--neutral-800);
+}
+
+.removeButton {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 0.8rem;
+}
+
+.formGroupSmallMargin {
+    margin-bottom: var(--space-sm);
+}
+
+.smallLabel {
+    font-size: 0.9rem;
+}
+
+.formGroupNoMargin {
+    margin-bottom: 0;
+}
+
+.disabledInput {
+    background-color: var(--neutral-200);
+}
+
+.fullWidthButton {
+    margin-top: var(--space-sm);
+    width: 100%;
+}
+
+.dangerText {
+    color: var(--neutral-600);
+    margin-bottom: var(--space-lg);
+}
+
+.profilePicture {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+}
+
+.profilePictureActions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    flex: 1;
+}
+
+.toggleLabel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-md);
+    padding: var(--space-sm);
+    border-radius: var(--radius-md);
+    transition: background-color 0.2s ease;
+}
+
+.toggleLabel:hover {
+    background-color: var(--neutral-50);
+}
+
+.toggleLabel span {
+    font-weight: 500;
+}
+
+.toggleSwitch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+}
+
+.toggleSwitch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggleSlider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--neutral-400);
+    transition: .4s;
+    border-radius: var(--radius-xl);
+}
+
+.toggleSlider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 4px;
+    background-color: var(--neutral-white);
+    transition: .4s;
+    border-radius: var(--radius-full);
+}
+
+.toggleSwitch input:checked+.toggleSlider {
+    background-color: var(--primary);
+}
+
+.toggleSwitch input:checked+.toggleSlider:before {
+    transform: translateX(26px);
+}
+
+.toggleSlider:hover {
+    opacity: 0.9;
+}
+
+.settingsActions {
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+}
+
+.pageTitle {
+    margin-bottom: var(--space-lg);
+    color: var(--primary-dark);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.pageTitle i {
+    color: var(--primary);
+}
+
+@media (max-width: 768px) {
+    .settingsContainer {
+        grid-template-columns: 1fr;
+        gap: var(--space-lg);
+    }
+
+    .settingsSection {
+        padding: var(--space-lg);
+    }
+
+    .profilePicture {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .profilePictureActions {
+        width: 100%;
+    }
+
+    .settingsActions {
+        width: 100%;
+    }
+
+    .settingsActions :global(.btn) {
+        width: 100%;
+    }
+}

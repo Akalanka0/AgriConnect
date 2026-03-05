@@ -1,6 +1,6 @@
 import express from 'express';
 import { authenticate, authorize } from '../../middleware/authMiddleware.js';
-import { upload, uploadToCloudinary } from '../../middleware/uploadMiddleware.js';
+import { upload, uploadToCloudinaryMiddleware } from '../../middleware/uploadMiddleware.js';
 import {
     getDashboardStats,
     getRecentHistory,
@@ -21,12 +21,14 @@ import {
     getReportsData,
     getMyMessages,
     markMessageAsRead,
+    deleteMessage,
     getInstructorRatings,
     getCropCalendars,
     updateCropCalendar,
-    removeCropCalendarImage
+    removeCropCalendarImage,
+    uploadMessageAttachment,
+    sendMessage
 } from './instructor.controller.js';
-import { sendMessage } from '../messages/message.controller.js'; // Use shared message controller
 import { updatePassword } from '../admin/admin.controller.js';
 
 const router = express.Router();
@@ -45,15 +47,15 @@ router.get('/farmers/:id', getFarmerDetails);
 
 // Pest Reports
 router.get('/pest-reports', getPestReports);
-router.patch('/pest-reports/:id/status', upload.single('attachment'), uploadToCloudinary, updatePestReportStatus);
+router.patch('/pest-reports/:id/status', upload.single('attachment'), uploadToCloudinaryMiddleware, updatePestReportStatus);
 
 // Crop Plans
 router.get('/crop-plans', getCropPlans);
-router.patch('/crop-plans/:id/status', upload.single('attachment'), uploadToCloudinary, updateCropPlanStatus);
+router.patch('/crop-plans/:id/status', upload.single('attachment'), uploadToCloudinaryMiddleware, updateCropPlanStatus);
 
 // Crop Calendars (Reference)
 router.get('/crop-calendars', getCropCalendars);
-router.post('/crop-calendars/:id/image', upload.single('image'), uploadToCloudinary, updateCropCalendar);
+router.post('/crop-calendars/:id/image', upload.single('image'), uploadToCloudinaryMiddleware, updateCropCalendar);
 router.delete('/crop-calendars/:id/remove-image', removeCropCalendarImage);
 
 // Meetings/Schedule
@@ -66,7 +68,7 @@ router.get('/taken-divisions', getTakenDivisions);
 router.get('/region-hierarchy', getRegionHierarchy);
 router.put('/profile', updateProfile);
 router.put('/password', updatePassword);
-router.post('/profile/picture', upload.single('profile_picture'), uploadToCloudinary, updateProfilePicture);
+router.post('/profile/picture', upload.single('profile_picture'), uploadToCloudinaryMiddleware, updateProfilePicture);
 router.delete('/profile/picture', removeProfilePicture);
 
 // Ratings
@@ -77,7 +79,8 @@ router.get('/reports', getReportsData);
 
 // Messages
 router.get('/messages', getMyMessages);
-router.post('/messages', upload.single('attachment'), uploadToCloudinary, sendMessage);
+router.post('/messages', uploadMessageAttachment, sendMessage);
 router.patch('/messages/:id/read', markMessageAsRead);
+router.delete('/messages/:id', deleteMessage);
 
 export default router;

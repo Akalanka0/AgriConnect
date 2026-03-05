@@ -1,0 +1,43 @@
+/* StatusBadge.module.css */
+
+/* Import semantic color system */
+@import url('../../../shared/semantic-colors.css');
+
+.statusBadge {
+    padding: var(--space-xs) var(--space-md);
+    border-radius: var(--radius-full);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-transform: capitalize;
+}
+
+.badgeSuccess {
+    background-color: var(--state-success-bg);
+    opacity: 1;
+    color: var(--state-success-hover);
+    border: 1px solid var(--state-success);
+}
+
+.badgeWarning {
+    background-color: var(--state-warning-bg);
+    opacity: 1;
+    color: var(--state-warning-hover);
+    border: 1px solid var(--state-warning);
+}
+
+.badgeDanger {
+    background-color: var(--state-danger-bg);
+    opacity: 1;
+    color: var(--state-danger-hover);
+    border: 1px solid var(--state-danger);
+}
+
+.badgeInfo {
+    background-color: var(--state-info-bg);
+    opacity: 1;
+    color: var(--state-info-hover);
+    border: 1px solid var(--state-info);
+}

@@ -1,6 +1,9 @@
 /**
  * Enhanced API service with response interceptors and advanced error handling
  */
+import { getAccessToken, clearAccessToken } from '@/utils/authStorage';
+import { clearStoredUser } from '@/utils/userStorage';
+
 class EnhancedApiService {
     constructor() {
         this.baseURL = '/api';
@@ -18,7 +21,7 @@ class EnhancedApiService {
     setupDefaultInterceptors() {
         // Request interceptor for auth token
         this.addRequestInterceptor((config) => {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             if (token) {
                 config.headers = {
                     ...config.headers,
@@ -34,8 +37,9 @@ class EnhancedApiService {
             async (error) => {
                 if (error.status === 401) {
                     // Handle token expiration
-                    localStorage.removeItem('token');
-                    window.location.href = '/login';
+                    clearAccessToken();
+                    clearStoredUser();
+                    window.location.replace('/login');
                     throw new Error('Session expired. Please login again.');
                 }
                 throw error;
@@ -192,14 +196,17 @@ class EnhancedApiService {
     }
 
     async upload(url, formData, config = {}) {
+        const builtConfig = this.buildConfig({
+            ...config,
+            method: 'POST',
+            body: formData,
+        });
+        // Remove Content-Type so the browser auto-sets multipart/form-data with the correct boundary
+        delete builtConfig.headers['Content-Type'];
+
         const requestConfig = await this.processRequest({
             url: `${this.baseURL}${url}`,
-            ...this.buildConfig({
-                ...config,
-                method: 'POST',
-                body: formData,
-                headers: { ...config.headers, 'Content-Type': undefined }
-            })
+            ...builtConfig
         });
 
         try {

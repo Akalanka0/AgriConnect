@@ -4,6 +4,11 @@ import { Op } from 'sequelize';
 export const createPest = async (req, res) => {
     try {
         const { name, description } = req.body;
+
+        if (!name || !name.trim()) {
+            return res.status(400).json({ success: false, error: { message: 'Pest name is required' } });
+        }
+
         let imageUrl = null;
         let imagePublicId = null;
 
@@ -30,16 +35,14 @@ export const createPest = async (req, res) => {
             return res.status(409).json({
                 success: false,
                 error: {
-                    message: 'Pest with this name already exists.',
-                    details: error.message
+                    message: 'Pest with this name already exists.'
                 }
             });
         }
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to create pest',
-                details: error.message
+                message: 'Failed to create pest'
             }
         });
     }
@@ -79,8 +82,7 @@ export const getPests = async (req, res) => {
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to fetch pests',
-                details: error.message
+                message: 'Failed to fetch pests'
             }
         });
     }
@@ -109,8 +111,7 @@ export const getPestById = async (req, res) => {
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to fetch pest',
-                details: error.message
+                message: 'Failed to fetch pest'
             }
         });
     }
@@ -167,16 +168,14 @@ export const updatePest = async (req, res) => {
             return res.status(409).json({
                 success: false,
                 error: {
-                    message: 'Pest with this name already exists.',
-                    details: error.message
+                    message: 'Pest with this name already exists.'
                 }
             });
         }
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to update pest',
-                details: error.message
+                message: 'Failed to update pest'
             }
         });
     }
@@ -212,8 +211,7 @@ export const deletePest = async (req, res) => {
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to delete pest',
-                details: error.message
+                message: 'Failed to delete pest'
             }
         });
     }

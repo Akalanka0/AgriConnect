@@ -1,5 +1,6 @@
-import React from 'react';
 import PropTypes from 'prop-types';
+import styles from '../styles/Login.module.css';
+import { useTranslation } from 'react-i18next';
 
 const LoginForm = ({
     loginData,
@@ -13,75 +14,76 @@ const LoginForm = ({
     setShowForgotModal,
     fillCredentials
 }) => {
+    const { t } = useTranslation('auth');
     return (
         <div>
-            <div className="login-header">
-                <h2>Sign In to Your Account</h2>
-                <p>Sign in to continue</p>
+            <div className={styles.loginHeader}>
+                <h2>{t('login.title')}</h2>
+                <p>{t('login.subtitle')}</p>
             </div>
             <form onSubmit={handleLoginSubmit}>
-                <div className={`form-group ${errors.username ? 'error' : ''}`}>
+                <div className={`${styles.formGroup} ${errors.username ? styles.error : ''}`}>
                     <input
                         type="text"
                         value={loginData.username}
                         onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
-                        placeholder="Email or Phone"
+                        placeholder={t('login.emailOrPhone')}
                     />
-                    {errors.username && <div className="validation-message">{errors.username}</div>}
+                    {errors.username && <div className={styles.validationMessage}>{errors.username}</div>}
                 </div>
-                <div className={`form-group ${errors.password ? 'error' : ''}`}>
+                <div className={`${styles.formGroup} ${errors.password ? styles.error : ''}`}>
                     <input
                         type={showPassword.login ? 'text' : 'password'}
                         value={loginData.password}
                         onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                        placeholder="Password"
+                        placeholder={t('login.password')}
                     />
                     <button
                         type="button"
-                        className="password-toggle"
+                        className={styles.passwordToggle}
                         onClick={() => setShowPassword({ ...showPassword, login: !showPassword.login })}
                     >
                         <i className={`fas fa-eye${showPassword.login ? '-slash' : ''}`}></i>
                     </button>
-                    {errors.password && <div className="validation-message">{errors.password}</div>}
+                    {errors.password && <div className={styles.validationMessage}>{errors.password}</div>}
                 </div>
-                <div className="remember-me">
+                <div className={styles.rememberMe}>
                     <input
                         type="checkbox"
                         id="rememberMe"
                         checked={loginData.rememberMe}
                         onChange={(e) => setLoginData({ ...loginData, rememberMe: e.target.checked })}
                     />
-                    <label htmlFor="rememberMe">Remember me</label>
+                    <label htmlFor="rememberMe">{t('login.rememberMe')}</label>
                 </div>
-                <div className="forgot-password">
-                    <a onClick={() => setShowForgotModal(true)}>Forgot password?</a>
+                <div className={styles.forgotPassword}>
+                    <a onClick={() => setShowForgotModal(true)}>{t('login.forgotPassword')}</a>
                 </div>
-                <button type="submit" className="action-btn" disabled={loading}>
-                    <span>{loading ? 'Signing In...' : 'Sign In'}</span>
-                    {loading && <div className="loading"></div>}
+                <button type="submit" className={styles.actionBtn} disabled={loading}>
+                    <span>{loading ? t('login.signingIn') : t('login.signIn')}</span>
+                    {loading && <div className={styles.loading}></div>}
                 </button>
-                <div className="switch-form">
-                    <p>Don&apos;t have an account? <a onClick={() => setIsLogin(false)}>Register now</a></p>
+                <div className={styles.switchForm}>
+                    <p>{t('login.noAccount')} <a onClick={() => setIsLogin(false)}>{t('login.registerNow')}</a></p>
                 </div>
             </form>
-            <div className="demo-accounts">
-                <h3><i className="fas fa-lightbulb"></i> Demo Accounts</h3>
-                <div className="demo-account">
-                    <div><span>Farmer:</span> farmer@example.com / farmer123</div>
-                    <button className="copy-btn" onClick={() => fillCredentials('farmer@example.com', 'farmer123')} title="Auto-fill credentials">
+            <div className={styles.demoAccounts}>
+                <h3><i className="fas fa-lightbulb"></i> {t('demo.title')}</h3>
+                <div className={styles.demoAccount}>
+                    <div><span>{t('demo.farmer')}</span> farmer@example.com / farmer123</div>
+                    <button className={styles.copyBtn} onClick={() => fillCredentials('farmer@example.com', 'farmer123')} title="Auto-fill credentials">
                         <i className="fas fa-user-check"></i>
                     </button>
                 </div>
-                <div className="demo-account">
-                    <div><span>Instructor:</span> instructor@example.com / instructor123</div>
-                    <button className="copy-btn" onClick={() => fillCredentials('instructor@example.com', 'instructor123')} title="Auto-fill credentials">
+                <div className={styles.demoAccount}>
+                    <div><span>{t('demo.instructor')}</span> instructor@example.com / instructor123</div>
+                    <button className={styles.copyBtn} onClick={() => fillCredentials('instructor@example.com', 'instructor123')} title="Auto-fill credentials">
                         <i className="fas fa-user-check"></i>
                     </button>
                 </div>
-                <div className="demo-account">
-                    <div><span>Admin:</span> admin@agriconnect.lk / admin123</div>
-                    <button className="copy-btn" onClick={() => fillCredentials('admin@agriconnect.lk', 'admin123')} title="Auto-fill credentials">
+                <div className={styles.demoAccount}>
+                    <div><span>{t('demo.admin')}</span> admin@agriconnect.lk / admin123</div>
+                    <button className={styles.copyBtn} onClick={() => fillCredentials('admin@agriconnect.lk', 'admin123')} title="Auto-fill credentials">
                         <i className="fas fa-user-check"></i>
                     </button>
                 </div>

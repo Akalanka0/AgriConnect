@@ -1,9 +1,29 @@
 import React, { useEffect, useState, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { useOutletContext } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import styles from '../styles/AdminHome.module.css';
 import StatCard from '../components/StatCard';
-import { useToast } from '../components/Toast';
-import '../styles/AdminDash.css';
+import commonCardStyles from '@/components/common/styles/Card.module.css';
+import commonBtnStyles from '@/components/common/styles/Button.module.css';
+import { adminAPI } from '@/services/adminService';
+
+// Relative time helper
+const timeAgo = (dateStr) => {
+    const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
+    if (diff < 60) return 'Just now';
+    if (diff < 3600) { const m = Math.floor(diff / 60); return `${m} min${m > 1 ? 's' : ''} ago`; }
+    if (diff < 86400) { const h = Math.floor(diff / 3600); return `${h} hour${h > 1 ? 's' : ''} ago`; }
+    if (diff < 604800) { const d = Math.floor(diff / 86400); return `${d} day${d > 1 ? 's' : ''} ago`; }
+    return new Date(dateStr).toLocaleDateString();
+};
+
+const roleConfig = {
+    farmer: { icon: 'fas fa-tractor', color: '#2ecc71' },
+    instructor: { icon: 'fas fa-chalkboard-teacher', color: '#3498db' },
+    admin: { icon: 'fas fa-user-shield', color: '#9b59b6' },
+    'Super Admin': { icon: 'fas fa-user-shield', color: '#9b59b6' },
+};
 
 // Portal Component for Modals
 const ModalPortal = ({ children }) => {
@@ -11,7 +31,8 @@ const ModalPortal = ({ children }) => {
 };
 
 const AdminHome = () => {
-    const { openNotificationsModal } = useOutletContext();
+    const { openNotificationsModal, showToast, refreshMessages } = useOutletContext();
+    const { t } = useTranslation('admin');
     // State for Modals
     const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
     const [modalTitle, setModalTitle] = useState('Send Message');
@@ -27,34 +48,25 @@ const AdminHome = () => {
     const fileInputRef = useRef(null);
 
     // Context and State
-    const { showToast } = useToast();
     const [isSending, setIsSending] = useState(false);
     const [stats, setStats] = useState([
-        { label: 'Total Users', value: 52, icon: 'fas fa-users', color: 'blue' },
-        { label: 'Farmers', value: 44, icon: 'fas fa-tractor', color: 'success' },
-        { label: 'Instructors', value: 7, icon: 'fas fa-chalkboard-teacher', color: 'orange' },
-        { label: 'Admins', value: 5, icon: 'fas fa-user-shield', color: 'purple' }
+        { label: t('home.totalUsers'), value: 0, icon: 'fas fa-users', color: 'blue' },
+        { label: t('home.farmers'), value: 0, icon: 'fas fa-tractor', color: 'success' },
+        { label: t('home.instructors'), value: 0, icon: 'fas fa-chalkboard-teacher', color: 'orange' },
+        { label: t('home.admins'), value: 0, icon: 'fas fa-user-shield', color: 'purple' }
     ]);
-    const [recentActivities, setRecentActivities] = useState([
-        { action: 'User account Sunil Perera removed', time: '2 hours ago', icon: 'fas fa-user-minus', color: '#e74c3c' },
-        { action: 'New division "Anuradhapura North" added', time: '5 hours ago', icon: 'fas fa-plus-circle', color: '#2ecc71' },
-        { action: 'Monthly user activity report generated', time: '1 day ago', icon: 'fas fa-file-pdf', color: '#3498db' },
-        { action: 'System maintenance scheduled for weekend', time: '2 days ago', icon: 'fas fa-calendar-alt', color: '#f39c12' },
-        { action: 'Instructor "Chamara Perera" details updated', time: '3 days ago', icon: 'fas fa-user-edit', color: '#9b59b6' },
-        { action: 'Admin password policy updated', time: '4 days ago', icon: 'fas fa-shield-alt', color: '#34495e' },
-        { action: 'Database backup successfully completed', time: '5 days ago', icon: 'fas fa-database', color: '#1abc9c' }
-    ]);
+    const [recentActivities, setRecentActivities] = useState([]);
     const [loading, setLoading] = useState(true);
 
     // Fetch Users for Selection
     useEffect(() => {
-        if (recipientType === 'select' || recipientType === 'custom') {
+        if (recipientType === 'select') {
             const fetchUsersForSelect = async () => {
                 try {
-                    const response = await fetch('/api/admin/users?limit=50&status=active');
-                    const result = await response.json();
-                    if (result.success) {
-                        setUsersList(result.data);
+                    const result = await adminAPI.getUsers('?limit=50&status=active');
+                    // Ensure the 'success' wrapper isn't breaking 'data'
+                    if (result) {
+                        setUsersList(result.data || result);
                     }
                 } catch (error) {
                     console.error('Error fetching users for selection:', error);
@@ -69,66 +81,53 @@ const AdminHome = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const response = await fetch('/api/admin/stats');
-                const result = await response.json();
+                const response = await adminAPI.getDashboardStats();
 
-                if (result.success) {
-                    const { counts, recentActivity } = result.data;
+                if (response && response.success) {
+                    const { counts, recentActivity } = response.data;
 
                     setStats([
                         {
-                            label: 'Total Users',
+                            label: t('home.totalUsers'),
                             value: counts.totalUsers,
                             icon: 'fas fa-users',
                             color: 'blue'
                         },
                         {
-                            label: 'Farmers',
+                            label: t('home.farmers'),
                             value: counts.farmers,
                             icon: 'fas fa-tractor',
                             color: 'success'
                         },
                         {
-                            label: 'Instructors',
+                            label: t('home.instructors'),
                             value: counts.instructors,
                             icon: 'fas fa-chalkboard-teacher',
                             color: 'orange'
                         },
                         {
-                            label: 'Admins',
+                            label: t('home.admins'),
                             value: counts.admins,
                             icon: 'fas fa-user-shield',
                             color: 'purple'
                         }
                     ]);
 
-                    // Transform recent activity for display
-                    const transformedActivity = recentActivity.map((activity, index) => {
-                        // Mix of different activity types based on the data
-                        if (index % 3 === 0) {
+                    // Transform recent activity using real data
+                    if (recentActivity) {
+                        const transformedActivity = recentActivity.map((activity) => {
+                            const role = activity.role || 'user';
+                            const cfg = roleConfig[role] || { icon: 'fas fa-user', color: '#95a5a6' };
+                            const roleName = role.charAt(0).toUpperCase() + role.slice(1);
                             return {
-                                action: `User ${activity.full_name} (${activity.role}) account verified`,
-                                time: 'Just now',
-                                icon: 'fas fa-check-circle',
-                                color: '#2ecc71'
+                                action: `New ${roleName} "${activity.full_name}" registered`,
+                                time: timeAgo(activity.created_at),
+                                icon: cfg.icon,
+                                color: cfg.color
                             };
-                        } else if (index % 3 === 1) {
-                            return {
-                                action: `System report for ${activity.full_name} generated`,
-                                time: '1 hour ago',
-                                icon: 'fas fa-file-alt',
-                                color: '#3498db'
-                            };
-                        } else {
-                            return {
-                                action: `Access permissions updated for ${activity.full_name}`,
-                                time: '2 hours ago',
-                                icon: 'fas fa-user-shield',
-                                color: '#f39c12'
-                            };
-                        }
-                    });
-                    setRecentActivities(transformedActivity);
+                        });
+                        setRecentActivities(transformedActivity);
+                    }
                 }
             } catch (error) {
                 console.error('Failed to fetch dashboard stats:', error);
@@ -147,18 +146,18 @@ const AdminHome = () => {
     const openMessageModal = (type) => {
         setRecipientType(type);
         if (type === 'farmers') {
-            setModalTitle('Send Message to Farmers');
+            setModalTitle(t('home.msgToFarmers'));
             setShowUserSelection(false);
         } else if (type === 'instructors') {
-            setModalTitle('Send Message to Instructors');
+            setModalTitle(t('home.msgToInstructors'));
             setShowUserSelection(false);
         } else if (type === 'custom') {
             setRecipientType('select');
-            setModalTitle('Send Custom Message');
+            setModalTitle(t('home.msgCustom'));
             setShowUserSelection(true);
         } else {
             setRecipientType('all');
-            setModalTitle('Send Message');
+            setModalTitle(t('home.msgTitle'));
             setShowUserSelection(false);
         }
         setIsMessageModalOpen(true);
@@ -189,9 +188,28 @@ const AdminHome = () => {
         setShowUserSelection(type === 'select');
     };
 
+    const ALLOWED_ATTACHMENT_TYPES = [
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/plain'
+    ];
+    const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10 MB (matches UI label)
+
     const handleFileSelect = (e) => {
         const file = e.target.files[0];
         if (file) {
+            if (file.size > MAX_ATTACHMENT_SIZE) {
+                showToast('File size exceeds the 10 MB limit', 'warning');
+                if (fileInputRef.current) fileInputRef.current.value = '';
+                return;
+            }
+            if (!ALLOWED_ATTACHMENT_TYPES.includes(file.type)) {
+                showToast('File type not allowed. Use JPG, PNG, GIF, WEBP, PDF, DOC, DOCX, or TXT', 'warning');
+                if (fileInputRef.current) fileInputRef.current.value = '';
+                return;
+            }
             setAttachment(file);
         }
     };
@@ -231,26 +249,19 @@ const AdminHome = () => {
                 formData.append('attachment', attachment);
             }
 
-            const response = await fetch('/api/admin/messages/send', {
-                method: 'POST',
-                headers: {
-                    // Content-Type is set automatically for FormData
-                    'Authorization': `Bearer ${localStorage.getItem('token')}` // Ensure auth
-                },
-                body: formData
-            });
+            const result = await adminAPI.sendMessage(formData);
 
-            const result = await response.json();
-
-            if (result.success) {
-                showToast('Message sent successfully!', 'success');
+            if (result && (result.success || result.message)) {
+                showToast(t('home.msgSentSuccess'), 'success');
                 closeMessageModal();
+                // Refresh messages so the sent message appears in the Sent tab
+                if (refreshMessages) refreshMessages();
             } else {
-                showToast(result.error.message || 'Failed to send message', 'error');
+                showToast(result.error?.message || 'Failed to send message', 'error');
             }
         } catch (error) {
             console.error('Send message error:', error);
-            showToast('Failed to send message', 'error');
+            showToast(error.message || 'Failed to send message', 'error');
         } finally {
             setIsSending(false);
         }
@@ -258,28 +269,28 @@ const AdminHome = () => {
 
     if (loading) {
         return (
-            <div className="page active" id="home">
-                <div className="page-title">
+            <div className={`${styles.page} ${styles.active}`}>
+                <div className={styles.pageTitle}>
                     <i className="fas fa-home"></i>
-                    <h2>Home</h2>
+                    <h2>{t('home.title')}</h2>
                 </div>
-                <div className="no-results-container">
-                    <i className="fas fa-spinner fa-spin no-results-icon"></i>
-                    <p>Loading dashboard data...</p>
+                <div className={styles.noResultsContainer}>
+                    <i className={`fas fa-spinner fa-spin ${styles.noResultsIcon}`}></i>
+                    <p>{t('home.loading')}</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="page active" id="home">
-            <div className="page-title">
+        <div className={`${styles.page} ${styles.active}`}>
+            <div className={styles.pageTitle}>
                 <i className="fas fa-home"></i>
-                <h2>Home</h2>
+                <h2>{t('home.title')}</h2>
             </div>
 
             {/* Stats Grid */}
-            <div className="dashboard-stats">
+            <div className={styles.dashboardStats}>
                 {stats.map((stat, index) => (
                     <StatCard
                         key={index}
@@ -293,20 +304,20 @@ const AdminHome = () => {
                 ))}
             </div>
 
-            <div className="cards-grid">
+            <div className={styles.cardsGrid}>
                 {/* Recent Activities */}
-                <div className="card">
-                    <div className="card-header">
-                        <div className="card-title">Recent Activities</div>
-                        <div className="card-icon"><i className="fas fa-history"></i></div>
+                <div className={commonCardStyles.card}>
+                    <div className={styles.cardHeader}>
+                        <div className={styles.cardTitle}>{t('home.recentActivities')}</div>
+                        <div className={styles.cardIcon}><i className="fas fa-clock-rotate-left"></i></div>
                     </div>
-                    <div className="card-content">
-                        <ul className="card-list activities-list">
+                    <div className={commonCardStyles.cardContent}>
+                        <ul className={`${styles.cardList} ${styles.activitiesList}`}>
                             {recentActivities.map((activity, index) => (
                                 <li key={index}>
-                                    <div className="activity-content">
-                                        <div className="activity-text">{activity.action}</div>
-                                        <div className="activity-time">{activity.time}</div>
+                                    <div className={styles.activityContent}>
+                                        <div className={styles.activityText}>{activity.action}</div>
+                                        <div className={styles.activityTime}>{activity.time}</div>
                                     </div>
                                 </li>
                             ))}
@@ -315,49 +326,49 @@ const AdminHome = () => {
                 </div>
 
                 {/* Quick Actions */}
-                <div className="card">
-                    <div className="card-header">
-                        <div className="card-title">Quick Actions</div>
-                        <div className="card-icon"><i className="fas fa-bolt"></i></div>
+                <div className={commonCardStyles.card}>
+                    <div className={styles.cardHeader}>
+                        <div className={styles.cardTitle}>{t('home.quickActions')}</div>
+                        <div className={styles.cardIcon}><i className="fas fa-bolt"></i></div>
                     </div>
-                    <div className="card-content">
-                        <div className="quick-actions-grid">
-                            <div className="quick-action-item" onClick={openNotifications}>
+                    <div className={commonCardStyles.cardContent}>
+                        <div className={styles.quickActionsGrid}>
+                            <div className={styles.quickActionItem} onClick={openNotifications}>
                                 <i className="fas fa-bell"></i>
-                                <span>View Notifications</span>
+                                <span>{t('home.viewNotifications')}</span>
                             </div>
-                            <div className="quick-action-item" onClick={() => openMessageModal('all')}>
+                            <div className={styles.quickActionItem} onClick={() => openMessageModal('all')}>
                                 <i className="fas fa-envelope"></i>
-                                <span>Send Message to All</span>
+                                <span>{t('home.sendToAll')}</span>
                             </div>
-                            <div className="quick-action-item" onClick={() => openMessageModal('farmers')}>
+                            <div className={styles.quickActionItem} onClick={() => openMessageModal('farmers')}>
                                 <i className="fas fa-user-friends"></i>
-                                <span>Send to Farmers</span>
+                                <span>{t('home.sendToFarmers')}</span>
                             </div>
-                            <div className="quick-action-item" onClick={() => openMessageModal('instructors')}>
+                            <div className={styles.quickActionItem} onClick={() => openMessageModal('instructors')}>
                                 <i className="fas fa-chalkboard-teacher"></i>
-                                <span>Send to Instructors</span>
+                                <span>{t('home.sendToInstructors')}</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Send Message Card */}
-                <div className="card card-send-message" onClick={() => openMessageModal('all')}>
-                    <div className="card-header">
-                        <div className="card-title">Send Message</div>
-                        <div className="card-icon"><i className="fas fa-comment-alt"></i></div>
+                <div className={`${commonCardStyles.card} ${styles.cardSendMessage}`} onClick={() => openMessageModal('all')}>
+                    <div className={styles.cardHeader}>
+                        <div className={styles.cardTitle}>{t('home.sendMessage')}</div>
+                        <div className={styles.cardIcon}><i className="fas fa-message"></i></div>
                     </div>
-                    <div className="card-content send-message-wrapper">
-                        <div className="send-message-content">
-                            <div className="send-message-icon">
+                    <div className={`${commonCardStyles.cardContent} ${styles.sendMessageWrapper}`}>
+                        <div className={styles.sendMessageContent}>
+                            <div className={styles.sendMessageIcon}>
                                 <i className="fas fa-paper-plane"></i>
                             </div>
-                            <div className="send-message-title">
-                                Send Message
+                            <div className={styles.sendMessageTitle}>
+                                {t('home.sendMessage')}
                             </div>
-                            <div className="send-message-desc">
-                                Click to compose and send messages to farmers and instructors
+                            <div className={styles.sendMessageDesc}>
+                                {t('home.sendMessageDesc')}
                             </div>
                         </div>
                     </div>
@@ -367,37 +378,37 @@ const AdminHome = () => {
             {/* Message Modal */}
             {isMessageModalOpen && (
                 <ModalPortal>
-                    <div className="admin-modal active" id="messageModal">
-                        <div className="admin-modal-content">
-                            <div className="admin-modal-header">
-                                <div className="admin-modal-title">{modalTitle}</div>
-                                <button className="admin-modal-close-round" onClick={closeMessageModal}>
-                                    <i className="fas fa-times"></i>
+                    <div className={`${styles.modalOverlay} ${styles.active}`}>
+                        <div className={styles.modal}>
+                            <div className={styles.modalHeader}>
+                                <div className={styles.modalTitle}>{modalTitle}</div>
+                                <button className={styles.modalCloseRound} onClick={closeMessageModal}>
+                                    <i className="fas fa-xmark"></i>
                                 </button>
                             </div>
-                            <div className="admin-modal-body">
-                                <div className="admin-form-group">
-                                    <label htmlFor="recipientType">Send to:</label>
+                            <div className={styles.modalBody}>
+                                <div className={styles.formGroup}>
+                                    <label htmlFor="recipientType">{t('home.msgSendTo')}</label>
                                     <select
                                         id="recipientType"
-                                        className="admin-form-control"
+                                        className={styles.formControl}
                                         value={recipientType}
                                         onChange={handleRecipientChange}
                                     >
-                                        <option value="all">All Users ({stats.find(s => s.label === 'Total Users')?.value || 0})</option>
-                                        <option value="farmers">All Farmers ({stats.find(s => s.label === 'Farmers')?.value || 0})</option>
-                                        <option value="instructors">All Instructors ({stats.find(s => s.label === 'Instructors')?.value || 0})</option>
-                                        <option value="select">Select Users</option>
+                                        <option value="all">{t('home.msgAllUsers')} ({stats.find(s => s.label === t('home.totalUsers'))?.value || 0})</option>
+                                        <option value="farmers">{t('home.msgAllFarmers')} ({stats.find(s => s.label === t('home.farmers'))?.value || 0})</option>
+                                        <option value="instructors">{t('home.msgAllInstructors')} ({stats.find(s => s.label === t('home.instructors'))?.value || 0})</option>
+                                        <option value="select">{t('home.msgSelectUsers')}</option>
                                     </select>
                                 </div>
 
                                 {showUserSelection && (
-                                    <div className="admin-form-group" id="userSelectionModal">
-                                        <label>Select Users:</label>
-                                        <div className="user-selection-container custom-scrollbar">
+                                    <div className={styles.formGroup}>
+                                        <label>{t('home.msgSelectUsersLabel')}</label>
+                                        <div className={styles.userSelectionContainer}>
                                             {usersList.length > 0 ? (
                                                 usersList.map(user => (
-                                                    <label key={user.id} className="user-checkbox-item">
+                                                    <label key={user.id} className={styles.userCheckboxItem}>
                                                         <input
                                                             type="checkbox"
                                                             value={user.id}
@@ -408,75 +419,75 @@ const AdminHome = () => {
                                                     </label>
                                                 ))
                                             ) : (
-                                                <p style={{ padding: '10px', color: '#666' }}>Loading users...</p>
+                                                <p>{t('home.msgLoadingUsers')}</p>
                                             )}
                                         </div>
                                     </div>
                                 )}
 
-                                <div className="admin-form-group">
-                                    <label htmlFor="messageSubject">Subject:</label>
+                                <div className={styles.formGroup}>
+                                    <label htmlFor="messageSubject">{t('home.msgSubject')}</label>
                                     <input
                                         type="text"
                                         id="messageSubject"
-                                        className="admin-form-control"
-                                        placeholder="Enter message subject"
+                                        className={styles.formControl}
+                                        placeholder={t('home.msgSubjectPlaceholder')}
                                         value={messageSubject}
                                         onChange={(e) => setMessageSubject(e.target.value)}
                                     />
                                 </div>
 
-                                <div className="admin-form-group">
-                                    <label htmlFor="messageText">Message:</label>
+                                <div className={styles.formGroup}>
+                                    <label htmlFor="messageText">{t('home.msgMessage')}</label>
                                     <textarea
                                         id="messageText"
-                                        className="admin-form-control"
+                                        className={styles.formControl}
                                         rows="6"
-                                        placeholder="Type your message here..."
+                                        placeholder={t('home.msgMessagePlaceholder')}
                                         value={messageText}
                                         onChange={(e) => setMessageText(e.target.value)}
                                     ></textarea>
                                 </div>
 
-                                <div className="admin-form-group">
-                                    <label>Attachment:</label>
+                                <div className={styles.formGroup}>
+                                    <label>{t('home.msgAttachment')}</label>
                                     <div
-                                        className="file-upload-zone"
+                                        className={styles.fileUploadZone}
                                         onClick={() => fileInputRef.current.click()}
                                     >
-                                        <div className="upload-icon-wrapper">
-                                            <i className="fas fa-cloud-upload-alt"></i>
+                                        <div className={styles.uploadIconWrapper}>
+                                            <i className="fas fa-cloud-arrow-up"></i>
                                         </div>
-                                        <div className="upload-text-primary">Click to upload file or drag and drop</div>
-                                        <div className="upload-text-secondary">Maximum file size: 10MB</div>
+                                        <div className={styles.uploadTextPrimary}>{t('home.uploadText')}</div>
+                                        <div className={styles.uploadTextSecondary}>{t('home.uploadSizeInfo')}</div>
                                         <input
                                             type="file"
                                             id="fileAttachment"
-                                            style={{ display: 'none' }}
+                                            className={styles.hiddenFileInput}
                                             ref={fileInputRef}
                                             onChange={handleFileSelect}
                                         />
                                     </div>
                                     {attachment && (
-                                        <div className="file-info-card">
-                                            <div className="file-icon">
+                                        <div className={styles.fileInfoCard}>
+                                            <div className={styles.fileIcon}>
                                                 <i className="fas fa-file"></i>
                                             </div>
-                                            <span className="file-name">{attachment.name}</span>
-                                            <button type="button" className="btn-remove-file" onClick={removeAttachment}>
-                                                <i className="fas fa-times"></i>
+                                            <span className={styles.fileName}>{attachment.name}</span>
+                                            <button type="button" className={styles.btnRemoveFile} onClick={removeAttachment}>
+                                                <i className="fas fa-xmark"></i>
                                             </button>
                                         </div>
                                     )}
                                 </div>
 
-                                <div className="admin-modal-footer">
-                                    <button className="btn btn-secondary" onClick={closeMessageModal} disabled={isSending}>Cancel</button>
-                                    <button className="btn btn-send" onClick={sendMessage} disabled={isSending}>
+                                <div className={styles.modalFooter}>
+                                    <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSecondary}`} onClick={closeMessageModal} disabled={isSending}>{t('home.msgCancel')}</button>
+                                    <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnPrimary}`} onClick={sendMessage} disabled={isSending}>
                                         {isSending ? (
-                                            <><i className="fas fa-spinner fa-spin"></i> Sending...</>
+                                            <><i className="fas fa-spinner fa-spin"></i> {t('home.msgSending')}</>
                                         ) : (
-                                            <><i className="fas fa-paper-plane"></i> Send Message</>
+                                            <><i className="fas fa-paper-plane"></i> {t('home.msgSend')}</>
                                         )}
                                     </button>
                                 </div>
@@ -485,8 +496,6 @@ const AdminHome = () => {
                     </div>
                 </ModalPortal>
             )}
-
-
         </div>
     );
 };

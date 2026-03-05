@@ -1,0 +1,302 @@
+/* MessageModal.module.css - Scoped styles for the Farmer Message Modal */
+
+/* Import semantic color system */
+@import url('../../../shared/semantic-colors.css');
+
+.modalOverlay {
+    --color-primary: var(--farmer-primary);
+    --color-primary-hover: var(--farmer-primary-dark);
+    --color-primary-light: var(--farmer-primary-light);
+    --color-text: var(--farmer-text);
+    --color-text-muted: var(--farmer-text-muted);
+    --input-bg: var(--neutral-white);
+    --input-border: var(--neutral-300);
+    --input-border-focus: var(--farmer-primary-light);
+    --input-text: var(--farmer-text);
+    --btn-primary-bg: var(--farmer-primary);
+    --btn-primary-text: var(--neutral-white);
+    --btn-danger-bg: var(--state-danger);
+    --btn-danger-text: var(--neutral-white);
+    --scrollbar-width: var(--space-sm);
+    --scrollbar-track-bg: var(--neutral-100);
+    --scrollbar-thumb-bg: var(--neutral-400);
+    --scrollbar-thumb-hover: var(--neutral-500);
+    --scrollbar-radius: var(--radius-full);
+
+    background: var(--modal-overlay-bg);
+    backdrop-filter: blur(15px) saturate(180%);
+    -webkit-backdrop-filter: blur(15px) saturate(180%);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9000;
+    opacity: 1;
+    visibility: visible;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-md);
+}
+
+.modalContent {
+    background: var(--modal-bg);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid var(--modal-border);
+    box-shadow: var(--modal-shadow);
+    margin: auto;
+    position: relative;
+    border-radius: var(--radius-lg);
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.modalHeader {
+    padding: var(--space-lg);
+    border-bottom: 1px solid var(--neutral-200);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--neutral-50);
+}
+
+.modalTitle {
+    font-size: var(--text-xl);
+    font-weight: 600;
+    color: var(--color-primary-hover);
+}
+
+.modalCloseRound {
+    background: var(--neutral-100);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--neutral-600);
+    font-size: 0.9rem;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: var(--transition-normal);
+}
+
+.modalCloseRound:hover {
+    background: var(--state-danger);
+    color: var(--neutral-white);
+}
+
+.modalBody {
+    padding: var(--space-lg);
+    flex: 1;
+    overflow-y: auto;
+}
+
+.formGroup {
+    margin-bottom: var(--space-md);
+}
+
+.formGroup label {
+    display: block;
+    margin-bottom: var(--space-sm);
+    font-weight: 500;
+    color: var(--color-text);
+}
+
+.formControl {
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--input-text);
+    display: block;
+    width: 100%;
+    padding: var(--space-sm);
+    border-radius: var(--radius-md);
+}
+
+.formControl:focus {
+    border-color: var(--input-border-focus);
+    box-shadow: 0 0 0 3px var(--input-border-focus);
+    outline: none;
+}
+
+.fileUploadZone {
+    border: 2px dashed var(--neutral-300);
+    border-radius: var(--radius-md);
+    padding: var(--space-2xl) var(--space-lg);
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition-normal);
+    background: var(--neutral-50);
+}
+
+.fileUploadZone:hover {
+    border-color: var(--color-primary);
+    background: var(--neutral-100);
+}
+
+.uploadIconWrapper {
+    font-size: 2.5em;
+    color: var(--neutral-400);
+    margin-bottom: var(--space-md);
+    transition: color 0.3s;
+}
+
+.fileUploadZone:hover .uploadIconWrapper {
+    color: var(--color-primary);
+}
+
+.uploadTextPrimary {
+    font-weight: 500;
+    color: var(--color-text);
+    margin-bottom: var(--space-xs);
+}
+
+.uploadTextSecondary {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+}
+
+.fileInfoCard {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-lg);
+    background: var(--neutral-50);
+    border: 1px solid var(--state-success);
+    border-radius: var(--radius-sm);
+    margin-top: var(--space-md);
+    min-height: 80px;
+}
+
+.fileIcon {
+    font-size: 1.5em;
+    color: var(--color-primary);
+}
+
+.fileDetails {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.fileName {
+    font-weight: 600;
+    color: var(--color-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fileSize {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+}
+
+.filePreview {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.filePreviewImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.btnRemoveFile {
+    background: var(--btn-danger-bg);
+    border: none;
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--btn-danger-text);
+    transition: var(--transition-fast);
+}
+
+.btnRemoveFile:hover {
+    filter: brightness(0.95);
+}
+
+.modalFooter {
+    padding: var(--space-lg);
+    border-top: 1px solid var(--neutral-200);
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-sm);
+    background: var(--neutral-50);
+    z-index: 9002;
+}
+
+.fileInputHidden {
+    display: none;
+}
+
+.btnSend {
+    background: linear-gradient(135deg, var(--btn-primary-bg), var(--color-primary-hover));
+    box-shadow: var(--shadow-md);
+    color: var(--btn-primary-text);
+}
+
+.btnSend:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    filter: brightness(1.1);
+}
+
+.customScrollbar::-webkit-scrollbar {
+    width: var(--scrollbar-width);
+}
+
+.customScrollbar::-webkit-scrollbar-track {
+    background: var(--scrollbar-track-bg);
+    border-radius: var(--scrollbar-radius);
+}
+
+.customScrollbar::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb-bg);
+    border-radius: var(--scrollbar-radius);
+}
+
+.customScrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+}
+
+@media (max-width: 768px) {
+    .modalOverlay {
+        padding: var(--space-sm);
+    }
+
+    .modalContent {
+        width: 100%;
+        max-height: 95vh;
+    }
+
+    .modalHeader,
+    .modalBody,
+    .modalFooter {
+        padding: var(--space-md);
+    }
+
+    .modalFooter {
+        flex-direction: column-reverse;
+    }
+
+    .modalFooter :global(.btn) {
+        width: 100%;
+    }
+}

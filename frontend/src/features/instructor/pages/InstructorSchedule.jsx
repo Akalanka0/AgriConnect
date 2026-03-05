@@ -1,9 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import InstructorCalendar from '../components/InstructorCalendar';
+import styles from '../styles/InstructorSchedule.module.css';
+import commonCardStyles from '@/components/common/styles/Card.module.css';
+import commonBtnStyles from '@/components/common/styles/Button.module.css';
+import { getAccessToken } from '@/utils/authStorage';
+import { sanitizeExternalUrl } from '@/utils/urlSafety';
 
 const InstructorSchedule = () => {
     const { showToast } = useOutletContext();
+    const { t } = useTranslation('instructor');
     const [meetings, setMeetings] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isActionLoading, setIsActionLoading] = useState(null); // track which meeting is being updated
@@ -13,11 +20,13 @@ const InstructorSchedule = () => {
     const [activeMeetingId, setActiveMeetingId] = useState(null);
     const [cancellingMeetingId, setCancellingMeetingId] = useState(null);
     const [cancelReason, setCancelReason] = useState('');
+    const [decliningMeetingId, setDecliningMeetingId] = useState(null);
+    const [declineReason, setDeclineReason] = useState('');
 
     // Load meetings from API
     const fetchMeetings = useCallback(async () => {
         try {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             const response = await fetch('/api/instructor/meetings', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -29,7 +38,7 @@ const InstructorSchedule = () => {
             }
         } catch (error) {
             console.error('Error fetching meetings:', error);
-            showToast('An error occurred while fetching meetings', 'error');
+            showToast(t('schedule.fetchError'), 'error');
         } finally {
             setIsLoading(false);
         }
@@ -45,7 +54,7 @@ const InstructorSchedule = () => {
     const updateMeeting = async (meetingId, updateData) => {
         setIsActionLoading(meetingId);
         try {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             const response = await fetch(`/api/instructor/meetings/${meetingId}/status`, {
                 method: 'PATCH',
                 headers: {
@@ -66,7 +75,7 @@ const InstructorSchedule = () => {
             }
         } catch (error) {
             console.error('Error updating meeting:', error);
-            showToast('An error occurred while updating meeting', 'error');
+            showToast(t('schedule.updateError'), 'error');
             return false;
         } finally {
             setIsActionLoading(null);
@@ -75,7 +84,7 @@ const InstructorSchedule = () => {
 
     const handleAccept = async (meetingId) => {
         if (!zoomLink) {
-            showToast('Please provide a Zoom link', 'error');
+            showToast(t('schedule.zoomRequired'), 'error');
             return;
         }
 
@@ -98,17 +107,17 @@ const InstructorSchedule = () => {
         const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
         if (!rescheduleData.date || !rescheduleData.time) {
-            showToast('Please provide date and time', 'error');
+            showToast(t('schedule.dateTimeRequired'), 'error');
             return;
         }
 
         if (rescheduleData.date < currentTodayStr) {
-            showToast('Cannot suggest a past date', 'error');
+            showToast(t('schedule.pastDateError'), 'error');
             return;
         }
 
         if (rescheduleData.date === currentTodayStr && rescheduleData.time < currentTime) {
-            showToast('Cannot suggest a past time for today', 'error');
+            showToast(t('schedule.pastTimeError'), 'error');
             return;
         }
 
@@ -126,14 +135,26 @@ const InstructorSchedule = () => {
         }
     };
 
+    const handleDeclineClick = (meetingId) => {
+        setDecliningMeetingId(meetingId);
+        setDeclineReason('');
+    };
+
     const handleDecline = async (meetingId) => {
+        if (!declineReason.trim()) {
+            showToast(t('schedule.declineReasonMissing'), 'error');
+            return;
+        }
+
         const success = await updateMeeting(meetingId, {
             status: 'declined',
-            instructorNote
+            cancelReason: declineReason,
+            instructorNote: declineReason
         });
 
         if (success) {
-            setInstructorNote('');
+            setDeclineReason('');
+            setDecliningMeetingId(null);
             setActiveMeetingId(null);
         }
     };
@@ -145,7 +166,7 @@ const InstructorSchedule = () => {
 
     const confirmCancel = async (meetingId) => {
         if (!cancelReason.trim()) {
-            showToast('Please provide a reason for cancellation', 'error');
+            showToast(t('schedule.cancelReasonMissing'), 'error');
             return;
         }
 
@@ -160,184 +181,216 @@ const InstructorSchedule = () => {
         }
     };
 
+    // Farmer Meeting Requests: oldest pending first (FIFO)
+    // Pending first (FIFO - oldest request first), then cancelled (most recently cancelled first)
+    const pendingMeetings = [
+        ...[...meetings.filter(m => m.status === 'pending')]
+            .sort((a, b) => new Date(b.createdAt || b.meetingDate) - new Date(a.createdAt || a.meetingDate)),
+        ...[...meetings.filter(m => m.status === 'cancelled')]
+            .sort((a, b) => new Date(b.updatedAt || b.meetingDate) - new Date(a.updatedAt || a.meetingDate))
+    ];
+
+    // Awaiting Farmer Response: most recently rescheduled first
+    const rescheduleMeetings = [...meetings.filter(m => m.status === 'reschedule')]
+        .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+
+    // Confirmed Appointments: accepted only, soonest first
+    const confirmedMeetings = [...meetings.filter(m => m.status === 'accepted')]
+        .sort((a, b) => new Date(a.meetingDate + 'T' + (a.meetingTime || '00:00')) - new Date(b.meetingDate + 'T' + (b.meetingTime || '00:00')));
+
     return (
         <>
-            <div style={{ display: 'block' }}>
-                <div className="left-column">
+            <div className={styles.mainContainer}>
+                <div className={styles.leftColumn}>
                     <InstructorCalendar meetings={meetings} />
-                    
+
                     {/* Farmer Meeting Requests Section */}
-                    <div className="card" style={{ marginBottom: '24px', borderTop: '4px solid #3b82f6' }}>
-                        <div className="card-header" style={{ padding: '20px 24px' }}>
-                            <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '1.1rem' }}>
-                                <i className="fas fa-inbox" style={{ color: '#3b82f6' }}></i> 
-                                Farmer Meeting Requests
+                    <div className={`${commonCardStyles.card} ${styles.meetingRequestsCard}`}>
+                        <div className={`${commonCardStyles.cardHeader} ${styles.cardHeaderPadding}`}>
+                            <div className={`${commonCardStyles.cardTitle} ${styles.cardTitleWithIcon}`}>
+                                <i className={`fas fa-inbox ${styles.inboxIcon}`}></i>
+                                {t('schedule.farmerRequests')}
                             </div>
                         </div>
-                        <div className="card-content" style={{ padding: '0' }}>
-                            {meetings.filter(m => m.status === 'pending' || m.status === 'reschedule').length === 0 ? (
-                                <div style={{ textAlign: 'center', padding: '60px 20px', color: '#94a3b8' }}>
-                                    <i className="fas fa-envelope-open" style={{ fontSize: '3.5em', marginBottom: '16px', opacity: 0.15 }}></i>
-                                    <p style={{ fontSize: '1.1rem', fontWeight: '500' }}>No pending requests</p>
-                                    <p style={{ fontSize: '0.9rem' }}>You're all caught up with your meetings!</p>
+                        <div className={`${commonCardStyles.cardContent} ${styles.cardContentNoPadding}`}>
+                            {pendingMeetings.length === 0 ? (
+                                <div className={styles.emptyStateContainer}>
+                                    <i className={`fas fa-envelope-open ${styles.envelopeIcon}`}></i>
+                                    <p className={styles.emptyStateTitle}>{t('schedule.noPendingRequests')}</p>
+                                    <p className={styles.emptyStateSubtitle}>{t('schedule.allCaughtUp')}</p>
                                 </div>
                             ) : (
-                                <div className="table-responsive">
-                                    <table className="table">
+                                <div className={styles.tableResponsive}>
+                                    <table className={styles.table}>
                                         <thead>
                                             <tr>
-                                                <th style={{ padding: '16px 24px' }}>Title</th>
-                                                <th>Division</th>
-                                                <th>Meeting Time</th>
-                                                <th>Status</th>
-                                                <th style={{ padding: '16px 24px' }}>Action</th>
+                                                <th className={styles.tableHeaderPadding}>{t('schedule.colTitle')}</th>
+                                                <th className={styles.tableHeaderPadding}>{t('schedule.colDivision')}</th>
+                                                <th className={styles.tableHeaderPadding}>{t('schedule.colMeetingTime')}</th>
+                                                <th className={styles.tableHeaderPadding}>{t('schedule.colStatus')}</th>
+                                                <th className={`${styles.tableHeaderPadding} ${styles.thCenter}`}>{t('schedule.colAction')}</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {meetings.filter(m => m.status === 'pending' || m.status === 'reschedule').map(meeting => (
+                                            {pendingMeetings.map(meeting => (
                                                 <React.Fragment key={meeting.id}>
-                                                    <tr className="request-item-hover">
-                                                        <td style={{ padding: '20px 24px' }}>
-                                                            <div style={{ fontWeight: '700', color: '#1e293b', marginBottom: '4px' }}>{meeting.meetingTitle}</div>
-                                                            <div style={{ fontSize: '0.85rem', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                                                <span style={{ display: 'flex', alignItems: 'center' }}>
-                                                                    <i className="fas fa-user" style={{ marginRight: '6px', fontSize: '0.8rem' }}></i>
+                                                    <tr className={styles.requestItemHover}>
+                                                        <td className={styles.tableCellPadding}>
+                                                            <div className={styles.meetingTitle}>{meeting.meetingTitle}</div>
+                                                            <div className={styles.meetingMeta}>
+                                                                <span className={styles.meetingMetaItem}>
+                                                                    <i className={`fas fa-user ${styles.userIcon}`}></i>
                                                                     {meeting.farmerName || 'Farmer'}
                                                                 </span>
-                                                                <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: '500' }}>
+                                                                <span className={styles.farmerId}>
                                                                     ID: {meeting.farmerId || 'N/A'}
                                                                 </span>
                                                             </div>
-                                                            {meeting.farmerAcceptedSuggestion && (
-                                                                <div style={{ marginTop: '4px' }}>
-                                                                    <span className="badge badge-success" style={{ fontSize: '0.65em' }}>Farmer Accepted New Time</span>
-                                                                </div>
-                                                            )}
-                                                            {!meeting.instructor_id && (
-                                                                <div style={{ marginTop: '4px' }}>
-                                                                    <span className="badge" style={{ fontSize: '0.65em', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
-                                                                        <i className="fas fa-users" style={{ marginRight: '4px' }}></i>
-                                                                        Division Request
-                                                                    </span>
-                                                                </div>
-                                                            )}
                                                         </td>
-                                                        <td>
-                                                            <span style={{ 
-                                                                fontSize: '0.85rem', 
-                                                                fontWeight: '600', 
-                                                                color: '#475569',
-                                                                background: '#f1f5f9',
-                                                                padding: '4px 10px',
-                                                                borderRadius: '6px'
-                                                            }}>
+                                                        <td className={styles.tableCellPadding}>
+                                                            <span className={styles.divisionBadge}>
                                                                 {meeting.division || '-'}
                                                             </span>
                                                         </td>
-                                                        <td>
-                                                            <div style={{ fontSize: '0.9rem', color: '#475569', fontWeight: '600' }}>{meeting.meetingDate}</div>
-                                                            <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                                                                {meeting.meetingTime} 
+                                                        <td className={styles.tableCellPadding}>
+                                                            <div className={styles.meetingDateTime}>{meeting.meetingDate}</div>
+                                                            <div className={styles.meetingTime}>
+                                                                {meeting.meetingTime}
                                                                 {meeting.meetingDuration && ` (${meeting.meetingDuration} Mins)`}
                                                             </div>
                                                         </td>
-                                                        <td>
-                                                            <span className={`badge ${meeting.status === 'pending' ? 'badge-primary' : 'badge-warning'}`} style={{ textTransform: 'capitalize' }}>
+                                                        <td className={styles.tableCellPadding}>
+                                                            <span className={`${meeting.status === 'pending' ? styles.badgePrimary : meeting.status === 'cancelled' ? styles.badgeDanger : styles.badgeWarning} ${styles.statusBadge}`}>
                                                                 {meeting.status}
                                                             </span>
                                                         </td>
-                                                        <td style={{ padding: '20px 24px' }}>
-                                                            <div style={{ display: 'flex', gap: '8px' }}>
-                                                                <button 
-                                                                    className={`btn btn-sm ${activeMeetingId === meeting.id ? 'btn-secondary' : 'btn-primary'}`}
-                                                                    onClick={() => setActiveMeetingId(activeMeetingId === meeting.id ? null : meeting.id)}
-                                                                >
-                                                                    {activeMeetingId === meeting.id ? 'Close' : 'Respond'}
-                                                                </button>
-                                                                <button 
-                                                                    className="btn btn-sm" 
-                                                                    onClick={() => handleDecline(meeting.id)}
-                                                                    style={{ background: '#fff1f2', color: '#e11d48', border: '1px solid #fecdd3' }}
-                                                                >
-                                                                    Decline
-                                                                </button>
-                                                            </div>
+                                                        <td className={`${styles.tableCellPadding} ${styles.tdCenter}`}>
+                                                            {meeting.status === 'pending' ? (
+                                                                <div className={styles.actionButtons}>
+                                                                    <button
+                                                                        className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSm} ${activeMeetingId === meeting.id ? commonBtnStyles.btnSecondary : commonBtnStyles.btnPrimary}`}
+                                                                        onClick={() => setActiveMeetingId(activeMeetingId === meeting.id ? null : meeting.id)}
+                                                                    >
+                                                                        {activeMeetingId === meeting.id ? t('schedule.close') : t('schedule.respond')}
+                                                                    </button>
+                                                                    <button
+                                                                        className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSm} ${styles.declineButton}`}
+                                                                        onClick={() => handleDeclineClick(meeting.id)}
+                                                                    >
+                                                                        {t('schedule.decline')}
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <span className={styles.cancelledByFarmer}>
+                                                                    {meeting.cancelReason ? `${t('schedule.cancelReason')} ${meeting.cancelReason}` : t('schedule.cancelledByFarmer')}
+                                                                </span>
+                                                            )}
                                                         </td>
                                                     </tr>
-                                                    {activeMeetingId === meeting.id && (
+                                                    {decliningMeetingId === meeting.id && (
                                                         <tr>
-                                                            <td colSpan="5" style={{ padding: 0, borderTop: 'none' }}>
-                                                                <div style={{ padding: '24px', background: '#fcfdfe', borderBottom: '1px solid #e2e8f0' }}>
-                                                                    {meeting.meetingNotes && (
-                                                                        <div style={{ marginBottom: '20px', fontSize: '0.9rem', color: '#475569', background: '#f8fafc', padding: '14px', borderRadius: '10px', borderLeft: '4px solid #e2e8f0' }}>
-                                                                            <strong>Farmer's Notes:</strong> {meeting.meetingNotes}
-                                                                        </div>
-                                                                    )}
-
-                                                                    <div style={{ marginBottom: '20px' }}>
-                                                                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '700', fontSize: '0.8rem', color: '#334155', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                                            Additional Note to Farmer (Optional)
-                                                                        </label>
-                                                                        <textarea 
-                                                                            className="form-control"
-                                                                            placeholder="Add advice, instructions, or reason for rescheduling/declining..."
-                                                                            value={instructorNote}
-                                                                            onChange={(e) => setInstructorNote(e.target.value)}
-                                                                            style={{ borderRadius: '10px', height: '80px', resize: 'none' }}
+                                                            <td colSpan="5" className={styles.cancelModalRow}>
+                                                                <div className={styles.cancelModalContent}>
+                                                                    <label className={styles.cancelReasonLabel}>
+                                                                        {t('schedule.declineReason')}
+                                                                    </label>
+                                                                    <div className={styles.zoomInputContainer}>
+                                                                        <textarea
+                                                                            className={`form-control ${styles.cancelTextarea}`}
+                                                                            placeholder={t('schedule.declineReasonPlaceholder')}
+                                                                            value={declineReason}
+                                                                            onChange={(e) => setDeclineReason(e.target.value)}
                                                                         />
-                                                                    </div>
-
-                                                                    <div style={{ marginBottom: '24px' }}>
-                                                                        <label style={{ display: 'block', marginBottom: '12px', fontWeight: '700', fontSize: '0.8rem', color: '#334155', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                                            Option 1: Accept & Send Zoom Link
-                                                                        </label>
-                                                                        <div style={{ display: 'flex', gap: '12px' }}>
-                                                                            <div style={{ position: 'relative', flex: 1 }}>
-                                                                                <i className="fas fa-link" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}></i>
-                                                                                <input 
-                                                                                    type="text" 
-                                                                                    placeholder="Paste Zoom/Teams meeting link..." 
-                                                                                    className="form-control"
-                                                                                    value={zoomLink}
-                                                                                    onChange={(e) => setZoomLink(e.target.value)}
-                                                                                    style={{ paddingLeft: '36px', borderRadius: '10px' }}
-                                                                                />
-                                                                            </div>
-                                                                            <button className="btn btn-success" onClick={() => handleAccept(meeting.id)} style={{ padding: '0 24px' }}>
-                                                                                Confirm
+                                                                        <div className={styles.cancelButtons}>
+                                                                            <button
+                                                                                className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSm} ${commonBtnStyles.btnDanger} ${styles.cancelConfirmButton}`}
+                                                                                onClick={() => handleDecline(meeting.id)}
+                                                                                disabled={isActionLoading === meeting.id}
+                                                                            >
+                                                                                {isActionLoading === meeting.id ? t('schedule.declining') : t('schedule.confirmDecline')}
+                                                                            </button>
+                                                                            <button
+                                                                                className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSm} ${commonBtnStyles.btnLink} ${styles.dismissButton}`}
+                                                                                onClick={() => setDecliningMeetingId(null)}
+                                                                            >
+                                                                                {t('schedule.dismiss')}
                                                                             </button>
                                                                         </div>
                                                                     </div>
-                                                                    
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                    {activeMeetingId === meeting.id && (
+                                                        <tr>
+                                                            <td colSpan="5" className={styles.expandedRow}>
+                                                                <div className={styles.expandedContent}>
+                                                                    {meeting.meetingNotes && (
+                                                                        <div className={styles.farmerNotes}>
+                                                                            <strong>{t('schedule.farmersNotes')}</strong> {meeting.meetingNotes}
+                                                                        </div>
+                                                                    )}
+
+                                                                    <div className={styles.noteSection}>
+                                                                        <label className={styles.noteLabel}>
+                                                                            {t('schedule.additionalNote')}
+                                                                        </label>
+                                                                        <textarea
+                                                                            className={`form-control ${styles.noteTextarea}`}
+                                                                            placeholder={t('schedule.additionalNotePlaceholder')}
+                                                                            value={instructorNote}
+                                                                            onChange={(e) => setInstructorNote(e.target.value)}
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className={styles.optionSection}>
+                                                                        <label className={styles.optionLabel}>
+                                                                            {t('schedule.option1')}
+                                                                        </label>
+                                                                        <div className={styles.zoomInputContainer}>
+                                                                            <div className={styles.inputWrapper}>
+                                                                                <i className={`fas fa-link ${styles.linkIcon}`}></i>
+                                                                                <input
+                                                                                    type="text"
+                                                                                    placeholder={t('schedule.zoomLinkPlaceholder')}
+                                                                                    className={`form-control ${styles.zoomInput}`}
+                                                                                    value={zoomLink}
+                                                                                    onChange={(e) => setZoomLink(e.target.value)}
+                                                                                />
+                                                                            </div>
+                                                                            <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSuccess} ${styles.confirmButton}`} onClick={() => handleAccept(meeting.id)}>
+                                                                                {t('schedule.confirm')}
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+
                                                                     {!meeting.farmerAcceptedSuggestion && (
-                                                                        <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '20px' }}>
-                                                                            <label style={{ display: 'block', marginBottom: '12px', fontWeight: '700', fontSize: '0.8rem', color: '#334155', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                                                Option 2: Propose Different Time
+                                                                        <div className={styles.rescheduleSection}>
+                                                                            <label className={styles.optionLabel}>
+                                                                                {t('schedule.option2')}
                                                                             </label>
-                                                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '12px', alignItems: 'flex-end' }}>
+                                                                            <div className={styles.rescheduleGrid}>
                                                                                 <div>
-                                                                                    <label style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '6px' }}>Date</label>
-                                                                                    <input 
-                                                                                        type="date" 
-                                                                                        className="form-control"
+                                                                                    <label className={styles.dateLabel}>{t('schedule.rescheduleDate')}</label>
+                                                                                    <input
+                                                                                        type="date"
+                                                                                        className={`form-control ${styles.roundedInput}`}
                                                                                         min={new Date().toISOString().split('T')[0]}
                                                                                         value={rescheduleData.date}
                                                                                         onChange={(e) => setRescheduleData({ ...rescheduleData, date: e.target.value })}
-                                                                                        style={{ borderRadius: '10px' }}
                                                                                     />
                                                                                 </div>
                                                                                 <div>
-                                                                                    <label style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '6px' }}>Time</label>
-                                                                                    <input 
-                                                                                        type="time" 
-                                                                                        className="form-control"
+                                                                                    <label className={styles.dateLabel}>{t('schedule.rescheduleTime')}</label>
+                                                                                    <input
+                                                                                        type="time"
+                                                                                        className={`form-control ${styles.roundedInput}`}
                                                                                         value={rescheduleData.time}
                                                                                         onChange={(e) => setRescheduleData({ ...rescheduleData, time: e.target.value })}
-                                                                                        style={{ borderRadius: '10px' }}
                                                                                     />
                                                                                 </div>
-                                                                                <button className="btn btn-info" onClick={() => handleReschedule(meeting.id)} style={{ padding: '0 24px' }}>
-                                                                                    Propose
+                                                                                <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnInfo} ${styles.proposeButton}`} onClick={() => handleReschedule(meeting.id)}>
+                                                                                    {t('schedule.propose')}
                                                                                 </button>
                                                                             </div>
                                                                         </div>
@@ -356,29 +409,29 @@ const InstructorSchedule = () => {
                     </div>
 
                     {/* Waiting for Response Section */}
-                    {meetings.filter(m => m.status === 'reschedule').length > 0 && (
-                        <div className="card" style={{ marginBottom: '24px', borderLeft: '4px solid #f59e0b' }}>
-                            <div className="card-header">
-                                <div className="card-title" style={{ fontSize: '1rem' }}>
-                                    <i className="fas fa-hourglass-half" style={{ color: '#f59e0b' }}></i> Awaiting Farmer Response
+                    {rescheduleMeetings.length > 0 && (
+                        <div className={`${commonCardStyles.card} ${styles.waitingCard}`}>
+                            <div className={commonCardStyles.cardHeader}>
+                                <div className={`${commonCardStyles.cardTitle} ${styles.waitingTitle}`}>
+                                    <i className={`fas fa-hourglass-half ${styles.hourglassIcon}`}></i> {t('schedule.awaitingResponse')}
                                 </div>
                             </div>
-                            <div className="card-content" style={{ padding: '0' }}>
-                                <div className="waiting-list">
-                                    {meetings.filter(m => m.status === 'reschedule').map(meeting => (
-                                        <div key={meeting.id} style={{ padding: '16px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div className={`${commonCardStyles.cardContent} ${styles.cardContentNoPadding}`}>
+                                <div className={styles.waitingList}>
+                                    {rescheduleMeetings.map(meeting => (
+                                        <div key={meeting.id} className={styles.waitingItem}>
                                             <div>
-                                                <strong style={{ display: 'block', color: '#1e293b', marginBottom: '4px' }}>{meeting.meetingTitle}</strong>
-                                                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '4px' }}>
-                                                    <i className="fas fa-user" style={{ marginRight: '6px' }}></i>
-                                                    {meeting.farmerName} <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>(ID: {meeting.farmerId})</span>
+                                                <strong className={styles.waitingTitleText}>{meeting.meetingTitle}</strong>
+                                                <div className={styles.waitingMeta}>
+                                                    <i className={`fas fa-user ${styles.userIcon}`}></i>
+                                                    {meeting.farmerName} <span className={styles.waitingId}>(ID: {meeting.farmerId})</span>
                                                 </div>
-                                                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                                                    <i className="far fa-clock" style={{ marginRight: '6px' }}></i>
+                                                <div className={styles.meetingTime}>
+                                                    <i className={`far fa-clock ${styles.clockIcon}`}></i>
                                                     Proposed: {meeting.suggestedDate} at {meeting.suggestedTime}
                                                 </div>
                                             </div>
-                                            <span className="badge" style={{ background: '#fffbeb', color: '#d97706', border: '1px solid #fef3c7' }}>Pending Reply</span>
+                                            <span className={`badge ${styles.pendingReplyBadge}`}>{t('schedule.pendingReplyBadge')}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -387,84 +440,77 @@ const InstructorSchedule = () => {
                     )}
 
                     {/* Confirmed Appointments Section */}
-                    <div className="card" style={{ borderTop: '4px solid #10b981' }}>
-                        <div className="card-header" style={{ padding: '20px 24px' }}>
-                            <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '1.1rem' }}>
-                                <i className="fas fa-calendar-check" style={{ color: '#10b981' }}></i> 
-                                Confirmed Appointments
+                    <div className={`${commonCardStyles.card} ${styles.confirmedCard}`}>
+                        <div className={`${commonCardStyles.cardHeader} ${styles.cardHeaderPadding}`}>
+                            <div className={`${commonCardStyles.cardTitle} ${styles.cardTitleWithIcon}`}>
+                                <i className={`fas fa-calendar-check ${styles.calendarIcon}`}></i>
+                                {t('schedule.confirmedAppointments')}
                             </div>
                         </div>
-                        <div className="card-content" style={{ padding: '0' }}>
-                            {meetings.filter(m => m.status === 'accepted' || m.status === 'cancelled').length === 0 ? (
-                                <div style={{ textAlign: 'center', padding: '40px 20px', color: '#94a3b8' }}>
-                                    <p style={{ fontSize: '0.9rem' }}>No confirmed or cancelled appointments yet.</p>
+                        <div className={`${commonCardStyles.cardContent} ${styles.cardContentNoPadding}`}>
+                            {confirmedMeetings.length === 0 ? (
+                                <div className={styles.confirmedEmptyState}>
+                                    <p className={styles.confirmedEmptyText}>{t('schedule.noConfirmedAppointments')}</p>
                                 </div>
                             ) : (
-                                <div className="table-responsive">
-                                    <table className="table">
+                                <div className={styles.tableResponsive}>
+                                    <table className={styles.table}>
                                         <thead>
                                             <tr>
-                                                <th style={{ padding: '16px 24px' }}>Title</th>
-                                                <th>Division</th>
-                                                <th>Meeting Time</th>
-                                                <th>Status</th>
-                                                <th style={{ padding: '16px 24px' }}>Action</th>
+                                                <th className={styles.tableHeaderPadding}>{t('schedule.colTitle')}</th>
+                                                <th className={styles.tableHeaderPadding}>{t('schedule.colDivision')}</th>
+                                                <th className={styles.tableHeaderPadding}>{t('schedule.colMeetingTime')}</th>
+                                                <th className={styles.tableHeaderPadding}>{t('schedule.colStatus')}</th>
+                                                <th className={`${styles.tableHeaderPadding} ${styles.thCenter}`}>{t('schedule.colAction')}</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {meetings.filter(m => m.status === 'accepted' || m.status === 'cancelled').map(meeting => (
+                                            {confirmedMeetings.map(meeting => (
                                                 <React.Fragment key={meeting.id}>
-                                                    <tr className="request-item-hover">
-                                                        <td style={{ padding: '20px 24px' }}>
-                                                            <div style={{ fontWeight: '700', color: meeting.status === 'cancelled' ? '#94a3b8' : '#1e293b', marginBottom: '4px' }}>{meeting.meetingTitle}</div>
-                                                            <div style={{ fontSize: '0.85rem', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                                                <span style={{ display: 'flex', alignItems: 'center' }}>
-                                                                    <i className="fas fa-user" style={{ marginRight: '6px', fontSize: '0.8rem' }}></i>
+                                                    <tr className={styles.requestItemHover}>
+                                                        <td className={styles.tableCellPadding}>
+                                                            <div className={styles.meetingTitle}>{meeting.meetingTitle}</div>
+                                                            <div className={styles.meetingMeta}>
+                                                                <span className={styles.meetingMetaItem}>
+                                                                    <i className={`fas fa-user ${styles.userIcon}`}></i>
                                                                     {meeting.farmerName || 'Farmer'}
                                                                 </span>
-                                                                <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: '500' }}>
+                                                                <span className={styles.farmerId}>
                                                                     ID: {meeting.farmerId || 'N/A'}
                                                                 </span>
                                                             </div>
                                                         </td>
-                                                        <td>
-                                                            <span style={{ 
-                                                                fontSize: '0.85rem', 
-                                                                fontWeight: '600', 
-                                                                color: '#475569',
-                                                                background: '#f1f5f9',
-                                                                padding: '4px 10px',
-                                                                borderRadius: '6px'
-                                                            }}>
+                                                        <td className={styles.tableCellPadding}>
+                                                            <span className={styles.divisionBadge}>
                                                                 {meeting.division || '-'}
                                                             </span>
                                                         </td>
-                                                        <td>
-                                                            <div style={{ fontSize: '0.9rem', color: meeting.status === 'cancelled' ? '#94a3b8' : '#475569', fontWeight: '600' }}>{meeting.meetingDate}</div>
-                                                            <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                                                                {meeting.meetingTime} 
+                                                        <td className={styles.tableCellPadding}>
+                                                            <div className={styles.meetingDateTime}>{meeting.meetingDate}</div>
+                                                            <div className={styles.meetingTime}>
+                                                                {meeting.meetingTime}
                                                                 {meeting.meetingDuration && ` (${meeting.meetingDuration} Mins)`}
                                                             </div>
                                                         </td>
-                                                        <td>
-                                                            <span className={`badge ${meeting.status === 'accepted' ? 'badge-success' : 'badge-secondary'}`} style={{ textTransform: 'capitalize' }}>
-                                                                {meeting.status === 'accepted' ? 'Confirmed' : 'Cancelled'}
+                                                        <td className={styles.tableCellPadding}>
+                                                            <span className={`${styles.badgeSuccess} ${styles.statusBadge}`}>
+                                                                {t('schedule.confirmed')}
                                                             </span>
                                                         </td>
-                                                        <td style={{ padding: '20px 24px' }}>
-                                                            <div style={{ display: 'flex', gap: '8px' }}>
-                                                                <button 
-                                                                    className="btn btn-sm btn-info"
+                                                        <td className={`${styles.tableCellPadding} ${styles.tdCenter}`}>
+                                                            <div className={styles.actionButtons}>
+                                                                <button
+                                                                    className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSm} ${commonBtnStyles.btnInfo}`}
                                                                     onClick={() => setActiveMeetingId(activeMeetingId === meeting.id ? null : meeting.id)}
                                                                 >
-                                                                    <i className="fas fa-eye" style={{ marginRight: '4px' }}></i> View
+                                                                    <i className={`fas fa-eye ${styles.viewButtonIcon}`}></i> {t('farmers.actionView')}
                                                                 </button>
                                                                 {meeting.status === 'accepted' && (
-                                                                    <button 
-                                                                        className="btn btn-sm btn-outline-danger"
+                                                                    <button
+                                                                        className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSm} ${commonBtnStyles.btnOutlineDanger}`}
                                                                         onClick={() => handleCancelClick(meeting.id)}
                                                                     >
-                                                                        <i className="fas fa-times" style={{ marginRight: '4px' }}></i> Cancel
+                                                                        <i className={`fas fa-xmark ${styles.viewButtonIcon}`}></i> {t('schedule.cancelBtn')}
                                                                     </button>
                                                                 )}
                                                             </div>
@@ -472,34 +518,25 @@ const InstructorSchedule = () => {
                                                     </tr>
 
                                                     {cancellingMeetingId === meeting.id && (
-                                                            <tr>
-                                                                <td colSpan="5" style={{ padding: '0', borderTop: 'none' }}>
-                                                                <div style={{ padding: '20px 24px', background: '#fff1f2', borderBottom: '1px solid #fecdd3' }}>
-                                                                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '700', fontSize: '0.8rem', color: '#991b1b', textTransform: 'uppercase' }}>
-                                                                        Reason for Cancellation (Required)
+                                                        <tr>
+                                                            <td colSpan="5" className={styles.cancelModalRow}>
+                                                                <div className={styles.cancelModalContent}>
+                                                                    <label className={styles.cancelReasonLabel}>
+                                                                        {t('schedule.cancelReasonRequired')}
                                                                     </label>
-                                                                    <div style={{ display: 'flex', gap: '12px' }}>
-                                                                        <textarea 
-                                                                            className="form-control"
-                                                                            placeholder="Please explain why you need to cancel this meeting..."
+                                                                    <div className={styles.zoomInputContainer}>
+                                                                        <textarea
+                                                                            className={`form-control ${styles.cancelTextarea}`}
+                                                                            placeholder={t('schedule.cancelMeetingPlaceholder')}
                                                                             value={cancelReason}
                                                                             onChange={(e) => setCancelReason(e.target.value)}
-                                                                            style={{ borderRadius: '10px', height: '60px', resize: 'none', borderColor: '#fecdd3' }}
                                                                         />
-                                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                                            <button 
-                                                                                className="btn btn-sm btn-danger" 
+                                                                        <div className={styles.cancelButtons}>
+                                                                            <button
+                                                                                className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSm} ${commonBtnStyles.btnDanger} ${styles.cancelConfirmButton}`}
                                                                                 onClick={() => confirmCancel(meeting.id)}
-                                                                                style={{ padding: '0 20px', height: '100%' }}
                                                                             >
-                                                                                Confirm
-                                                                            </button>
-                                                                            <button 
-                                                                                className="btn btn-sm btn-link" 
-                                                                                onClick={() => setCancellingMeetingId(null)}
-                                                                                style={{ color: '#64748b' }}
-                                                                            >
-                                                                                Dismiss
+                                                                                {t('schedule.confirm')}
                                                                             </button>
                                                                         </div>
                                                                     </div>
@@ -507,24 +544,24 @@ const InstructorSchedule = () => {
                                                             </td>
                                                         </tr>
                                                     )}
-                                                    
+
                                                     {activeMeetingId === meeting.id && (
                                                         <tr>
-                                                            <td colSpan="5" style={{ padding: 0, borderTop: 'none' }}>
-                                                                <div style={{ padding: '20px 24px', background: '#f8fafc', borderBottom: '1px solid #edf2f7' }}>
-                                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                                                            <td colSpan="5" className={styles.expandedRow}>
+                                                                <div className={styles.viewExpandedContent}>
+                                                                    <div className={styles.viewDetailsGrid}>
                                                                         <div>
-                                                                            <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>Notes</label>
-                                                                            <p style={{ fontSize: '0.9rem', color: '#334155', margin: 0, lineHeight: '1.5' }}>{meeting.meetingNotes || 'No notes provided.'}</p>
+                                                                            <label className={styles.viewDetailsLabel}>{t('schedule.notesLabel')}</label>
+                                                                            <p className={styles.viewNotesText}>{meeting.meetingNotes || 'No notes provided.'}</p>
                                                                         </div>
                                                                         {meeting.zoomLink && meeting.status === 'accepted' && (
                                                                             <div>
-                                                                                <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>Meeting Link</label>
-                                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                                                    <a href={meeting.zoomLink} target="_blank" rel="noreferrer" className="btn btn-sm btn-success" style={{ padding: '6px 12px' }}>
-                                                                                        <i className="fas fa-video"></i> Join
+                                                                                <label className={styles.viewDetailsLabel}>{t('schedule.meetingLinkLabel')}</label>
+                                                                                <div className={styles.meetingLinkContainer}>
+                                                                                    <a href={sanitizeExternalUrl(meeting.zoomLink)} target="_blank" rel="noopener noreferrer" className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSm} ${commonBtnStyles.btnSuccess} ${styles.joinButton}`}>
+                                                                                        <i className="fas fa-video"></i> {t('schedule.joinMeeting')}
                                                                                     </a>
-                                                                                    <code style={{ fontSize: '0.8rem', color: '#64748b', wordBreak: 'break-all' }}>{meeting.zoomLink}</code>
+                                                                                    <code className={styles.meetingLinkCode}>{meeting.zoomLink}</code>
                                                                                 </div>
                                                                             </div>
                                                                         )}

@@ -7,27 +7,27 @@ const Meeting = sequelize.define('Meeting', {
         primaryKey: true,
         autoIncrement: true
     },
-    meetingTitle: {
+    meeting_title: {
         type: DataTypes.STRING(255),
         allowNull: false
     },
-    meetingDate: {
+    meeting_date: {
         type: DataTypes.DATEONLY,
         allowNull: false
     },
-    meetingTime: {
+    meeting_time: {
         type: DataTypes.STRING(20),
         allowNull: false
     },
-    meetingDuration: {
+    meeting_duration: {
         type: DataTypes.STRING(20),
         defaultValue: '30'
     },
-    meetingNotes: {
+    meeting_notes: {
         type: DataTypes.TEXT,
         allowNull: true
     },
-    instructorNote: {
+    instructor_note: {
         type: DataTypes.TEXT,
         allowNull: true
     },
@@ -35,7 +35,7 @@ const Meeting = sequelize.define('Meeting', {
         type: DataTypes.ENUM('pending', 'accepted', 'rejected', 'declined', 'reschedule', 'cancelled'),
         defaultValue: 'pending'
     },
-    requestedBy: {
+    requested_by: {
         type: DataTypes.ENUM('farmer', 'instructor'),
         allowNull: false
     },
@@ -59,19 +59,19 @@ const Meeting = sequelize.define('Meeting', {
         type: DataTypes.STRING(100),
         allowNull: true
     },
-    suggestedDate: {
+    suggested_date: {
         type: DataTypes.DATEONLY,
         allowNull: true
     },
-    suggestedTime: {
+    suggested_time: {
         type: DataTypes.STRING(20),
         allowNull: true
     },
-    zoomLink: {
+    zoom_link: {
         type: DataTypes.STRING(255),
         allowNull: true
     },
-    cancelReason: {
+    cancel_reason: {
         type: DataTypes.TEXT,
         allowNull: true
     }

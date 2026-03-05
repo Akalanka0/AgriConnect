@@ -1,8 +1,14 @@
 
 
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import styles from '../styles/Weather.module.css';
+import commonStyles from '../styles/FarmerCommon.module.css';
+import commonCardStyles from '@/components/common/styles/Card.module.css';
+import commonBtnStyles from '@/components/common/styles/Button.module.css';
 
 const Weather = () => {
+    const { t } = useTranslation('farmer');
     const [weather, setWeather] = useState(null);
     const [forecast, setForecast] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -18,7 +24,7 @@ const Weather = () => {
     const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
 
     const commonAreas = [
-        'Anuradhapura', 'Thalawa', 'Tambuttegama', 'Medawachchiya', 
+        'Anuradhapura', 'Thalawa', 'Tambuttegama', 'Medawachchiya',
         'Eppawala', 'Kekirawa', 'Mihintale', 'Galenbindunuwewa',
         'Padaviya', 'Nochchiyagama'
     ];
@@ -26,10 +32,10 @@ const Weather = () => {
     const fetchWeather = async (lat, lon, city = null) => {
         try {
             setLoading(true);
-            let url = city 
+            let url = city
                 ? `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${API_KEY}&units=metric`
                 : `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`;
-            
+
             const weatherRes = await fetch(url);
             const weatherData = await weatherRes.json();
 
@@ -37,7 +43,7 @@ const Weather = () => {
                 setWeather(weatherData);
                 // Use the selected city name if provided, otherwise use the name from API
                 setLocationName(city || weatherData.name);
-                
+
                 // Fetch forecast using coordinates from weatherData to be consistent
                 const { lat: cityLat, lon: cityLon } = weatherData.coord;
                 const forecastRes = await fetch(
@@ -97,14 +103,14 @@ const Weather = () => {
 
     if (loading) {
         return (
-            <div className="page active" id="alerts">
-                <div className="page-title">
+            <div className={`page active ${styles.mainPage}`} id="alerts">
+                <div className={commonStyles.pageTitle}>
                     <i className="fas fa-cloud-sun"></i>
-                    <h2>Weather & Alerts</h2>
+                    <h2>{t('weather.title')}</h2>
                 </div>
-                <div style={{ textAlign: 'center', padding: '50px' }}>
-                    <i className="fas fa-spinner fa-spin" style={{ fontSize: '3em', color: 'var(--primary)' }}></i>
-                    <p style={{ marginTop: '15px' }}>Fetching real-time weather data...</p>
+                <div className={styles.loadingContainer}>
+                    <i className={`fas fa-spinner fa-spin ${styles.spinnerIcon}`}></i>
+                    <p className={styles.loadingText}>{t('weather.loading')}</p>
                 </div>
             </div>
         );
@@ -112,16 +118,16 @@ const Weather = () => {
 
     if (error) {
         return (
-            <div className="page active" id="alerts">
-                <div className="page-title">
+            <div className={`page active ${styles.mainPage}`} id="alerts">
+                <div className={commonStyles.pageTitle}>
                     <i className="fas fa-cloud-sun"></i>
-                    <h2>Weather & Alerts</h2>
+                    <h2>{t('weather.title')}</h2>
                 </div>
-                <div className="alert-card pest">
+                <div className={`${commonStyles.alertCard} ${commonStyles.alertDanger}`}>
                     <i className="fas fa-exclamation-triangle"></i>
                     <div>
-                        <strong>Error:</strong> {error}
-                        <p>Please check your connection or try again later.</p>
+                        <strong>{t('weather.errorTitle')}</strong> {error}
+                        <p>{t('weather.errorHint')}</p>
                     </div>
                 </div>
             </div>
@@ -129,49 +135,33 @@ const Weather = () => {
     }
 
     return (
-        <div className="page active" id="alerts" style={{ display: 'block' }}>
-            <div className="page-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div className={`page active ${styles.mainPage}`} id="alerts">
+            <div className={commonStyles.pageTitle}>
+                <div className={styles.titleLeft}>
                     <i className="fas fa-cloud-sun"></i>
-                    <h2>Weather & Alerts</h2>
+                    <h2>{t('weather.title')}</h2>
                 </div>
-                <div style={{ textAlign: 'right', background: 'white', padding: '10px 20px', borderRadius: '15px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid var(--primary-light)' }}>
-                    <div style={{ fontSize: '1.2em', fontWeight: '700', color: 'var(--primary-dark)', letterSpacing: '1px' }}>
+                <div className={styles.timeDisplay}>
+                    <div className={styles.currentTime}>
                         {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                     </div>
-                    <div style={{ fontSize: '0.85em', color: 'var(--gray)', fontWeight: '500' }}>
+                    <div className={styles.currentDate}>
                         {currentTime.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                     </div>
                 </div>
             </div>
 
             {/* Anuradhapura Area Selection Dropdown */}
-            <div className="card" style={{ marginBottom: '20px', padding: '20px', textAlign: 'center' }}>
-                <div style={{ marginBottom: '15px', fontSize: '1.1em', color: 'var(--gray)', fontWeight: '600' }}>
-                    <i className="fas fa-map-marker-alt" style={{ marginRight: '10px', color: 'var(--primary)' }}></i>
-                    Select Region in Anuradhapura
+            <div className={`${commonCardStyles.card} ${styles.locationCard}`}>
+                <div className={styles.locationLabel}>
+                    <i className={`fas fa-location-dot ${styles.locationIcon}`}></i>
+                    {t('weather.selectRegion')}
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <select 
-                        className="form-control" 
+                <div className={styles.locationSelectContainer}>
+                    <select
+                        className={`${commonStyles.formControl} ${styles.locationSelect}`}
                         value={locationName}
                         onChange={(e) => fetchWeather(null, null, e.target.value)}
-                        style={{ 
-                            maxWidth: '350px', 
-                            padding: '12px 20px', 
-                            borderRadius: '12px',
-                            border: '2px solid var(--primary-light)',
-                            fontSize: '1.1em',
-                            cursor: 'pointer',
-                            backgroundColor: '#f8f9fa',
-                            boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-                            appearance: 'none',
-                            backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232e7d32%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E")',
-                            backgroundRepeat: 'no-repeat',
-                            backgroundPosition: 'right 15px center',
-                            backgroundSize: '18px',
-                            textAlign: 'center'
-                        }}
                     >
                         {commonAreas.map(area => (
                             <option key={area} value={area}>{area}</option>
@@ -180,134 +170,129 @@ const Weather = () => {
                 </div>
             </div>
 
-            <div className="cards-grid">
+            <div className={commonStyles.cardsGrid}>
                 {/* Main Weather Card */}
-                <div className="weather-card" id="weatherCard">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div style={{ textAlign: 'left' }}>
-                            <div style={{ fontSize: '1.2em', fontWeight: '600' }}>{locationName}</div>
-                            <div style={{ 
-                                fontSize: '0.75em', 
-                                background: 'rgba(255,255,255,0.2)', 
-                                padding: '2px 8px', 
-                                borderRadius: '10px', 
-                                marginTop: '5px',
-                                display: 'inline-block'
-                            }}>
-                                <i className={`fas ${weather?.weather[0]?.icon.endsWith('d') ? 'fa-sun' : 'fa-moon'}`} style={{ marginRight: '5px' }}></i>
-                                {weather?.weather[0]?.icon.endsWith('d') ? 'Day' : 'Night'}
+                <div className={`${commonCardStyles.card} ${styles.weatherCard}`} id="weatherCard">
+                    <div className={styles.weatherCardHeader}>
+                        <div className={styles.locationInfo}>
+                            <div className={styles.locationName}>{locationName}</div>
+                            <div className={styles.dayNightBadge}>
+                                <i className={`fas ${weather?.weather[0]?.icon.endsWith('d') ? 'fa-sun' : 'fa-moon'} ${styles.dayNightIcon}`}></i>
+                                {weather?.weather[0]?.icon.endsWith('d') ? t('weather.day') : t('weather.night')}
                             </div>
                         </div>
-                        <div style={{ fontSize: '0.75em', opacity: 0.8, textAlign: 'right' }}>
-                            Last Updated:<br/>
+                        <div className={styles.lastUpdated}>
+                            {t('weather.lastUpdated')}:<br />
                             {new Date(weather?.dt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
                     </div>
                     <div className="weather-icon">
                         <i className={`fas ${getWeatherIcon(weather?.weather[0]?.icon)}`}></i>
                     </div>
-                    <div className="weather-temp">{Math.round(weather?.main?.temp)}°C</div>
-                    <div style={{ fontSize: '0.9em', marginBottom: '5px' }}>
-                        <i className="fas fa-arrow-up" style={{ color: '#ffeb3b', marginRight: '5px' }}></i>
-                        {Math.round(weather?.main?.temp_max)}° / 
-                        <i className="fas fa-arrow-down" style={{ color: '#81d4fa', marginLeft: '5px', marginRight: '5px' }}></i>
-                        {Math.round(weather?.main?.temp_min)}°
+                    <div className={styles.temperature}>
+                        <div className={styles.currentTemperature}>{Math.round(weather?.main?.temp)}°C</div>
+                        <div className={styles.temperatureRange}>
+                            <i className={`fas fa-arrow-up ${styles.tempUpIcon}`}></i>
+                            {Math.round(weather?.main?.temp_max)}° /
+                            <i className={`fas fa-arrow-down ${styles.tempDownIcon}`}></i>
+                            {Math.round(weather?.main?.temp_min)}°
+                        </div>
                     </div>
-                    <div className="weather-desc" style={{ textTransform: 'capitalize', fontWeight: '500' }}>
+                    <div className={styles.weatherDescription}>
                         {weather?.weather[0]?.description}
                     </div>
-                    
-                    <div className="weather-details" style={{ marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '15px' }}>
-                        <div className="weather-detail">
+
+                    <div className={styles.weatherDetails}>
+                        <div className={styles.weatherDetail}>
                             <i className="fas fa-wind"></i>
-                            <div style={{ fontSize: '0.8em' }}>Wind</div>
+                            <div className={styles.detailLabel}>{t('weather.wind')}</div>
                             <div>{weather?.wind?.speed} m/s</div>
                         </div>
                         <div className="weather-detail">
                             <i className="fas fa-cloud-showers-heavy"></i>
-                            <div style={{ fontSize: '0.8em' }}>Rain (1h)</div>
+                            <div className={styles.detailLabel}>{t('weather.rain1h')}</div>
                             <div>{weather?.rain?.['1h'] || 0} mm</div>
                         </div>
-                        <div className="weather-detail">
+                        <div className={styles.weatherDetail}>
                             <i className="fas fa-tint"></i>
-                            <div style={{ fontSize: '0.8em' }}>Humidity</div>
+                            <div className={styles.detailLabel}>{t('weather.humidity')}</div>
                             <div>{weather?.main?.humidity}%</div>
                         </div>
                     </div>
                 </div>
 
                 {/* Sun & Atmospheric Details Card */}
-                <div className="card">
-                    <div className="card-header">
-                        <div className="card-title">Day & Night Details</div>
-                        <div className="card-icon"><i className="fas fa-adjust"></i></div>
+                <div className={commonCardStyles.card}>
+                    <div className={commonCardStyles.cardHeader}>
+                        <div className={commonCardStyles.cardTitle}>{t('weather.dayNightDetails')}</div>
+                        <div className={commonCardStyles.cardIcon}><i className="fas fa-adjust"></i></div>
                     </div>
-                    <div className="card-content">
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', padding: '10px' }}>
-                            <div style={{ textAlign: 'center' }}>
-                                <i className="fas fa-sun" style={{ color: '#ff9800', fontSize: '1.5em', marginBottom: '5px' }}></i>
-                                <div style={{ fontSize: '0.9em', color: 'var(--gray)' }}>Sunrise</div>
-                                <div style={{ fontWeight: '600' }}>{formatTime(weather?.sys?.sunrise)}</div>
+                    <div className={commonCardStyles.cardContent}>
+                        <div className={styles.sunMoonGrid}>
+                            <div className={styles.sunMoonItem}>
+                                <i className={`fas fa-sun ${styles.sunIcon}`}></i>
+                                <div className={styles.sunMoonLabel}>{t('weather.sunrise')}</div>
+                                <div className={styles.sunMoonTime}>{formatTime(weather?.sys?.sunrise)}</div>
                             </div>
-                            <div style={{ textAlign: 'center' }}>
-                                <i className="fas fa-moon" style={{ color: '#5c6bc0', fontSize: '1.5em', marginBottom: '5px' }}></i>
-                                <div style={{ fontSize: '0.9em', color: 'var(--gray)' }}>Sunset</div>
-                                <div style={{ fontWeight: '600' }}>{formatTime(weather?.sys?.sunset)}</div>
+                            <div className={styles.sunMoonItem}>
+                                <i className={`fas fa-moon ${styles.moonIcon}`}></i>
+                                <div className={styles.sunMoonLabel}>{t('weather.sunset')}</div>
+                                <div className={styles.sunMoonTime}>{formatTime(weather?.sys?.sunset)}</div>
                             </div>
-                            <div style={{ textAlign: 'center', gridColumn: 'span 2', padding: '10px', background: '#f8f9fa', borderRadius: '10px', border: '1px dashed var(--primary-light)' }}>
-                                <div style={{ fontSize: '0.85em', color: 'var(--gray)' }}>
+                            <div className={styles.nextEvent}>
+                                <div className={styles.nextEventText}>
                                     {weather?.dt < weather?.sys?.sunset && weather?.dt > weather?.sys?.sunrise ? (
-                                        <>Next: <strong style={{ color: 'var(--primary-dark)' }}>Sunset</strong> at {formatTime(weather?.sys?.sunset)}</>
+                                        <>{t('weather.nextLabel')} <strong className={styles.nextEventStrong}>Sunset</strong> at {formatTime(weather?.sys?.sunset)}</>
                                     ) : (
-                                        <>Next: <strong style={{ color: 'var(--primary-dark)' }}>Sunrise</strong> at {formatTime(weather?.sys?.sunrise)}</>
+                                        <>{t('weather.nextLabel')} <strong className={styles.nextEventStrong}>Sunrise</strong> at {formatTime(weather?.sys?.sunrise)}</>
                                     )}
                                 </div>
                             </div>
-                            <div style={{ textAlign: 'center' }}>
-                                <i className="fas fa-thermometer-half" style={{ color: 'var(--primary)', fontSize: '1.5em', marginBottom: '5px' }}></i>
-                                <div style={{ fontSize: '0.9em', color: 'var(--gray)' }}>Feels Like</div>
-                                <div style={{ fontWeight: '600' }}>{Math.round(weather?.main?.feels_like)}°C</div>
+                            <div className={styles.sunMoonItem}>
+                                <i className={`fas fa-thermometer-half ${styles.thermoIcon}`}></i>
+                                <div className={styles.sunMoonLabel}>{t('weather.feelsLike')}</div>
+                                <div className={styles.sunMoonTime}>{Math.round(weather?.main?.feels_like)}°C</div>
                             </div>
-                            <div style={{ textAlign: 'center' }}>
-                                <i className="fas fa-cloud-rain" style={{ color: '#42a5f5', fontSize: '1.5em', marginBottom: '5px' }}></i>
-                                <div style={{ fontSize: '0.9em', color: 'var(--gray)' }}>Precipitation</div>
-                                <div style={{ fontWeight: '600' }}>{weather?.rain ? 'Yes' : 'None'}</div>
+                            <div className={styles.sunMoonItem}>
+                                <i className={`fas fa-cloud-rain ${styles.precipIcon}`}></i>
+                                <div className={styles.sunMoonLabel}>{t('weather.precipitation')}</div>
+                                <div className={styles.sunMoonTime}>{weather?.rain ? 'Yes' : 'None'}</div>
                             </div>
-                            <div style={{ textAlign: 'center' }}>
-                                <i className="fas fa-cloud" style={{ color: '#90a4ae', fontSize: '1.5em', marginBottom: '5px' }}></i>
-                                <div style={{ fontSize: '0.9em', color: 'var(--gray)' }}>Cloud Cover</div>
-                                <div style={{ fontWeight: '600' }}>{weather?.clouds?.all}%</div>
+                            <div className={styles.sunMoonItem}>
+                                <i className={`fas fa-cloud ${styles.cloudIcon}`}></i>
+                                <div className={styles.sunMoonLabel}>{t('weather.cloudCover')}</div>
+                                <div className={styles.sunMoonTime}>{weather?.clouds?.all}%</div>
                             </div>
-                            <div style={{ textAlign: 'center' }}>
-                                <i className="fas fa-tint-slash" style={{ color: '#4fc3f7', fontSize: '1.5em', marginBottom: '5px' }}></i>
-                                <div style={{ fontSize: '0.9em', color: 'var(--gray)' }}>Dew Point</div>
-                                <div style={{ fontWeight: '600' }}>{Math.round(weather?.main?.temp - ((100 - weather?.main?.humidity) / 5))}°C</div>
+                            <div className={styles.sunMoonItem}>
+                                <i className={`fas fa-tint-slash ${styles.dewIcon}`}></i>
+                                <div className={styles.sunMoonLabel}>{t('weather.dewPoint')}</div>
+                                <div className={styles.sunMoonTime}>{Math.round(weather?.main?.temp - ((100 - weather?.main?.humidity) / 5))}°C</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* 5-Day Forecast Card */}
-                <div className="card" style={{ gridColumn: 'span 1' }}>
-                    <div className="card-header">
-                        <div className="card-title">5-Day Forecast</div>
-                        <div className="card-icon"><i className="fas fa-calendar-alt"></i></div>
+                <div className={`${commonCardStyles.card} ${styles.forecastCard}`}>
+                    <div className={commonCardStyles.cardHeader}>
+                        <div className={commonCardStyles.cardTitle}>{t('weather.forecast')}</div>
+                        <div className={commonCardStyles.cardIcon}><i className="fas fa-calendar-alt"></i></div>
                     </div>
-                    <div className="card-content">
-                        <ul className="card-list">
+                    <div className={commonCardStyles.cardContent}>
+                        <ul className={styles.cardList}>
                             {forecast.map((day, index) => (
-                                <li key={index} style={{ padding: '12px 0' }}>
-                                    <div style={{ fontWeight: '500' }}>{new Date(day.dt * 1000).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                        <div style={{ textAlign: 'center', minWidth: '40px' }}>
-                                            <i className={`fas ${getWeatherIcon(day.weather[0].icon)}`} style={{ color: 'var(--primary)', display: 'block' }}></i>
+                                <li className={styles.forecastItem} key={index}>
+                                    <div className={styles.forecastDate}>{new Date(day.dt * 1000).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</div>
+                                    <div className={styles.forecastDayContainer}>
+                                        <div className={styles.forecastIconContainer}>
+                                            <i className={`fas ${getWeatherIcon(day.weather[0].icon)} ${styles.forecastIcon}`}></i>
                                             {day.pop > 0 && (
-                                                <span style={{ fontSize: '0.7em', color: 'var(--info)', fontWeight: '600' }}>
+                                                <span className={styles.forecastPop}>
                                                     {Math.round(day.pop * 100)}%
                                                 </span>
                                             )}
                                         </div>
-                                        <span style={{ fontWeight: '600', minWidth: '40px' }}>{Math.round(day.main.temp)}°C</span>
+                                        <span className={styles.forecastTemp}>{Math.round(day.main.temp)}°C</span>
                                     </div>
                                 </li>
                             ))}
@@ -317,51 +302,51 @@ const Weather = () => {
             </div>
 
             {/* Dynamic Agricultural Advice */}
-            <div className="alert-card weather" style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
-                <div style={{ flex: '1 1 300px' }}>
-                    <div style={{ display: 'flex', gap: '15px', alignItems: 'center', marginBottom: '10px' }}>
-                        <i className="fas fa-seedling" style={{ fontSize: '1.5em', color: 'var(--primary)' }}></i>
-                        <h4 style={{ color: 'var(--primary-dark)', margin: 0 }}>Smart Farming Advisory: {locationName}</h4>
+            <div className={`${commonStyles.alertCard} ${commonStyles.weather} ${styles.advisoryCard}`}>
+                <div className={styles.advisorySection}>
+                    <div className={styles.advisoryHeader}>
+                        <i className={`fas fa-seedling ${styles.advisoryIcon}`}></i>
+                        <h4 className={styles.advisoryTitle}>{t('weather.advisoryTitle')}: {locationName}</h4>
                     </div>
-                    <p style={{ fontSize: '0.95em', lineHeight: '1.5' }}>
-                        {weather?.main?.temp > 32 ? 
-                            "Extreme heat alert! Increase irrigation frequency and consider mulching to retain soil moisture." : 
-                         weather?.weather[0]?.main === 'Rain' ? 
-                            "Rainy conditions. Avoid applying fertilizers today as they might wash away. Ensure clear drainage paths." : 
-                         weather?.wind?.speed > 8 ? 
-                            "High winds detected. Secure young saplings and avoid tall-crop spraying activities." : 
-                            "Stable weather conditions. Ideal for general field work, planting, and harvesting."}
-                    </p>
-                </div>
-                
-                <div style={{ flex: '1 1 300px', borderLeft: '1px solid rgba(0,0,0,0.1)', paddingLeft: '20px' }}>
-                    <div style={{ display: 'flex', gap: '15px', alignItems: 'center', marginBottom: '10px' }}>
-                        <i className="fas fa-bug" style={{ fontSize: '1.5em', color: '#e57373' }}></i>
-                        <h4 style={{ color: '#c62828', margin: 0 }}>Pest & Disease Risk</h4>
-                    </div>
-                    <p style={{ fontSize: '0.95em', lineHeight: '1.5' }}>
-                        {weather?.main?.humidity > 80 ? 
-                            "High humidity increases risk of fungal diseases (Blast/Blight). Monitor your paddy fields closely." : 
-                         weather?.main?.temp > 30 && weather?.main?.humidity < 50 ? 
-                            "Hot and dry conditions may lead to increased mite or aphid activity. Check leaf undersides." : 
-                            "Current conditions show low immediate pest risk, but routine scouting is recommended."}
+                    <p className={styles.advisoryText}>
+                        {weather?.main?.temp > 32 ?
+                            t('weather.advisoryHeatAlert') :
+                            weather?.weather[0]?.main === 'Rain' ?
+                                t('weather.advisoryRain') :
+                                weather?.wind?.speed > 8 ?
+                                    t('weather.advisoryHighWind') :
+                                    t('weather.advisoryStable')}
                     </p>
                 </div>
 
-                <div style={{ flex: '1 1 100%', borderTop: '1px solid rgba(0,0,0,0.1)', paddingTop: '15px', marginTop: '10px' }}>
-                    <div style={{ display: 'flex', gap: '15px', alignItems: 'center', marginBottom: '10px' }}>
-                        <i className="fas fa-water" style={{ fontSize: '1.5em', color: 'var(--info)' }}></i>
-                        <h4 style={{ color: 'var(--info-dark)', margin: 0 }}>Soil & Water Management</h4>
+                <div className={styles.pestSection}>
+                    <div className={styles.advisoryHeader}>
+                        <i className={`fas fa-bug ${styles.pestIcon}`}></i>
+                        <h4 className={styles.pestTitle}>{t('weather.pestRiskTitle')}</h4>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-                        <div className="badge badge-info" style={{ padding: '10px', textAlign: 'left', background: '#e1f5fe', color: '#01579b' }}>
-                            <strong>Evaporation:</strong> {weather?.main?.temp > 30 ? 'High' : 'Moderate'} - Mulching recommended.
+                    <p className={styles.advisoryText}>
+                        {weather?.main?.humidity > 80 ?
+                            t('weather.pestHighHumidity') :
+                            weather?.main?.temp > 30 && weather?.main?.humidity < 50 ?
+                                t('weather.pestHotDry') :
+                                t('weather.pestLowRisk')}
+                    </p>
+                </div>
+
+                <div className={styles.waterSection}>
+                    <div className={styles.advisoryHeader}>
+                        <i className={`fas fa-water ${styles.waterIcon}`}></i>
+                        <h4 className={styles.waterTitle}>{t('weather.waterMgmtTitle')}</h4>
+                    </div>
+                    <div className={styles.waterGrid}>
+                        <div className={`${commonStyles.statusBadge} ${commonStyles.statusInfo} ${styles.waterBadge}`}>
+                            <strong>{t('weather.evaporationLabel')}</strong> {weather?.main?.temp > 30 ? t('weather.levelHigh') : t('weather.levelModerate')} {t('weather.mulchingNote')}
                         </div>
-                        <div className="badge badge-success" style={{ padding: '10px', textAlign: 'left', background: '#e8f5e9', color: '#1b5e20' }}>
-                            <strong>Spraying:</strong> {weather?.wind?.speed < 5 ? 'Safe' : 'Risky'} - Wind is {weather?.wind?.speed} m/s.
+                        <div className={`${commonStyles.statusBadge} ${commonStyles.statusSuccess} ${styles.waterBadge}`}>
+                            <strong>{t('weather.sprayingLabel')}</strong> {weather?.wind?.speed < 5 ? t('weather.statusSafe') : t('weather.statusRisky')} {t('weather.windNote', { speed: weather?.wind?.speed })}
                         </div>
-                        <div className="badge badge-warning" style={{ padding: '10px', textAlign: 'left', background: '#fffde7', color: '#f57f17' }}>
-                            <strong>Drying:</strong> {weather?.clouds?.all < 30 ? 'Excellent' : 'Poor'} - {weather?.clouds?.all}% cloud cover.
+                        <div className={`${commonStyles.statusBadge} ${commonStyles.statusWarning} ${styles.waterBadge}`}>
+                            <strong>{t('weather.dryingLabel')}</strong> {weather?.clouds?.all < 30 ? t('weather.qualityExcellent') : t('weather.qualityPoor')} {t('weather.cloudNote', { cover: weather?.clouds?.all })}
                         </div>
                     </div>
                 </div>

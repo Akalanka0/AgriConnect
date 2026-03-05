@@ -1,4 +1,6 @@
 import express from 'express';
+import helmet from 'helmet';
+import compression from 'compression';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -33,36 +35,84 @@ if (!jwtValidation.valid) {
     process.exit(1);
 }
 
+const getAllowedOrigins = () => {
+    const configuredOrigins = process.env.CORS_ORIGINS
+        ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean)
+        : [];
+
+    if (configuredOrigins.length > 0) {
+        return configuredOrigins;
+    }
+
+    if (process.env.FRONTEND_URL) {
+        return process.env.FRONTEND_URL.split(',').map((origin) => origin.trim()).filter(Boolean);
+    }
+
+    return [
+        'http://localhost:5173',
+        'http://localhost:5174',
+        'http://localhost:3000',
+        'http://127.0.0.1:5173',
+        'http://127.0.0.1:5174'
+    ];
+};
+
+const allowedOrigins = getAllowedOrigins();
+
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: process.env.NODE_ENV === 'production' 
-            ? ['https://yourdomain.com'] // Add your production domain(s) here
-            : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174'],
+        origin: allowedOrigins,
         methods: ['GET', 'POST'],
         credentials: true
     }
 });
 
-const PORT = process.env.PORT || 5002;
+const PORT = process.env.PORT || 5005;
+const isDev = process.env.NODE_ENV !== 'production';
 
-// Middleware
-app.use(express.json());
+// ── Security & Performance Middleware ─────────────────────────────────────────
+// HTTP security headers
+app.use(helmet({
+    crossOriginEmbedderPolicy: false, // allows Cloudinary images to load
+    contentSecurityPolicy: isDev ? false : {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", 'data:', 'https://res.cloudinary.com'],
+            connectSrc: ["'self'"],
+        }
+    }
+}));
+
+// Gzip / Brotli compression for all responses
+app.use(compression());
+
+// CORS
 app.use(cors({
-    origin: process.env.NODE_ENV === 'production' 
-        ? ['https://yourdomain.com'] // Add your production domain(s) here
-        : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    origin: allowedOrigins,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
 }));
-app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
-// Request logging middleware
+// Body parsers – strict size limits to prevent payload-based DoS
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+
+// Static uploads served with cache headers
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads'), {
+    maxAge: '7d',
+    immutable: true
+}));
+
+// Request logging – strips query strings to avoid leaking tokens in logs
 app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    if (isDev) {
+        console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+    }
     next();
 });
 
@@ -73,9 +123,11 @@ testConnection()
         try {
             // Sync all models including GeneratedId, but handle GeneratedId errors specifically
             const models = Object.values(sequelize.models);
+            // Only use alter:true in development – in production use migrations
+            const syncOptions = isDev ? { alter: true } : {};
             for (const model of models) {
                 try {
-                    await model.sync({ alter: true });
+                    await model.sync(syncOptions);
                 } catch (modelError) {
                     if (modelError.code === 'ER_TOO_MANY_KEYS') {
                         console.warn(`⚠️ Skipping sync for ${model.name} due to MySQL key limits (ER_TOO_MANY_KEYS)`);
@@ -147,27 +199,9 @@ io.on('connection', (socket) => {
         console.log(`${socket.userRole} user ${socket.userId} disconnected from WebSocket`);
     });
 
-    // Handle message read status updates
-    socket.on('markMessageRead', (messageId) => {
-        // Broadcast to all connected clients that a message was read
-        io.emit('messageRead', messageId);
-    });
-
-    // Handle new message broadcasts (this would be called by message sending endpoints)
-    socket.on('broadcastMessage', (message) => {
-        // Broadcast to appropriate recipients based on message recipient_type
-        if (message.recipient_type === 'all') {
-            io.emit('newMessage', message);
-        } else if (message.recipient_type === 'admin') {
-            io.to('admin').emit('newMessage', message);
-        } else if (message.recipient_type === 'farmers') {
-            io.to('farmer').emit('newMessage', message);
-        } else if (message.recipient_type === 'instructors') {
-            io.to('instructor').emit('newMessage', message);
-        } else if (message.recipient_id) {
-            io.to(`user_${message.recipient_id}`).emit('newMessage', message);
-        }
-    });
+    // Note: message read-status updates and new message broadcasts are emitted
+    // server-side only (from message.controller.js) — clients do not trigger socket
+    // broadcasts to prevent privilege escalation or message spoofing.
 });
 
 // Make io instance available to routes
@@ -178,3 +212,4 @@ server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`WebSocket server enabled`);
 });
+// Port change restart

@@ -1,26 +1,21 @@
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import styles from '../styles/Home.module.css';
 
 const VisionMissionSection = React.memo(() => {
+    const { t } = useTranslation('home');
     const visionMission = useMemo(() => [
-        {
-            icon: 'fa-eye',
-            title: 'Our Vision',
-            desc: 'To empower the agricultural community of Sri Lanka through digital technology, promoting efficient farm management, transparent data exchange, and sustainable growth.'
-        },
-        {
-            icon: 'fa-bullseye',
-            title: 'Our Mission',
-            desc: 'To provide an integrated platform that connects farmers, instructors, and administrators for smarter, faster, and more collaborative agricultural operations.'
-        }
-    ], []);
+        { icon: 'fa-eye', title: t('visionMission.vision.title'), desc: t('visionMission.vision.desc') },
+        { icon: 'fa-bullseye', title: t('visionMission.mission.title'), desc: t('visionMission.mission.desc') }
+    ], [t]);
 
     return (
-        <section className="vision-mission" aria-label="Vision and mission">
-            <h2>Our Vision & Mission</h2>
-            <p>Guiding principles for agricultural transformation</p>
-            <div className="vm-grid">
+        <section className={styles.visionMission} aria-label="Vision and mission">
+            <h2>{t('visionMission.title')}</h2>
+            <p>{t('visionMission.subtitle')}</p>
+            <div className={styles.vmGrid}>
                 {visionMission.map((item, idx) => (
-                    <div key={idx} className="vm-card">
+                    <div key={idx} className={styles.vmCard}>
                         <h3>
                             <i className={`fas ${item.icon}`} aria-hidden="true"></i>
                             {item.title}

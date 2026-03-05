@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
+import { adminAPI } from '@/services/adminService';
+import { useTranslation } from 'react-i18next';
+import commonCardStyles from '@/components/common/styles/Card.module.css';
+import commonBtnStyles from '@/components/common/styles/Button.module.css';
+import styles from '../styles/Engagement.module.css';
 
 // Portal Component for Modal
 const ModalPortal = ({ children }) => {
@@ -14,6 +19,8 @@ const Engagement = () => {
         return name.toString().replace(/\s+Zone\s*$/i, '').trim();
     };
 
+    const { t } = useTranslation('admin');
+
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedInstructor, setSelectedInstructor] = useState(null);
     const [selectedFarmer, setSelectedFarmer] = useState(null);
@@ -23,17 +30,19 @@ const Engagement = () => {
     useEffect(() => {
         const fetchEngagementData = async () => {
             try {
-                const response = await fetch('/api/admin/engagement/instructors');
-                const result = await response.json();
-                if (result.success) {
+                const response = await adminAPI.getInstructorEngagement();
+                // response from adminAPI could be directly the data array or wrapped in data property
+                const data = response.data || response;
+                
+                if (data && Array.isArray(data)) {
                     // Transform data to format zone names
-                    const transformedData = result.data.map(instructor => ({
+                    const transformedData = data.map(instructor => ({
                         ...instructor,
                         zone: formatZoneName(instructor.zone),
-                        farmers: instructor.farmers.map(farmer => ({
+                        farmers: instructor.farmers ? instructor.farmers.map(farmer => ({
                             ...farmer,
-                            location: formatZoneName(farmer.location)
-                        }))
+                            location: formatZoneName(farmer.zone)
+                        })) : []
                     }));
                     setInstructorEngagement(transformedData);
                 }
@@ -60,89 +69,89 @@ const Engagement = () => {
 
     if (loading) {
         return (
-            <div className="page active" id="engagement">
-                <div className="page-title">
+            <div className={`${styles.pageActive}`} id="engagement">
+                <div className={styles.pageTitle}>
                     <i className="fas fa-handshake"></i>
-                    <h2>Instructor-Farmer Engagement</h2>
+                    <h2>{t('engagement.engagementTitle')}</h2>
                 </div>
-                <div className="no-results-container">
+                <div className={styles.noResultsContainer}>
                     <i className="fas fa-spinner fa-spin no-results-icon"></i>
-                    <p>Loading engagement data...</p>
+                    <p>{t('engagement.loadingEngagement')}</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="page active" id="engagement">
-            <div className="page-title">
+        <div className={`${styles.pageActive}`} id="engagement">
+            <div className={styles.pageTitle}>
                 <i className="fas fa-handshake"></i>
-                <h2>Instructor-Farmer Engagement</h2>
+                <h2>{t('engagement.engagementTitle')}</h2>
             </div>
 
             {/* Centered Search Bar */}
-            <div className="search-container-center">
-                <div className="search-input-wrapper">
-                    <i className="fas fa-search search-icon-absolute"></i>
+            <div className={styles.searchContainerCenter}>
+                <div className={styles.searchInputWrapper}>
+                    <i className={`fas fa-search ${styles.searchIconAbsolute}`}></i>
                     <input
                         type="text"
-                        placeholder="Search instructors or farmers..."
+                        placeholder={t('engagement.searchEngagementPlaceholder')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="search-input-rounded"
+                        className={styles.searchInputRounded}
                     />
                 </div>
             </div>
 
             {/* Search Results Info */}
-            <div className="results-info" style={{ justifyContent: 'center' }}>
-                <span>Found <span className="results-count-badge">{filteredInstructors.length}</span> instructors</span>
+            <div className={styles.resultsInfo}>
+                <span>{t('engagement.foundInstructors')} <span className={styles.resultsCountBadge}>{filteredInstructors.length}</span> {t('engagement.instructorsLabel')}</span>
                 {searchTerm && (
                     <button
-                        className="clear-filters-btn"
+                        className={styles.clearFiltersBtn}
                         onClick={() => setSearchTerm('')}
                     >
-                        Clear search
+                        {t('engagement.clearSearch')}
                     </button>
                 )}
             </div>
 
-            <div className="cards-grid">
+            <div className={styles.cardsGrid}>
                 {filteredInstructors.length > 0 ? (
                     filteredInstructors.map((instructor) => (
-                        <div className="card card-flex-column" key={instructor.id}>
-                            <div className="card-header">
-                                <div className="card-title card-header-flex">
-                                    <div className="instructor-info">
-                                        <span className="instructor-name">{instructor.name}</span>
-                                        <span className="instructor-id">({instructor.displayId})</span>
+                        <div className={`${commonCardStyles.card} ${styles.cardFlexColumn}`} key={instructor.id}>
+                            <div className={styles.cardHeader}>
+                                <div className={`${commonCardStyles.cardTitle} ${styles.cardHeaderFlex}`}>
+                                    <div className={styles.instructorInfo}>
+                                        <span className={styles.instructorName}>{instructor.name}</span>
+                                        <span className={styles.instructorId}>({instructor.displayId})</span>
                                     </div>
                                     <button
-                                        className="btn btn-sm btn-primary btn-view-sm"
+                                        className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSm} ${commonBtnStyles.btnPrimary}`}
                                         onClick={() => setSelectedInstructor(instructor)}
                                     >
-                                        View
+                                        {t('engagement.viewBtn')}
                                     </button>
                                 </div>
                             </div>
-                            <div className="card-content card-content-flex">
-                                <div className="farmers-count-wrapper">
-                                    <div className="farmers-count-val">{instructor.farmersCount}</div>
-                                    <div className="farmers-count-label">Farmers Assigned</div>
+                            <div className={`${styles.cardContent} ${styles.cardContentFlex}`}>
+                                <div className={styles.farmersCountWrapper}>
+                                    <div className={styles.farmersCountVal}>{instructor.farmersCount}</div>
+                                    <div className={styles.farmersCountLabel}>{t('engagement.farmersAssigned')}</div>
                                 </div>
 
-                                <div className="farmers-list-container">
+                                <div className={styles.farmersListContainer}>
                                     {instructor.farmers.map((farmer) => (
-                                        <div key={farmer.id} className="farmer-list-item">
+                                        <div key={farmer.id} className={styles.farmerListItem}>
                                             <div>
-                                                <div className="farmer-info-text">{farmer.name}</div>
-                                                <div className="farmer-id-text">{farmer.id}</div>
+                                                <div className={styles.farmerInfoText}>{farmer.name}</div>
+                                                <div className={styles.farmerIdText}>{farmer.id}</div>
                                             </div>
                                             <button
-                                                className="btn-view-xs"
+                                                className={styles.btnViewXs}
                                                 onClick={() => setSelectedFarmer(farmer)}
                                             >
-                                                View
+                                                {t('engagement.viewBtn')}
                                             </button>
                                         </div>
                                     ))}
@@ -151,8 +160,8 @@ const Engagement = () => {
                         </div>
                     ))
                 ) : (
-                    <div className="no-results-container">
-                        <i className="fas fa-search no-results-icon"></i>
+                    <div className={styles.noResultsContainer}>
+                        <i className={`fas fa-search ${styles.noResultsIcon}`}></i>
                         <p>No instructors or farmers found matching &quot;{searchTerm}&quot;</p>
                     </div>
                 )}
@@ -161,63 +170,65 @@ const Engagement = () => {
             {/* Instructor Details Modal */}
             {selectedInstructor && (
                 <ModalPortal>
-                    <div className="admin-modal active">
-                        <div className="admin-modal-content modal-content-constrained">
-                            <div className="admin-modal-header">
-                                <div className="admin-modal-title">Instructor Details</div>
-                                <button className="admin-modal-close-round" onClick={() => setSelectedInstructor(null)}>
-                                    <i className="fas fa-times"></i>
+                    <div className={`${styles.adminModal} ${styles.active}`}>
+                        <div className={styles.adminModalContent}>
+                            <div className={styles.adminModalHeader}>
+                                <div className={styles.adminModalTitle}>{t('engagement.instructorDetails')}</div>
+                                <button className={styles.adminModalCloseRound} onClick={() => setSelectedInstructor(null)}>
+                                    <i className="fas fa-xmark"></i>
                                 </button>
                             </div>
 
-                            <div className="admin-modal-body">
+                            <div className={styles.adminModalBody}>
                                 {/* Basic Info Section */}
-                                <div className="instructor-profile-header">
-                                    <div className="instructor-avatar-large" style={{
-                                        background: selectedInstructor.avatar ? `url(${selectedInstructor.avatar}) center/cover no-repeat` : '#D2B48C'
-                                    }}>
-                                        {!selectedInstructor.avatar && selectedInstructor.name.charAt(0)}
+                                <div className={styles.instructorProfileHeader}>
+                                    <div className={`${styles.instructorAvatarLarge} ${selectedInstructor.avatar ? styles.hasAvatar : styles.noAvatar}`}>
+                                        {selectedInstructor.avatar ? (
+                                            <img src={selectedInstructor.avatar} alt={t('engagement.instructorAlt')} className={styles.avatarFullImg} />
+                                        ) : (
+                                            selectedInstructor.name.charAt(0)
+                                        )}
                                     </div>
-                                    <div className="instructor-details-wrapper">
-                                        <div className="instructor-header-top">
-                                            <h2 className="instructor-name-large">{selectedInstructor.name}</h2>
+                                    <div className={styles.instructorDetailsWrapper}>
+                                        <div className={styles.instructorHeaderTop}>
+                                            <h2 className={styles.instructorNameLarge}>{selectedInstructor.name}</h2>
                                             {selectedInstructor.averageRating > 0 && (
-                                                <div className="instructor-rating-badge">
-                                                    <i className="fas fa-star" style={{ color: '#f59e0b' }}></i>
-                                                    <span style={{ fontWeight: 'bold', color: '#b45309' }}>{selectedInstructor.averageRating}</span>
+                                                <div className={styles.instructorRatingBadge}>
+                                                    <i className={`fas fa-star ${styles.starIconWarning}`}></i>
+                                                    <span className={styles.ratingTextBold}>{selectedInstructor.averageRating}</span>
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="instructor-id" style={{ marginBottom: '15px' }}>{selectedInstructor.displayId}</div>
+                                        <div className={styles.instructorIdMargin}>{selectedInstructor.displayId}</div>
 
-                                        <div className="instructor-grid-details">
+                                        <div className={styles.instructorGridDetails}>
                                             <div>
-                                                <div className="info-label-sm">NIC Number</div>
-                                                <div className="info-value-md">{selectedInstructor.nic}</div>
+                                                <div className={styles.detailLabel}>{t('engagement.nicNumber')}</div>
+                                                <div className={styles.detailValue}>{selectedInstructor.nic}</div>
                                             </div>
                                             <div>
-                                                <div className="info-label-sm">Phone Number</div>
-                                                <div className="info-value-md">{selectedInstructor.phone}</div>
+                                                <div className={styles.infoLabelSm}>{t('engagement.phoneNumber')}</div>
+                                                <div className={styles.infoValueMd}>{selectedInstructor.phone}</div>
                                             </div>
-                                            <div className="working-area-section">
-                                                <div className="working-area-label">Working Area</div>
+                                            <div className={styles.workingAreaSection}>
+                                                <div className={styles.workingAreaLabel}>{t('engagement.workingArea')}</div>
 
-                                                <div className="working-area-details">
-                                                    <div className="working-area-row">
-                                                        <span className="working-area-key">District:</span>
-                                                        <span className="working-area-val">{selectedInstructor.district}</span>
+                                                <div className={styles.workingAreaDetails}>
+                                                    <div className={styles.workingAreaRow}>
+                                                        <span className={styles.workingAreaKey}>{t('engagement.districtLabel')}:</span>
+                                                        <span className={styles.workingAreaVal}>{selectedInstructor.district}</span>
                                                     </div>
 
-                                                    <div className="working-area-row">
-                                                        <span className="working-area-key">Zone:</span>
-                                                        <span className="working-area-val">{selectedInstructor.zone}</span>
+                                                    <div className={styles.workingAreaRow}>
+                                                        <span className={styles.workingAreaKey}>{t('engagement.zoneLabel')}:</span>
+                                                        <span className={styles.workingAreaVal}>{selectedInstructor.zone}</span>
                                                     </div>
 
                                                     <div>
-                                                        <div className="working-area-key" style={{ marginBottom: '6px' }}>Instructor Divisions:</div>
-                                                        <div className="division-tags-wrapper">
+                                                        <div className={`${styles.workingAreaKey} ${styles.workingAreaKeyMargin}`}>{t('engagement.instructorDivisionsLabel')}</div>
+                                                        <div className={styles.divisionTagsWrapper}>
                                                             {selectedInstructor.divisions.map((div, idx) => (
-                                                                <span key={idx} className="division-tag">
+                                                                <span key={idx} className={styles.divisionTag}>
                                                                     {div}
                                                                 </span>
                                                             ))}
@@ -230,30 +241,30 @@ const Engagement = () => {
                                 </div>
 
                                 {/* Reviews Section */}
-                                <div className="reviews-section">
-                                    <h4 className="reviews-header">
-                                        Farmer Reviews <span className="reviews-count">({selectedInstructor.reviews.length})</span>
+                                <div className={styles.reviewsSection}>
+                                    <h4 className={styles.reviewsHeader}>
+                                        {t('engagement.farmerReviews')} <span className={styles.reviewsCount}>({selectedInstructor.reviews.length})</span>
                                     </h4>
 
                                     {selectedInstructor.reviews.length > 0 ? (
-                                        <div className="reviews-list">
+                                        <div className={styles.reviewsList}>
                                             {selectedInstructor.reviews.map((review) => (
-                                                <div key={review.id} className="review-item">
-                                                    <div className="review-header">
-                                                        <span className="review-author">{review.farmer}</span>
-                                                        <div className="review-stars">
+                                                <div key={review.id} className={styles.reviewItem}>
+                                                    <div className={styles.reviewHeader}>
+                                                        <span className={styles.reviewAuthor}>{review.farmer}</span>
+                                                        <div className={styles.reviewStars}>
                                                             {[...Array(5)].map((_, i) => (
-                                                                <i key={i} className={i < review.rating ? "fas fa-star" : "far fa-star"} style={{ fontSize: '0.9rem' }}></i>
+                                                                <i key={i} className={`fas fa-star ${styles.reviewStarSmall}`} style={{ color: i < review.rating ? 'var(--state-warning)' : 'var(--neutral-300)' }}></i>
                                                             ))}
                                                         </div>
                                                     </div>
-                                                    <p className="review-text">&quot;{review.comment}&quot;</p>
+                                                    <p className={styles.reviewText}>&quot;{review.comment}&quot;</p>
                                                 </div>
                                             ))}
                                         </div>
                                     ) : (
-                                        <div className="no-reviews">
-                                            No reviews yet for this instructor.
+                                        <div className={styles.noReviews}>
+                                            {t('engagement.noReviews')}
                                         </div>
                                     )}
                                 </div>
@@ -266,42 +277,62 @@ const Engagement = () => {
             {/* Farmer Details Modal */}
             {selectedFarmer && (
                 <ModalPortal>
-                    <div className="admin-modal active">
-                        <div className="admin-modal-content farmer-modal-content">
-                            <div className="admin-modal-header">
-                                <div className="admin-modal-title">Farmer Details</div>
-                                <button className="admin-modal-close-round" onClick={() => setSelectedFarmer(null)}>
-                                    <i className="fas fa-times"></i>
+                    <div className={`${styles.adminModal} ${styles.active}`}>
+                        <div className={`${styles.adminModalContent} ${styles.farmerModalContent}`}>
+                            <div className={styles.adminModalHeader}>
+                                <div className={styles.adminModalTitle}>{t('engagement.farmerDetails')}</div>
+                                <button className={styles.adminModalCloseRound} onClick={() => setSelectedFarmer(null)}>
+                                    <i className="fas fa-xmark"></i>
                                 </button>
                             </div>
 
-                            <div className="admin-modal-body">
-                                <div className="instructor-profile-header">
-                                    <div className="instructor-avatar-large" style={{
-                                        background: selectedFarmer.avatar ? `url(${selectedFarmer.avatar}) center/cover no-repeat` : '#D2B48C'
-                                    }}>
-                                        {!selectedFarmer.avatar && selectedFarmer.name.charAt(0)}
+                            <div className={styles.adminModalBody}>
+                                <div className={styles.instructorProfileHeader}>
+                                    <div
+                                        className={`${styles.instructorAvatarLarge} ${selectedFarmer.avatar ? styles.hasAvatar : styles.noAvatar}`}
+                                    >
+                                        {selectedFarmer.avatar ? (
+                                            <img src={selectedFarmer.avatar} alt={t('engagement.farmerAlt')} className={styles.avatarFullImg} />
+                                        ) : (
+                                            selectedFarmer.name.charAt(0)
+                                        )}
                                     </div>
-                                    <div className="instructor-details-wrapper">
-                                        <h2 className="instructor-name-large">{selectedFarmer.name}</h2>
-                                        <div className="instructor-id" style={{ marginBottom: '15px' }}>{selectedFarmer.id}</div>
+                                    <div className={styles.farmerDetailsWrapper}>
+                                        <h2 className={styles.farmerNameLargeModal}>{selectedFarmer.name}</h2>
+                                        <div className={styles.farmerIdModal}>{selectedFarmer.id}</div>
 
-                                        <div className="instructor-grid-details">
+                        <div className={styles.farmerGridDetails}>
                                             <div>
-                                                <div className="info-label-sm">Phone Number</div>
-                                                <div className="info-value-md">{selectedFarmer.phone}</div>
+                                                <div className={styles.infoLabelSm}>{t('engagement.nicLabel')}</div>
+                                                <div className={styles.infoValueMd}>{selectedFarmer.nic}</div>
                                             </div>
                                             <div>
-                                                <div className="info-label-sm">District</div>
-                                                <div className="info-value-md">{selectedFarmer.district}</div>
+                                                <div className={styles.infoLabelSm}>{t('engagement.phoneFarmerLabel')}</div>
+                                                <div className={styles.infoValueMd}>{selectedFarmer.phone}</div>
                                             </div>
                                             <div>
-                                                <div className="info-label-sm">Zone</div>
-                                                 <div className="info-value-md">{selectedFarmer.location}</div>
+                                                <div className={styles.infoLabelSm}>{t('engagement.districtFarmerLabel')}</div>
+                                                <div className={styles.infoValueMd}>{selectedFarmer.district}</div>
                                             </div>
                                             <div>
-                                                <div className="info-label-sm">Instructor Division</div>
-                                                <div className="info-value-md">{selectedFarmer.instructorDivision}</div>
+                                                <div className={styles.infoLabelSm}>{t('engagement.zoneFarmerLabel')}</div>
+                                                <div className={styles.infoValueMd}>{selectedFarmer.location}</div>
+                                            </div>
+                                            <div style={{ gridColumn: '1 / -1' }}>
+                                                <div className={styles.infoLabelSm}>{t('engagement.instructorDivisionsFarmerLabel')}</div>
+                                                <div className={styles.infoValueMd}>
+                                                    {selectedFarmer.farmerLocations && selectedFarmer.farmerLocations.length > 0 ? (
+                                                        <div className={styles.divisionTagsWrapper}>
+                                                            {selectedFarmer.farmerLocations.map((loc, idx) => (
+                                                                <span key={idx} className={styles.divisionTag}>
+                                                                    {loc.instructorDivision || loc.instructor_division || '-'}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        selectedFarmer.instructorDivision
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

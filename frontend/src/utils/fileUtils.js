@@ -1,22 +1,18 @@
 export const getDownloadUrl = (filePath) => {
     if (!filePath) return '#';
-    
-    // Cloudinary PDF handling: Ensure they are treated as 'upload' and not 'raw' 
-    // and remove fl_attachment to avoid 401 errors while allowing browser viewing
-    let url = filePath;
-    
-    // If it's a Cloudinary URL
-    if (url.includes('cloudinary.com')) {
-        // Fix for PDFs that might be incorrectly served as 'image' or 'raw'
-        // Cloudinary often needs PDFs to be under /image/upload/ or /files/upload/
-        // to be viewable in the browser. 
-        if (url.toLowerCase().endsWith('.pdf') && url.includes('/image/upload/')) {
-            // Some configurations prefer /files/upload/ for PDFs
-            // url = url.replace('/image/upload/', '/files/upload/');
-        }
+
+    // For Cloudinary image resources, inject fl_attachment so the browser downloads
+    // the file instead of displaying it inline (images open in a new tab without this).
+    // Raw resources (PDFs, docs) are directly downloadable and don't support this flag.
+    if (
+        filePath.includes('res.cloudinary.com') &&
+        filePath.includes('/image/upload/') &&
+        !filePath.includes('fl_attachment')
+    ) {
+        return filePath.replace('/image/upload/', '/image/upload/fl_attachment/');
     }
 
-    return url;
+    return filePath;
 };
 
 export const getFriendlyFileName = (filePath) => {

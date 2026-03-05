@@ -1,8 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import styles from '../styles/Settings.module.css';
+import commonBtnStyles from '@/components/common/styles/Button.module.css';
+import commonCardStyles from '@/components/common/styles/Card.module.css';
+import ConfirmModal from '@/components/common/feedback/ConfirmModal';
+import { getAccessToken } from '@/utils/authStorage';
+import { getStoredUser, setStoredUser } from '@/utils/userStorage';
+
+const ALLOWED_PICTURE_TYPES = ['image/jpeg', 'image/png'];
+const MAX_PICTURE_SIZE = 2 * 1024 * 1024; // 2 MB
 
 const Settings = () => {
     const { showToast } = useOutletContext();
+    const { t } = useTranslation('farmer');
 
     const [settings, setSettings] = useState({
         farmerId: '',
@@ -18,13 +29,51 @@ const Settings = () => {
     const [isUpdatingPicture, setIsUpdatingPicture] = useState(false);
     const [hierarchyData, setHierarchyData] = useState({});
     const [instructors, setInstructors] = useState([]);
+    const [passwordForm, setPasswordForm] = useState({ current: '', next: '', confirm: '' });
+    const [confirmConfig, setConfirmConfig] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        confirmText: '',
+        type: 'warning',
+        action: null
+    });
     const fileInputRef = React.useRef(null);
+
+    const openConfirm = ({ title, message, confirmText = '', type = 'warning', action }) => {
+        setConfirmConfig({
+            isOpen: true,
+            title,
+            message,
+            confirmText,
+            type,
+            action
+        });
+    };
+
+    const closeConfirm = () => {
+        setConfirmConfig({
+            isOpen: false,
+            title: '',
+            message: '',
+            confirmText: '',
+            type: 'warning',
+            action: null
+        });
+    };
+
+    const executeConfirm = async () => {
+        if (typeof confirmConfig.action === 'function') {
+            await confirmConfig.action();
+        }
+        closeConfirm();
+    };
 
     // Fetch farmer profile and other data on mount
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const token = localStorage.getItem('token');
+                const token = getAccessToken();
                 const headers = { 'Authorization': `Bearer ${token}` };
 
                 // Fetch Profile, Hierarchy, and Instructors in parallel
@@ -47,7 +96,7 @@ const Settings = () => {
                         // where assignedInstructorId was the reference ID
                         const refId = loc.assignedInstructorRefId || (typeof loc.assignedInstructorId === 'string' && loc.assignedInstructorId.startsWith('INST-') ? loc.assignedInstructorId : '');
                         const dbId = typeof loc.assignedInstructorId === 'number' ? loc.assignedInstructorId : (loc.assignedInstructorDbId || '');
-                        
+
                         return {
                             ...loc,
                             assignedInstructorRefId: refId,
@@ -56,14 +105,14 @@ const Settings = () => {
                     });
 
                     setSettings({
-                        farmerId: profile.id || '',
+                        farmerId: profile.farmer_id || '', // Use generated farmer_id instead of internal id
                         district: profile.district || 'Anuradhapura',
                         zone: profile.zone || 'Not set',
                         locations: locations,
                         fullName: profile.full_name || profile.name || '',
                         email: profile.email || '',
                         phone: profile.phone || '',
-                        profilePicture: profile.profile_picture || null
+                        profilePicture: profile.avatar || profile.profile_picture || null
                     });
                 }
 
@@ -77,7 +126,7 @@ const Settings = () => {
 
             } catch (error) {
                 console.error('Error fetching data:', error);
-                showToast('Failed to load settings data', 'error');
+                showToast(t('settings.toastLoadFailed'), 'error');
             } finally {
                 setLoading(false);
             }
@@ -89,12 +138,21 @@ const Settings = () => {
         const file = e.target.files[0];
         if (!file) return;
 
+        if (!ALLOWED_PICTURE_TYPES.includes(file.type)) {
+            showToast(t('settings.toastInvalidFileType'), 'warning');
+            return;
+        }
+        if (file.size > MAX_PICTURE_SIZE) {
+            showToast(t('settings.toastFileTooLarge'), 'warning');
+            return;
+        }
+
         setIsUpdatingPicture(true);
         const formData = new FormData();
         formData.append('profile_picture', file);
 
         try {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             const response = await fetch('/api/farmer/profile/picture', {
                 method: 'POST',
                 headers: {
@@ -111,27 +169,25 @@ const Settings = () => {
                     ...prev,
                     profilePicture: result.data.profile_picture
                 }));
-                
+
                 // Update local storage user data
-                const userStr = localStorage.getItem('user');
-                if (userStr) {
-                    const user = JSON.parse(userStr);
+                const user = getStoredUser();
+                if (user) {
                     user.profile_picture = result.data.profile_picture;
                     user.avatar = result.data.profile_picture;
-                    localStorage.setItem('user', JSON.stringify(user));
-                    
+                    setStoredUser(user);
                     // Notify layout
                     window.dispatchEvent(new Event('storage'));
                     window.dispatchEvent(new Event('user-updated'));
                 }
 
-                showToast('Profile picture updated successfully', 'success');
+                showToast(t('settings.toastPictureUpdated'), 'success');
             } else {
-                showToast(result.error?.message || 'Failed to update profile picture', 'error');
+                showToast(result.error?.message || t('settings.toastPictureUpdateFailed'), 'error');
             }
         } catch (error) {
             console.error('Error updating profile picture:', error);
-            showToast('An error occurred while updating profile picture', 'error');
+            showToast(t('settings.toastPictureUpdateError'), 'error');
         } finally {
             setIsUpdatingPicture(false);
             if (fileInputRef.current) {
@@ -142,11 +198,9 @@ const Settings = () => {
 
     // Handle profile picture removal
     const handlePictureRemove = async () => {
-        if (!window.confirm('Are you sure you want to remove your profile picture?')) return;
-
         setIsUpdatingPicture(true);
         try {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             const response = await fetch('/api/farmer/profile/picture', {
                 method: 'DELETE',
                 headers: {
@@ -162,30 +216,48 @@ const Settings = () => {
                     ...prev,
                     profilePicture: null
                 }));
-                
+
                 // Update local storage user data
-                const userStr = localStorage.getItem('user');
-                if (userStr) {
-                    const user = JSON.parse(userStr);
+                const user = getStoredUser();
+                if (user) {
                     user.profile_picture = null;
                     user.avatar = null;
-                    localStorage.setItem('user', JSON.stringify(user));
-                    
+                    setStoredUser(user);
                     // Notify layout
                     window.dispatchEvent(new Event('storage'));
                     window.dispatchEvent(new Event('user-updated'));
                 }
 
-                showToast('Profile picture removed successfully', 'success');
+                showToast(t('settings.toastPictureRemoved'), 'success');
             } else {
-                showToast(result.error?.message || 'Failed to remove profile picture', 'error');
+                showToast(result.error?.message || t('settings.toastPictureRemoveFailed'), 'error');
             }
         } catch (error) {
             console.error('Error removing profile picture:', error);
-            showToast('An error occurred while removing profile picture', 'error');
+            showToast(t('settings.toastPictureRemoveError'), 'error');
         } finally {
             setIsUpdatingPicture(false);
         }
+    };
+
+    const requestPictureRemove = () => {
+        openConfirm({
+            title: t('settings.removePhotoConfirmTitle'),
+            message: t('settings.removePhotoConfirmMsg'),
+            confirmText: t('settings.removePhotoConfirmBtn'),
+            type: 'warning',
+            action: handlePictureRemove
+        });
+    };
+
+    const requestDeleteAccount = () => {
+        openConfirm({
+            title: t('settings.deleteAccount'),
+            message: t('settings.deleteAccountConfirmMsg'),
+            confirmText: t('settings.deleteAccountConfirmBtn'),
+            type: 'danger',
+            action: async () => showToast(t('settings.toastAccountDeletion'))
+        });
     };
 
     const handleLocationChange = (index, field, value) => {
@@ -199,18 +271,24 @@ const Settings = () => {
 
             location.zone = value;
             location.instructorDivision = defaultDivision;
-            
-            // Find instructor for this division
-            const instructor = instructors.find(inst => inst.division.startsWith(defaultDivision));
+
+            // Find instructor for this division - check all assigned divisions
+            const instructor = instructors.find(inst =>
+                inst.assigned_divisions &&
+                inst.assigned_divisions.some(div => div.startsWith(defaultDivision))
+            );
             location.assignedInstructorId = instructor ? instructor.dbId : 'Pending';
-            location.assignedInstructorName = instructor ? instructor.name : 'No Instructor Assigned';
+            location.assignedInstructorName = instructor ? instructor.name : t('settings.noInstructorAssigned');
             location.assignedInstructorRefId = instructor ? instructor.id : '';
         } else if (field === 'instructorDivision') {
             location.instructorDivision = value;
-            // Find instructor for this division
-            const instructor = instructors.find(inst => inst.division.startsWith(value));
+            // Find instructor for this division - check all assigned divisions
+            const instructor = instructors.find(inst =>
+                inst.assigned_divisions &&
+                inst.assigned_divisions.some(div => div.startsWith(value))
+            );
             location.assignedInstructorId = instructor ? instructor.dbId : 'Pending';
-            location.assignedInstructorName = instructor ? instructor.name : 'No Instructor Assigned';
+            location.assignedInstructorName = instructor ? instructor.name : t('settings.noInstructorAssigned');
             location.assignedInstructorRefId = instructor ? instructor.id : '';
         }
 
@@ -224,10 +302,10 @@ const Settings = () => {
             zone: '', // Let user select
             instructorDivision: '', // Let user select
             assignedInstructorId: '', // Let user select
-            assignedInstructorName: 'Select Division First', // Let user select
+            assignedInstructorName: t('settings.selectDivisionFirst'), // Let user select
             assignedInstructorRefId: ''
         };
-        
+
         setSettings({
             ...settings,
             locations: [
@@ -242,13 +320,13 @@ const Settings = () => {
             const updatedLocations = settings.locations.filter((_, i) => i !== index);
             setSettings({ ...settings, locations: updatedLocations });
         } else {
-            showToast('You must have at least one farming location.');
+            showToast(t('settings.toastAtLeastOneLocation'));
         }
     };
 
     const saveProfile = async () => {
         try {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             const res = await fetch('/api/farmer/profile', {
                 method: 'PUT',
                 headers: {
@@ -264,20 +342,20 @@ const Settings = () => {
 
             const data = await res.json();
             if (res.ok && data.success) {
-                showToast('Profile updated successfully!');
+                showToast(t('settings.toastProfileUpdated'));
             } else {
-                showToast(data.error?.message || 'Failed to update profile', 'error');
+                showToast(data.error?.message || t('settings.toastProfileFailed'), 'error');
             }
         } catch (error) {
             console.error('Error updating profile:', error);
-            showToast('Failed to update profile', 'error');
+            showToast(t('settings.toastProfileFailed'), 'error');
         }
     };
 
     const saveLocationDetails = async () => {
         try {
-            const token = localStorage.getItem('token');
-            
+            const token = getAccessToken();
+
             // Determine primary instructor division from the first location if available
             const primaryDivision = settings.locations.length > 0 ? settings.locations[0].instructorDivision : '';
             const primaryZone = settings.locations.length > 0 ? settings.locations[0].zone : '';
@@ -290,107 +368,102 @@ const Settings = () => {
                 },
                 body: JSON.stringify({
                     locations: settings.locations,
+                    district: settings.district,
                     instructor_division: primaryDivision,
                     zone: primaryZone
                 })
             });
-            console.log('🔍 [Settings] Data sent to server:', { 
-                locations: settings.locations,
-                instructor_division: primaryDivision,
-                zone: primaryZone
-            });
 
             const data = await res.json();
-            console.log('🔍 [Settings] Server response:', data);
             if (res.ok && data.success) {
-                showToast('Location & Land Details saved successfully!');
-                console.log('✅ Locations saved:', settings.locations);
+                showToast(t('settings.toastLocationSaved'));
             } else {
-                showToast(data.error?.message || 'Failed to save locations', 'error');
+                showToast(data.error?.message || t('settings.toastLocationFailed'), 'error');
             }
         } catch (error) {
             console.error('Error saving locations:', error);
-            showToast('Failed to save locations', 'error');
+            showToast(t('settings.toastLocationFailed'), 'error');
         }
     };
 
     const changePassword = () => {
-        showToast('Password changed successfully!');
+        if (!passwordForm.current || !passwordForm.next || !passwordForm.confirm) {
+            showToast(t('settings.toastFillAllPasswords'), 'error');
+            return;
+        }
+        if (passwordForm.next !== passwordForm.confirm) {
+            showToast(t('settings.toastPasswordMismatch'), 'error');
+            return;
+        }
+        if (passwordForm.next.length < 8) {
+            showToast(t('settings.toastPasswordTooShort'), 'error');
+            return;
+        }
+        showToast(t('settings.toastPasswordNotAvailable'), 'error');
     };
 
     return (
-        <div className="page active" id="settings" style={{ display: 'block' }}>
-            <div className="page-title">
+        <div className={`page active ${styles.pageDisplay}`} id="settings">
+            <div className={styles.pageTitle}>
                 <i className="fas fa-cog"></i>
-                <h2>Settings</h2>
+                <h2>{t('settings.title')}</h2>
             </div>
 
-            <div className="settings-container">
+            <div className={styles.settingsContainer}>
                 {/* Profile Settings */}
-                <div className="settings-section">
-                    <div className="settings-header">
+                <div className={styles.settingsSection}>
+                    <div className={styles.settingsHeader}>
                         <i className="fas fa-user"></i>
-                        <h3>Profile Settings</h3>
+                        <h3>{t('settings.profileSettings')}</h3>
                     </div>
 
-                    <div className="profile-picture">
-                        <div className="profile-image-container" style={{
-                            backgroundImage: settings.profilePicture ? `url(${settings.profilePicture.startsWith('http') ? settings.profilePicture : `/${settings.profilePicture}`})` : 'none',
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                            backgroundColor: settings.profilePicture ? 'transparent' : 'var(--primary)',
-                            position: 'relative'
-                        }}>
-                            {!settings.profilePicture && (
-                                <div className="profile-avatar">
+                    <div className={styles.profilePicture}>
+                        <div className={styles.profileImageContainer}>
+                            {settings.profilePicture ? (
+                                <img
+                                    src={settings.profilePicture.startsWith('http') ? settings.profilePicture : `/${settings.profilePicture}`}
+                                    alt={t('settings.profileAlt')}
+                                    className={styles.profileImage}
+                                />
+                            ) : (
+                                <div className={styles.profileAvatarPlaceholder}>
                                     {settings.fullName ? settings.fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'F'}
                                 </div>
                             )}
                             {isUpdatingPicture && (
-                                <div style={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 0,
-                                    backgroundColor: 'rgba(0,0,0,0.5)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    borderRadius: '50%'
-                                }}>
+                                <div className={styles.loadingOverlay}>
                                     <i className="fas fa-spinner fa-spin text-white"></i>
                                 </div>
                             )}
                         </div>
-                        <div className="profile-picture-actions">
-                            <button 
-                                className="btn btn-primary" 
+                        <div className={styles.profilePictureActions}>
+                            <button
+                                className={`${commonBtnStyles.btn} ${commonBtnStyles.btnPrimary}`}
                                 onClick={() => fileInputRef.current?.click()}
                                 disabled={isUpdatingPicture}
                             >
                                 <i className={`fas ${isUpdatingPicture ? 'fa-spinner fa-spin' : 'fa-upload'}`}></i>
-                                {isUpdatingPicture ? ' Uploading...' : ' Upload New Photo'}
+                                {isUpdatingPicture ? ` ${t('settings.uploading')}` : ` ${t('settings.uploadPhoto')}`}
                             </button>
-                            <input 
-                                type="file" 
+                            <input
+                                type="file"
                                 ref={fileInputRef}
                                 onChange={handlePictureUpload}
-                                style={{ display: 'none' }} 
-                                accept="image/*" 
+                                className={styles.hiddenInput}
+                                accept="image/*"
                             />
-                            <button 
-                                className="btn btn-secondary" 
-                                onClick={handlePictureRemove}
+                            <button
+                                className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSecondary}`}
+                                onClick={requestPictureRemove}
                                 disabled={isUpdatingPicture || !settings.profilePicture}
                             >
-                                <i className="fas fa-trash"></i> Remove Photo
+                                <i className="fas fa-trash"></i> {t('settings.removePhoto')}
                             </button>
                         </div>
                     </div>
 
                     <div className="form-group">
-                        <label htmlFor="farmerId">Farmer ID</label>
+                        <label htmlFor="farmerId">{t('settings.farmerId')}</label>
                         <input
                             type="text"
                             id="farmerId"
@@ -401,7 +474,7 @@ const Settings = () => {
                     </div>
 
                     <div className="form-group">
-                        <label htmlFor="fullName">Full Name</label>
+                        <label htmlFor="fullName">{t('settings.fullName')}</label>
                         <input
                             type="text"
                             id="fullName"
@@ -411,7 +484,7 @@ const Settings = () => {
                         />
                     </div>
                     <div className="form-group">
-                        <label htmlFor="email">Email Address</label>
+                        <label htmlFor="email">{t('settings.emailAddress')}</label>
                         <input
                             type="email"
                             id="email"
@@ -421,7 +494,7 @@ const Settings = () => {
                         />
                     </div>
                     <div className="form-group">
-                        <label htmlFor="phone">Phone Number</label>
+                        <label htmlFor="phone">{t('settings.phoneNumber')}</label>
                         <input
                             type="tel"
                             id="phone"
@@ -431,20 +504,20 @@ const Settings = () => {
                         />
                     </div>
 
-                    <button className="btn btn-primary" onClick={saveProfile}>
-                        <i className="fas fa-save"></i> Update Profile
+                    <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnPrimary}`} onClick={saveProfile}>
+                        <i className="fas fa-save"></i> {t('settings.updateProfile')}
                     </button>
                 </div>
 
                 {/* Location & Land Details */}
-                <div className="settings-section">
-                    <div className="settings-header">
-                        <i className="fas fa-map-marker-alt"></i>
-                        <h3>Location &amp; Land Details</h3>
+                <div className={styles.settingsSection}>
+                    <div className={styles.settingsHeader}>
+                        <i className="fas fa-location-dot"></i>
+                        <h3>{t('settings.locationLandDetails')}</h3>
                     </div>
 
                     <div className="form-group">
-                        <label htmlFor="district">District</label>
+                        <label htmlFor="district">{t('settings.district')}</label>
                         <input
                             type="text"
                             id="district"
@@ -455,37 +528,30 @@ const Settings = () => {
                     </div>
 
                     <div className="form-group">
-                        <label>Farming Locations</label>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                        <label>{t('settings.farmingLocations')}</label>
+                        <div className={styles.locationsList}>
                             {settings.locations.map((location, index) => (
-                                <div key={location.id} style={{
-                                    padding: '15px',
-                                    border: '1px solid #ddd',
-                                    borderRadius: '8px',
-                                    backgroundColor: '#f9f9f9',
-                                    position: 'relative'
-                                }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                                        <h4 style={{ margin: 0, fontSize: '1rem', color: '#2c3e50' }}>Location {index + 1}</h4>
+                                <div key={location.id} className={`${commonCardStyles.card} ${styles.locationCard}`}>
+                                    <div className={styles.locationHeader}>
+                                        <h4 className={styles.locationTitle}>{t('settings.locationNum')} {index + 1}</h4>
                                         {settings.locations.length > 1 && (
                                             <button
-                                                className="btn btn-sm btn-danger"
+                                                className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSm} ${commonBtnStyles.btnDanger} ${styles.removeButton}`}
                                                 onClick={() => removeLocation(index)}
-                                                style={{ padding: '2px 8px', fontSize: '0.8rem' }}
                                             >
-                                                <i className="fas fa-trash"></i> Remove
+                                                <i className="fas fa-trash"></i> {t('settings.removeLocation')}
                                             </button>
                                         )}
                                     </div>
 
-                                    <div className="form-group" style={{ marginBottom: '10px' }}>
-                                        <label style={{ fontSize: '0.9rem' }}>Zone</label>
+                                    <div className={`form-group ${styles.formGroupSmallMargin}`}>
+                                        <label className={styles.smallLabel}>{t('settings.zone')}</label>
                                         <select
                                             className="form-control"
                                             value={location.zone}
                                             onChange={(e) => handleLocationChange(index, 'zone', e.target.value)}
                                         >
-                                            <option value="">Select Zone</option>
+                                            <option value="">{t('settings.selectZone')}</option>
                                             {Object.keys(hierarchyData).map(zoneName => (
                                                 <option key={zoneName} value={zoneName}>
                                                     {zoneName}
@@ -494,15 +560,15 @@ const Settings = () => {
                                         </select>
                                     </div>
 
-                                    <div className="form-group" style={{ marginBottom: '10px' }}>
-                                        <label style={{ fontSize: '0.9rem' }}>Instructor Division</label>
+                                    <div className={`form-group ${styles.formGroupSmallMargin}`}>
+                                        <label className={styles.smallLabel}>{t('settings.instructorDiv')}</label>
                                         <select
                                             className="form-control"
                                             value={location.instructorDivision}
                                             onChange={(e) => handleLocationChange(index, 'instructorDivision', e.target.value)}
                                             disabled={!location.zone}
                                         >
-                                            <option value="">Select Division</option>
+                                            <option value="">{t('settings.selectDiv')}</option>
                                             {(hierarchyData[location.zone] || []).map(division => (
                                                 <option key={division} value={division}>
                                                     {division}
@@ -511,82 +577,106 @@ const Settings = () => {
                                         </select>
                                     </div>
 
-                                    <div className="form-group" style={{ marginBottom: 0 }}>
-                                        <label style={{ fontSize: '0.9rem' }}>Assigned Instructor</label>
+                                    <div className={`form-group ${styles.formGroupNoMargin}`}>
+                                        <label className={styles.smallLabel}>{t('settings.assignedInstructor')}</label>
                                         <input
                                             type="text"
-                                            className="form-control"
+                                            className={`form-control ${styles.disabledInput}`}
                                             value={location.assignedInstructorRefId ? `${location.assignedInstructorName} (${location.assignedInstructorRefId})` : location.assignedInstructorName}
                                             disabled
-                                            style={{ backgroundColor: '#e9ecef' }}
                                         />
                                     </div>
                                 </div>
                             ))}
                         </div>
                         <button
-                            className="btn btn-secondary"
+                            className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSecondary} ${styles.fullWidthButton}`}
                             onClick={addLocation}
-                            style={{ marginTop: '10px', width: '100%' }}
                         >
-                            <i className="fas fa-plus"></i> Add Another Location
+                            <i className="fas fa-plus"></i> {t('settings.addAnotherLocation')}
                         </button>
                         <button
-                            className="btn btn-primary"
+                            className={`${commonBtnStyles.btn} ${commonBtnStyles.btnPrimary} ${styles.fullWidthButton}`}
                             onClick={saveLocationDetails}
-                            style={{ width: '100%', marginTop: '10px' }}
                         >
-                            <i className="fas fa-save"></i> Save Location Details
+                            <i className="fas fa-save"></i> {t('settings.saveLocationDetails')}
                         </button>
                     </div>
                 </div>
 
                 {/* Security Settings */}
-                <div className="settings-section">
-                    <div className="settings-header">
+                <div className={styles.settingsSection}>
+                    <div className={styles.settingsHeader}>
                         <i className="fas fa-shield-alt"></i>
-                        <h3>Security Settings</h3>
+                        <h3>{t('settings.securitySettings')}</h3>
                     </div>
 
                     <div className="form-group">
-                        <label htmlFor="currentPassword">Current Password</label>
-                        <input type="password" id="currentPassword" className="form-control" placeholder="Enter current password" />
+                        <label htmlFor="currentPassword">{t('settings.currentPassword')}</label>
+                        <input
+                            type="password"
+                            id="currentPassword"
+                            className="form-control"
+                            placeholder={t('settings.currentPasswordPlaceholder')}
+                            value={passwordForm.current}
+                            onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })}
+                        />
                     </div>
                     <div className="form-group">
-                        <label htmlFor="newPassword">New Password</label>
-                        <input type="password" id="newPassword" className="form-control" placeholder="Enter new password" />
+                        <label htmlFor="newPassword">{t('settings.newPassword')}</label>
+                        <input
+                            type="password"
+                            id="newPassword"
+                            className="form-control"
+                            placeholder={t('settings.newPasswordPlaceholder')}
+                            value={passwordForm.next}
+                            onChange={(e) => setPasswordForm({ ...passwordForm, next: e.target.value })}
+                        />
                     </div>
                     <div className="form-group">
-                        <label htmlFor="confirmPassword">Confirm New Password</label>
-                        <input type="password" id="confirmPassword" className="form-control" placeholder="Confirm new password" />
+                        <label htmlFor="confirmPassword">{t('settings.confirmPassword')}</label>
+                        <input
+                            type="password"
+                            id="confirmPassword"
+                            className="form-control"
+                            placeholder={t('settings.confirmPasswordPlaceholder')}
+                            value={passwordForm.confirm}
+                            onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
+                        />
                     </div>
-                    <button className="btn btn-primary" onClick={changePassword}>
-                        <i className="fas fa-key"></i> Change Password
+                    <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnPrimary}`} onClick={changePassword}>
+                        <i className="fas fa-key"></i> {t('settings.changePassword')}
                     </button>
                 </div>
 
 
                 {/* Danger Zone */}
-                <div className="settings-section">
-                    <div className="settings-header">
+                <div className={styles.settingsSection}>
+                    <div className={styles.settingsHeader}>
                         <i className="fas fa-exclamation-triangle"></i>
-                        <h3>Danger Zone</h3>
+                        <h3>{t('settings.dangerZone')}</h3>
                     </div>
 
-                    <p style={{ color: 'var(--gray)', marginBottom: '20px' }}>
-                        Once you delete your account, there is no going back. Please be certain.
+                    <p className={styles.dangerText}>
+                        {t('settings.dangerText')}
                     </p>
-                    <div className="settings-actions">
-                        <button className="btn btn-danger" onClick={() => {
-                            if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-                                showToast('Account deletion request submitted');
-                            }
-                        }}>
-                            <i className="fas fa-trash"></i> Delete Account
+                    <div className={styles.settingsActions}>
+                        <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnDanger}`} onClick={requestDeleteAccount}>
+                            <i className="fas fa-trash"></i> {t('settings.deleteAccount')}
                         </button>
                     </div>
                 </div>
             </div>
+
+            <ConfirmModal
+                isOpen={confirmConfig.isOpen}
+                onClose={closeConfirm}
+                onConfirm={executeConfirm}
+                title={confirmConfig.title}
+                message={confirmConfig.message}
+                confirmText={confirmConfig.confirmText}
+                type={confirmConfig.type}
+            />
         </div>
     );
 };

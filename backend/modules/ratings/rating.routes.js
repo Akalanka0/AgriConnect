@@ -15,8 +15,8 @@ router.post('/instructor-rating', authenticate, authorize('farmer'), submitInstr
 router.delete('/instructor-rating', authenticate, authorize('farmer'), deleteInstructorRating);
 router.get('/my-ratings', authenticate, authorize('farmer'), getMyRatings);
 
-// Public routes (for viewing instructor ratings)
-router.get('/instructors/:instructor_id/ratings', getInstructorRatings);
+// Authenticated routes (for viewing instructor ratings — requires login)
+router.get('/instructors/:instructor_id/ratings', authenticate, getInstructorRatings);
 
 // Instructor routes (for viewing their own ratings)
 router.get('/instructor/ratings/summary', authenticate, authorize('instructor'), getInstructorRatingSummary);

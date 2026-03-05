@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import DataTable from '../components/DataTable';
 import StatusBadge from '../components/StatusBadge';
-import { useToast } from '../components/Toast';
-import '../styles/AdminDash.css';
-import '../styles/UserIdManagement.css';
+import styles from '../styles/UserIdManagement.module.css';
+import btnStyles from '@/components/common/styles/Button.module.css';
+import ConfirmModal from '@/components/common/feedback/ConfirmModal';
+import { adminAPI } from '@/services/adminService';
 
 const UserIdManagement = () => {
     const [activeTab, setActiveTab] = useState('farmer');
@@ -13,25 +16,61 @@ const UserIdManagement = () => {
     const [clearing, setClearing] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
-    
-    const { showToast } = useToast();
-    const API_BASE = '/api/admin';
+    const [confirmConfig, setConfirmConfig] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        confirmText: 'Confirm',
+        type: 'warning',
+        action: null
+    });
+
+    const { showToast } = useOutletContext();
+    const { t } = useTranslation('admin');
+
+    const openConfirm = ({ title, message, confirmText = 'Confirm', type = 'warning', action }) => {
+        setConfirmConfig({
+            isOpen: true,
+            title,
+            message,
+            confirmText,
+            type,
+            action
+        });
+    };
+
+    const closeConfirm = () => {
+        setConfirmConfig({
+            isOpen: false,
+            title: '',
+            message: '',
+            confirmText: 'Confirm',
+            type: 'warning',
+            action: null
+        });
+    };
+
+    const executeConfirm = async () => {
+        if (typeof confirmConfig.action === 'function') {
+            await confirmConfig.action();
+        }
+        closeConfirm();
+    };
 
     // Fetch IDs
     const fetchIds = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`${API_BASE}/ids?type=${activeTab}`);
-            const data = await response.json();
-            
-            if (data.success) {
-                setIds(data.data);
+            const data = await adminAPI.getUserIds(activeTab);
+
+            if (data) {
+                setIds(data.data || data);
             } else {
-                showToast(data.error?.message || 'Failed to fetch IDs', 'error');
+                showToast(data?.error?.message || 'Failed to fetch IDs', 'error');
             }
         } catch (error) {
             console.error('Error fetching IDs:', error);
-            showToast('Failed to connect to server', 'error');
+            showToast(error.message || 'Failed to connect to server', 'error');
         } finally {
             setLoading(false);
         }
@@ -45,24 +84,17 @@ const UserIdManagement = () => {
     const handleGenerate = async () => {
         setGenerating(true);
         try {
-            const response = await fetch(`${API_BASE}/ids/generate`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ type: activeTab })
-            });
-            const data = await response.json();
-            
-            if (data.success) {
-                showToast(data.message, 'success');
+            const data = await adminAPI.generateUserId(activeTab);
+
+            if (data && (data.success || data.message)) {
+                showToast(data.message || 'IDs generated successfully', 'success');
                 await fetchIds(); // Refresh list - await to ensure loading state is handled if needed
             } else {
-                showToast(data.error?.message || 'Failed to generate IDs', 'error');
+                showToast(data?.error?.message || 'Failed to generate IDs', 'error');
             }
         } catch (error) {
             console.error('Error generating IDs:', error);
-            showToast('Failed to generate IDs', 'error');
+            showToast(error.message || 'Failed to generate IDs', 'error');
         } finally {
             setGenerating(false);
         }
@@ -70,60 +102,52 @@ const UserIdManagement = () => {
 
     // Clear Unused IDs
     const handleClearUnused = async () => {
-        if (!window.confirm('Are you sure you want to delete all "Unused" (Active) IDs? This action cannot be undone.')) {
-            return;
-        }
-
         setClearing(true);
         try {
-            const response = await fetch(`${API_BASE}/ids/prune`, {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ type: activeTab, status: 'active' })
-            });
-            const data = await response.json();
-            
-            if (data.success) {
-                showToast(data.message, 'success');
+            const data = await adminAPI.pruneUserIds(activeTab, 'active');
+
+            if (data && (data.success || data.message)) {
+                showToast(data.message || 'Unused IDs cleared successfully', 'success');
                 await fetchIds(); // Refresh list
             } else {
-                showToast(data.error?.message || 'Failed to clear IDs', 'error');
+                showToast(data?.error?.message || 'Failed to clear IDs', 'error');
             }
         } catch (error) {
             console.error('Error clearing IDs:', error);
-            showToast('Failed to clear IDs', 'error');
+            showToast(error.message || 'Failed to clear IDs', 'error');
         } finally {
             setClearing(false);
         }
+    };
+
+    const requestClearUnused = () => {
+        openConfirm({
+            title: t('ids.clearUnusedTitle'),
+            message: t('ids.clearUnusedMsg'),
+            confirmText: t('ids.clearIdsConfirm'),
+            type: 'danger',
+            action: handleClearUnused
+        });
     };
 
     // Toggle Status
     const toggleStatus = async (id, currentStatus) => {
         const newStatus = currentStatus === 'active' ? 'used' : 'active';
         try {
-            const response = await fetch(`${API_BASE}/ids/${id}/status`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ status: newStatus })
-            });
-            const data = await response.json();
-            
-            if (data.success) {
+            const data = await adminAPI.updateUserIdStatus(id, newStatus);
+
+            if (data && (data.success || data.message)) {
                 showToast('Status updated successfully', 'success');
                 // Update local state to avoid full refetch
-                setIds(prevIds => prevIds.map(item => 
+                setIds(prevIds => prevIds.map(item =>
                     item.id === id ? { ...item, status: newStatus } : item
                 ));
             } else {
-                showToast(data.error?.message || 'Failed to update status', 'error');
+                showToast(data?.error?.message || 'Failed to update status', 'error');
             }
         } catch (error) {
             console.error('Error updating status:', error);
-            showToast('Failed to update status', 'error');
+            showToast(error.message || 'Failed to update status', 'error');
         }
     };
 
@@ -136,42 +160,45 @@ const UserIdManagement = () => {
 
     // Columns configuration
     const columns = [
-        { header: 'Code', accessor: 'code', sortable: true },
-        { header: 'Year', accessor: 'year', sortable: true },
-        { 
-            header: 'Created At', 
-            accessor: 'created_at', 
+        { header: t('ids.colCode'), accessor: 'code', sortable: true },
+        { header: t('ids.colYear'), accessor: 'year', sortable: true },
+        {
+            header: t('ids.colCreatedAtLabel'),
+            accessor: 'created_at',
             sortable: true,
             render: (row) => new Date(row.created_at).toLocaleDateString() + ' ' + new Date(row.created_at).toLocaleTimeString()
         },
-        { 
-            header: 'Status', 
-            accessor: 'status', 
+        {
+            header: t('ids.colStatus'),
+            accessor: 'status',
             sortable: true,
             render: (row) => (
                 <StatusBadge status={row.status === 'active' ? 'Active' : 'Using'} />
             )
         },
         {
-            header: 'Actions',
+            header: t('ids.colActionsLabel'),
             accessor: 'actions',
             render: (row) => (
                 row.status === 'active' ? (
-                    <button 
-                        className="btn-action btn-success"
+                    <button
+                        className={styles.btnMarkUsing}
                         onClick={(e) => {
                             e.stopPropagation();
-                            if (window.confirm('Are you sure you want to mark this ID as Using? This action cannot be reverted.')) {
-                                toggleStatus(row.id, row.status);
-                            }
+                            openConfirm({
+                                title: t('ids.markUsingTitle'),
+                                message: t('ids.markUsingMsg'),
+                                confirmText: t('ids.markUsingConfirm'),
+                                type: 'warning',
+                                action: () => toggleStatus(row.id, row.status)
+                            });
                         }}
-                        style={{ padding: '5px 10px', fontSize: '0.8rem', borderRadius: '4px', border: 'none', cursor: 'pointer', color: 'white', background: '#2ecc71' }}
                     >
-                        Mark as Using
+                        {t('ids.markAsUsing')}
                     </button>
                 ) : (
-                    <span style={{ color: '#7f8c8d', fontStyle: 'italic', fontSize: '0.85rem' }}>
-                        In Use (Locked)
+                    <span className={styles.textInUse}>
+                        {t('ids.inUseLocked')}
                     </span>
                 )
             )
@@ -179,104 +206,113 @@ const UserIdManagement = () => {
     ];
 
     return (
-        <div className="page active" id="user-ids">
-            <div className="page-title">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+        <div className={styles.page}>
+            <div className={styles.pageTitle}>
+                <div className={styles.pageTitleLeft}>
                     <i className="fas fa-id-card"></i>
-                    <h2>User ID Management</h2>
+                    <h2>{t('ids.title')}</h2>
                 </div>
-                <div className="header-actions">
-                    <button 
-                        className="btn-secondary" 
-                        onClick={handleClearUnused}
+                <div className={styles.headerActions}>
+                    <button
+                        className={`${btnStyles.btn} ${btnStyles.btnSecondary}`}
+                        onClick={requestClearUnused}
                         disabled={clearing || loading}
                     >
-                        <i className={`fas ${clearing ? 'fa-spinner fa-spin' : 'fa-trash-alt'}`}></i>
-                        <span>{clearing ? 'Clearing...' : 'Clear Unused IDs'}</span>
+                        <i className={`fas ${clearing ? 'fa-spinner fa-spin' : 'fa-trash-can'}`}></i>
+                        <span>{clearing ? t('ids.clearingBtn') : t('ids.clearBtn')}</span>
                     </button>
-                    <button 
-                        className="btn-primary" 
+                    <button
+                        className={`${btnStyles.btn} ${btnStyles.btnPrimary}`}
                         onClick={handleGenerate}
                         disabled={generating || loading}
                     >
-                        <i className={`fas ${generating ? 'fa-spinner fa-spin' : 'fa-magic'}`}></i>
-                        <span>{generating ? 'Generating...' : 'Generate 50 New IDs'}</span>
+                        <i className={`fas ${generating ? 'fa-spinner fa-spin' : 'fa-wand-magic-sparkles'}`}></i>
+                        <span>{generating ? t('ids.generatingNewBtn') : t('ids.generateNewBtn')}</span>
                     </button>
                 </div>
             </div>
 
             {/* Tabs */}
-            <div className="tabs-container">
-                <button 
-                    className={`tab-btn ${activeTab === 'farmer' ? 'active' : ''}`}
+            <div className={styles.tabsContainer}>
+                <button
+                    className={`${styles.tabBtn} ${activeTab === 'farmer' ? styles.active : ''}`}
                     onClick={() => setActiveTab('farmer')}
                 >
-                    Farmers
+                    {t('ids.tabFarmers')}
                 </button>
-                <button 
-                    className={`tab-btn ${activeTab === 'instructor' ? 'active' : ''}`}
+                <button
+                    className={`${styles.tabBtn} ${activeTab === 'instructor' ? styles.active : ''}`}
                     onClick={() => setActiveTab('instructor')}
                 >
-                    Instructors
+                    {t('ids.tabInstructors')}
                 </button>
             </div>
 
             {/* Filters */}
-            <div className="filters-bar">
-                <div className="search-box">
+            <div className={styles.filtersBar}>
+                <div className={styles.searchBox}>
                     <i className="fas fa-search"></i>
-                    <input 
-                        type="text" 
-                        className="filter-input"
-                        placeholder="Search IDs..." 
+                    <input
+                        type="text"
+                        className={styles.filterInput}
+                        placeholder={t('ids.searchIdsPlaceholder')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
 
-                <div className="filter-group">
-                    <select 
-                        className="filter-input"
+                <div className={styles.filterGroup}>
+                    <select
+                        className={styles.filterInput}
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
                     >
-                        <option value="all">All Status</option>
-                        <option value="active">Active</option>
-                        <option value="used">Using</option>
+                        <option value="all">{t('ids.statusAll')}</option>
+                        <option value="active">{t('ids.statusActive')}</option>
+                        <option value="used">{t('ids.statusUsing')}</option>
                     </select>
                 </div>
             </div>
 
             {/* Results Info */}
-            <div className="results-info">
-                Showing <span className="results-count-badge">{filteredIds.length}</span> codes
+            <div className={styles.resultsInfo}>
+                {t('ids.showingLabel')} <span className={styles.resultsCountBadge}>{filteredIds.length}</span> {t('ids.codesLabel')}
                 {(searchTerm || statusFilter !== 'all') && (
                     <button
-                        className="clear-filters-btn"
+                        className={styles.clearFiltersBtn}
                         onClick={() => {
                             setSearchTerm('');
                             setStatusFilter('all');
                         }}
                     >
-                        Clear filters
+                        {t('ids.clearFilters')}
                     </button>
                 )}
             </div>
 
             {/* Content */}
             {loading ? (
-                <div className="loading-container">
-                    <div className="loading-spinner"></div>
-                    <p>Loading IDs...</p>
+                <div className={styles.loadingContainer}>
+                    <div className={styles.loadingSpinner}></div>
+                    <p>{t('ids.loadingIds')}</p>
                 </div>
             ) : (
-                <DataTable 
+                <DataTable
                     columns={columns}
                     data={filteredIds}
-                    onRowClick={() => {}}
-                    emptyMessage={`No IDs found. Generate some new ones!`}
+                    emptyMessage={t('ids.emptyIds')}
                 />
             )}
+
+            <ConfirmModal
+                isOpen={confirmConfig.isOpen}
+                onClose={closeConfirm}
+                onConfirm={executeConfirm}
+                title={confirmConfig.title}
+                message={confirmConfig.message}
+                confirmText={confirmConfig.confirmText}
+                type={confirmConfig.type}
+            />
         </div>
     );
 };

@@ -1,0 +1,99 @@
+/* Card.module.css */
+/* Import semantic color system */
+@import url('../../../shared/semantic-colors.css');
+
+.card {
+    background: white;
+    padding: 24px 24px 24px 24px;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    /* Use standard shadow */
+    border-left: 1px solid rgba(0, 0, 0, 0.05);
+    border-right: 1px solid rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    border-top: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+    border-left-color: var(--color-primary-hover, rgba(0, 0, 0, 0.2));
+    border-right-color: var(--color-primary-hover, rgba(0, 0, 0, 0.2));
+    border-bottom-color: var(--color-primary-hover, rgba(0, 0, 0, 0.2));
+}
+
+.card:hover .cardIcon {
+    transform: scale(1.1) rotate(5deg);
+    background: var(--color-primary, #1565c0);
+    color: white;
+}
+
+/* Optional top gradient bar */
+.cardBorderTop::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--color-primary, #1565c0), var(--color-primary-light, #2196F3));
+    transform: scaleX(0);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    z-index: 1;
+    transform-origin: left center;
+}
+
+.cardBorderTop:hover::before {
+    transform: scaleX(1);
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 0px;
+    border-bottom: none;
+}
+
+.cardTitle {
+    font-size: 1.15em;
+    font-weight: 700;
+    color: var(--color-primary-hover, #0d47a1);
+    flex: 1;
+}
+
+.cardIcon {
+    width: 44px;
+    height: 44px;
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-primary, #1565c0);
+    font-size: 1.2em;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.cardContent {
+    color: var(--neutral-500, #6c757d);
+    flex: 1;
+    position: relative;
+}
+
+.fullWidthCard {
+    grid-column: 1 / -1;
+}
+
+.cardBorderTop {
+    position: relative;
+}

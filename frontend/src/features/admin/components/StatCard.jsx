@@ -1,26 +1,29 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import '../styles/StatCard.css';
+import styles from '../styles/StatCard.module.css';
 
 /**
  * Reusable Statistic Card Component
  * Displays a value, label, icon, and optional trend indicator
  */
 const StatCard = ({ label, value, icon, trend, trendValue, color }) => {
+    // Dynamic color class mapping
+    const colorClass = color ? styles[`card${color.charAt(0).toUpperCase() + color.slice(1)}`] : '';
+    
     return (
-        <div className={`stat-card-enhanced ${color ? `card-${color}` : ''}`}>
-            <div className="stat-content">
-                <div className="stat-value">{value}</div>
-                <div className="stat-label">{label}</div>
+        <div className={`${styles.statCardEnhanced} ${colorClass}`}>
+            <div className={styles.statContent}>
+                <div className={styles.statValue}>{value}</div>
+                <div className={styles.statLabel}>{label}</div>
                 
                 {trend && (
-                    <div className={`stat-trend ${trend === 'up' ? 'trend-up' : 'trend-down'}`}>
+                    <div className={`${styles.statTrend} ${trend === 'up' ? styles.trendUp : styles.trendDown}`}>
                         <i className={`fas fa-arrow-${trend}`}></i>
                         <span>{trendValue}</span>
                     </div>
                 )}
             </div>
-            <div className="stat-icon-wrapper">
+            <div className={styles.statIconWrapper}>
                 <i className={icon}></i>
             </div>
         </div>

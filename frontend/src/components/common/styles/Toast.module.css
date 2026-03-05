@@ -1,0 +1,73 @@
+/* Shared Toast styles */
+
+@import url('../../../shared/semantic-colors.css');
+
+.toastContainer {
+    position: fixed;
+    bottom: var(--space-lg);
+    right: var(--space-lg);
+    z-index: 9500;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    pointer-events: none;
+}
+
+.toast {
+    min-width: 250px;
+    padding: var(--space-md) var(--space-lg);
+    border-radius: var(--radius-sm);
+    background: var(--state-info);
+    color: var(--neutral-white);
+    box-shadow: var(--shadow-lg);
+    transform: translateY(100px);
+    opacity: 0;
+    transition: var(--transition-normal);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+.toastShow {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.toastSuccess {
+    background: var(--state-success);
+}
+
+.toastError {
+    background: var(--state-danger);
+}
+
+.toastWarning {
+    background: var(--state-warning);
+}
+
+.toastInfo {
+    background: var(--state-info);
+}
+
+.toastIcon {
+    font-size: 1.2em;
+}
+
+.toastMessage {
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .toastContainer {
+        right: var(--space-md);
+        left: var(--space-md);
+        bottom: var(--space-md);
+    }
+
+    .toast {
+        min-width: 0;
+        width: 100%;
+    }
+}

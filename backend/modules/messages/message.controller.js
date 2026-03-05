@@ -1,28 +1,25 @@
-import { Message, User } from '../../models/index.js';
+import { Message, User, FarmerDetail, InstructorDetail } from '../../models/index.js';
 import { Op } from 'sequelize';
 import { MessageService } from '../../services/messageService.js';
-import cloudinary from '../../utils/cloudinary.js';
-import { Readable } from 'stream';
+import { upload, uploadToCloudinaryMiddleware } from '../../middleware/uploadMiddleware.js';
 
-const bufferToStream = (buffer) => {
-    const readable = new Readable();
-    readable._read = () => {};
-    readable.push(buffer);
-    readable.push(null);
-    return readable;
+// Middleware for handling file uploads in messages
+export const uploadMessageAttachment = (req, res, next) => {
+    upload.single('attachment')(req, res, (err) => {
+        if (err) {
+            return res.status(400).json({
+                success: false,
+                error: { message: 'File upload failed' }
+            });
+        }
+        uploadToCloudinaryMiddleware(req, res, next);
+    });
 };
 
 export const sendMessage = async (req, res) => {
     try {
         const { subject, content, recipient_type, recipient_ids } = req.body;
         const io = req.app.get('io'); // Get Socket.IO instance
-        
-        // Log for debugging
-        console.log('Send Message Request:', { 
-            subject, 
-            recipient_type, 
-            hasFile: !!req.file 
-        });
 
         // Sender ID from auth middleware
         const senderId = req.user ? req.user.id : null;
@@ -48,29 +45,57 @@ export const sendMessage = async (req, res) => {
                  return res.status(400).json({ success: false, error: { message: 'No recipients selected' } });
             }
 
-            // Create messages for each recipient using MessageService
+            // Extract attachment data once — file was already uploaded to Cloudinary by uploadMessageAttachment middleware
+            const attachment_url = req.file ? req.file.path : null;
+            const attachment_name = req.file ? req.file.originalname : null;
+            const attachment_public_id = req.file ? (req.file.public_id || null) : null;
+
+            // Create a message record per recipient (no re-upload)
             const createdMessages = [];
             for (const recipientId of parsedRecipientIds) {
-                const messageData = {
+                const message = await Message.create({
                     sender_id: senderId,
                     recipient_id: recipientId,
                     recipient_type: 'select',
                     subject,
                     content,
-                    message_type: 'text'
-                };
-
-                const message = await MessageService.sendMessage(messageData, req.file);
+                    attachment_url,
+                    attachment_name,
+                    attachment_public_id,
+                    message_type: req.file ? 'file' : 'text'
+                });
                 createdMessages.push(message);
             }
 
             // Broadcast via WebSocket for each recipient
             if (io) {
                 const senderUser = await User.findByPk(senderId, {
-                    attributes: ['id', 'full_name', 'role']
+                    attributes: ['id', 'full_name', 'role'],
+                    include: [
+                        {
+                            model: FarmerDetail,
+                            as: 'farmerDetail',
+                            required: false,
+                            attributes: ['farmer_id']
+                        },
+                        {
+                            model: InstructorDetail,
+                            as: 'instructorDetail',
+                            required: false,
+                            attributes: ['instructor_id']
+                        }
+                    ]
                 });
                 
                 createdMessages.forEach(message => {
+                    // Get the generated ID based on role
+                    let generatedId = null;
+                    if (senderUser.role === 'farmer' && senderUser.farmerDetail) {
+                        generatedId = senderUser.farmerDetail.farmer_id;
+                    } else if (senderUser.role === 'instructor' && senderUser.instructorDetail) {
+                        generatedId = senderUser.instructorDetail.instructor_id;
+                    }
+                    
                     const messageData = {
                         id: message.id,
                         subject,
@@ -78,8 +103,9 @@ export const sendMessage = async (req, res) => {
                         recipient_type: 'select',
                         recipient_id: message.recipient_id,
                         sender_id: senderId,
-                        sender: senderUser ? `${senderUser.full_name}` : 'Unknown User',
+                        sender: senderUser ? senderUser.full_name : 'Unknown User',
                         senderId: senderUser ? senderUser.id : null,
+                        senderDisplayId: generatedId,
                         attachment_url: message.attachment_url,
                         attachment_name: message.attachment_name,
                         type: 'received',
@@ -98,22 +124,48 @@ export const sendMessage = async (req, res) => {
             });
 
         } else {
-            // Broadcast message using MessageService
+            // Broadcast message — attachment was already uploaded by uploadMessageAttachment middleware
             const messageData = {
                 sender_id: senderId,
                 recipient_type: recipient_type,
                 subject,
                 content,
-                message_type: 'text'
+                message_type: req.file ? 'file' : 'text',
+                attachment_url: req.file ? req.file.path : null,
+                attachment_name: req.file ? req.file.originalname : null,
+                attachment_public_id: req.file ? (req.file.public_id || null) : null
             };
 
-            const message = await MessageService.sendMessage(messageData, req.file);
+            // Pass null for fileAttachment — data is already in messageData, no re-upload needed
+            const message = await MessageService.sendMessage(messageData, null);
 
             // Broadcast via WebSocket
             if (io) {
                 const senderUser = await User.findByPk(senderId, {
-                    attributes: ['id', 'full_name', 'role']
+                    attributes: ['id', 'full_name', 'role'],
+                    include: [
+                        {
+                            model: FarmerDetail,
+                            as: 'farmerDetail',
+                            required: false,
+                            attributes: ['farmer_id']
+                        },
+                        {
+                            model: InstructorDetail,
+                            as: 'instructorDetail', 
+                            required: false,
+                            attributes: ['instructor_id']
+                        }
+                    ]
                 });
+                
+                // Get the generated ID based on role
+                let generatedId = null;
+                if (senderUser.role === 'farmer' && senderUser.farmerDetail) {
+                    generatedId = senderUser.farmerDetail.farmer_id;
+                } else if (senderUser.role === 'instructor' && senderUser.instructorDetail) {
+                    generatedId = senderUser.instructorDetail.instructor_id;
+                }
                 
                 const messageData = {
                     id: message.id,
@@ -121,8 +173,9 @@ export const sendMessage = async (req, res) => {
                     content,
                     recipient_type,
                     sender_id: senderId,
-                    sender: senderUser ? `${senderUser.full_name}` : 'Unknown User',
+                    sender: senderUser ? senderUser.full_name : 'Unknown User',
                     senderId: senderUser ? senderUser.id : null,
+                    senderDisplayId: generatedId,
                     attachment_url: message.attachment_url,
                     attachment_name: message.attachment_name,
                     type: 'received',
@@ -153,8 +206,7 @@ export const sendMessage = async (req, res) => {
         return res.status(500).json({ 
             success: false, 
             error: { 
-                message: 'Failed to send message', 
-                details: error.message 
+                message: 'Failed to send message'
             } 
         });
     }
