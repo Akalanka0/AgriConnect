@@ -4,10 +4,10 @@ import crypto from 'crypto';
 const otpStore = new Map();
 
 /**
- * Generate a 4-digit OTP
+ * Generate a 6-digit cryptographically secure OTP
  */
 export const generateOTP = () => {
-    return Math.floor(1000 + Math.random() * 9000).toString();
+    return crypto.randomInt(100000, 1000000).toString();
 };
 
 /**

@@ -1,56 +1,46 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import styles from '../styles/InstructorLayout.module.css';
 
 const InstructorSidebar = ({ isActive, onLogout }) => {
-    const navigate = useNavigate();
-    const location = useLocation();
-    const currentPath = location.pathname;
-
+    const { t } = useTranslation('instructor');
     const menuItems = [
-        { path: '/instructor', icon: 'fas fa-home', text: 'Home', exact: true },
-        { path: '/instructor/farmers', icon: 'fas fa-users', text: 'Farmers' },
-        { path: '/instructor/crop-plans', icon: 'fas fa-clipboard-list', text: 'Crop Plans' },
-        { path: '/instructor/pest-management', icon: 'fas fa-bug', text: 'Pest Management' },
-        { path: '/instructor/reports', icon: 'fas fa-file-alt', text: 'Reports' },
-        { path: '/instructor/schedule', icon: 'fas fa-calendar-alt', text: 'Schedule' },
-        { path: '/instructor/settings', icon: 'fas fa-cog', text: 'Settings' }
+        { path: '/instructor', icon: 'fas fa-home', text: t('sidebar.home'), exact: true },
+        { path: '/instructor/farmers', icon: 'fas fa-users', text: t('sidebar.farmers') },
+        { path: '/instructor/crop-plans', icon: 'fas fa-clipboard-list', text: t('sidebar.cropPlans') },
+        { path: '/instructor/pest-management', icon: 'fas fa-bug', text: t('sidebar.pest') },
+        { path: '/instructor/reports', icon: 'fas fa-file-lines', text: t('sidebar.reports') },
+        { path: '/instructor/schedule', icon: 'fas fa-calendar-days', text: t('sidebar.schedule') },
+        { path: '/instructor/settings', icon: 'fas fa-cog', text: t('sidebar.settings') }
     ];
 
-    const handleNavigation = (path) => {
-        navigate(path);
-    };
-
     return (
-        <div className={`sidebar ${isActive ? 'active' : ''}`} id="sidebar">
-            <div className="sidebar-header">
-                <div className="logo"><i className="fas fa-seedling"></i></div>
+        <div className={`${styles.sidebar} ${isActive ? styles.sidebarActive : ''}`} id="sidebar">
+            <div className={styles.sidebarHeader}>
+                <div className={styles.logo}><i className="fas fa-seedling"></i></div>
                 <h1>AgriConnect</h1>
             </div>
 
-            <div className="sidebar-menu">
-                {menuItems.map((item) => {
-                    const isActivePath = item.exact
-                        ? currentPath === item.path
-                        : currentPath.startsWith(item.path);
-
-                    return (
-                        <div
-                            key={item.path}
-                            className={`menu-item ${isActivePath ? 'active' : ''}`}
-                            onClick={() => handleNavigation(item.path)}
-                        >
-                            <i className={item.icon}></i>
-                            <span className="menu-text">{item.text}</span>
-                        </div>
-                    );
-                })}
+            <div className={styles.sidebarMenu}>
+                {menuItems.map((item) => (
+                    <NavLink
+                        key={item.path}
+                        to={item.path}
+                        end={item.exact}
+                        className={({ isActive }) => `${styles.menuItem} ${isActive ? styles.activePath : ''}`}
+                    >
+                        <i className={item.icon}></i>
+                        <span className={styles.menuText}>{item.text}</span>
+                    </NavLink>
+                ))}
             </div>
 
-            <div className="sidebar-footer">
-                <button className="logout-btn" onClick={onLogout}>
-                    <i className="fas fa-sign-out-alt"></i>
-                    <span className="menu-text">Log Out</span>
+            <div className={styles.sidebarFooter}>
+                <button className={styles.logoutBtn} onClick={onLogout}>
+                    <i className="fas fa-right-from-bracket"></i>
+                    <span className={styles.menuText}>{t('sidebar.logout')}</span>
                 </button>
             </div>
         </div>

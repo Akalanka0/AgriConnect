@@ -1,0 +1,143 @@
+/* FarmerCommon.module.css - Shared UI components for the Farmer module */
+
+/* Import semantic color system */
+@import url('../../../shared/semantic-colors.css');
+
+.pageTitle {
+    margin-bottom: var(--space-lg);
+    color: var(--primary-dark);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.pageTitle i {
+    color: var(--primary);
+}
+
+/* Forms */
+.formGroup {
+    margin-bottom: var(--space-md);
+    width: 100%;
+}
+
+.formGroup label {
+    display: block;
+    margin-bottom: var(--space-xs);
+    font-weight: 500;
+    color: var(--dark);
+}
+
+.formControl {
+    width: 100%;
+    max-width: 100%;
+    padding: var(--space-xs) var(--space-sm);
+    border: 1px solid var(--neutral-300);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    transition: var(--transition-normal);
+    display: block;
+}
+
+.formControl:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: var(--shadow-sm);
+}
+
+textarea.formControl {
+    min-height: 100px;
+    resize: vertical;
+}
+
+/* Layout Grids */
+.cardsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--space-md);
+}
+
+.fullWidthCard {
+    grid-column: 1 / -1;
+}
+
+.widerCard {
+    grid-column: span 2;
+}
+
+@media (max-width: 992px) {
+    .widerCard {
+        grid-column: span 1;
+    }
+}
+
+/* Status Badges */
+.statusBadge {
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-lg);
+    font-size: 0.8em;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Status Mappings */
+.statusActive,
+.statusSuccess {
+    background: var(--state-success-bg);
+    color: var(--primary);
+}
+
+.statusPending,
+.statusWarning {
+    background: var(--state-warning-bg);
+    color: var(--state-warning);
+}
+
+.statusAlert,
+.statusDanger,
+.statusError {
+    background: var(--state-danger-bg);
+    color: var(--danger);
+}
+
+.statusResolved,
+.statusInfo {
+    background: var(--state-info-bg);
+    color: var(--state-info);
+}
+
+/* Alert Cards */
+.alertCard {
+    padding: var(--space-md);
+    margin-bottom: var(--space-md);
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--secondary);
+}
+
+.alertCard.weather {
+    background: var(--state-info-bg);
+    border-left-color: var(--state-info);
+    /* Deeper blue for weather */
+}
+
+.alertCard.pest {
+    background: var(--state-danger-bg);
+    border-left-color: var(--danger);
+}
+
+/* Progress */
+.progressBar {
+    height: 6px;
+    background: var(--neutral-300);
+    border-radius: 3px;
+    margin-top: 5px;
+    overflow: hidden;
+}
+
+.progressFill {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--primary);
+}

@@ -1,0 +1,151 @@
+/* InstructorHome.module.css */
+
+/* Import semantic color system */
+@import url('../../../shared/semantic-colors.css');
+
+.pageTitle {
+  margin-bottom: var(--space-lg);
+  color: var(--instructor-primary-dark);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.pageTitle i {
+  color: var(--instructor-primary);
+}
+
+/* Stats Cards Specifics */
+.statsCard {
+  cursor: pointer;
+}
+
+.pendingTasks {
+  display: flex;
+  justify-content: space-around;
+  margin-top: var(--space-xs);
+}
+
+.pendingTaskItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pendingTaskValue {
+  font-weight: bold;
+  color: var(--neutral-800);
+}
+
+.pendingTaskLabel {
+  font-size: 0.8em;
+  color: var(--neutral-500);
+}
+
+.statsButton {
+  margin-top: var(--space-xs);
+  width: 100%;
+  text-align: center;
+  color: var(--instructor-primary);
+  font-size: 0.9em;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+}
+
+.historyEmpty {
+  text-align: center;
+  color: var(--neutral-500);
+  padding: var(--space-lg) 0;
+}
+
+/* Weather Card Specifics */
+.weatherCard {
+  cursor: pointer;
+  min-height: 280px;
+}
+
+.weatherCardContainer {
+  padding: var(--space-md) 0;
+  text-align: center;
+}
+
+.locationName {
+  font-size: 1.1em;
+  font-weight: 600;
+  color: var(--instructor-primary-dark);
+  margin-bottom: var(--space-xs);
+}
+
+.weatherIconSmall {
+  margin: var(--space-xs) 0;
+}
+
+.weatherIconSmall i {
+  font-size: 2.2em;
+}
+
+.weatherTempLarge {
+  font-size: 2em;
+  font-weight: 700;
+  color: var(--instructor-primary);
+}
+
+.weatherStatusText {
+  font-size: 1.1em;
+  color: var(--neutral-500);
+  text-transform: capitalize;
+}
+
+.weatherButtonContainer {
+  text-align: center;
+  margin-top: var(--space-md);
+}
+
+.weatherButton {
+  width: 100%;
+}
+
+.weatherButtonIcon {
+  margin-right: var(--space-xs);
+}
+
+/* Send Message Card Specifics */
+.messageCard {
+  cursor: pointer;
+  min-height: 280px;
+}
+
+.messageContent {
+  text-align: center;
+  padding: var(--space-xl) var(--space-lg);
+}
+
+.messageIcon {
+  font-size: 3em;
+  color: var(--instructor-primary-light);
+  margin-bottom: var(--space-md);
+}
+
+.messageTitle {
+  font-size: 1.2em;
+  color: var(--instructor-primary-dark);
+  font-weight: 600;
+  margin-bottom: var(--space-xs);
+}
+
+.messageDescription {
+  color: var(--neutral-500);
+}
+
+@media (max-width: 768px) {
+  .weatherCardContainer {
+    padding: var(--space-sm) 0;
+  }
+
+  .messageContent {
+    padding: var(--space-lg) var(--space-md);
+  }
+}

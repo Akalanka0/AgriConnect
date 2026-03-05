@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import '../styles/FarmerCalendar.css';
+import { useTranslation } from 'react-i18next';
+import styles from '../styles/Calendar.module.css';
+import commonCardStyles from '@/components/common/styles/Card.module.css';
+import commonBtnStyles from '@/components/common/styles/Button.module.css';
+import { getAccessToken } from '@/utils/authStorage';
+import { sanitizeExternalUrl } from '@/utils/urlSafety';
 
 const FarmerCalendar = ({ meetings }) => {
+    const { t } = useTranslation('farmer');
     const [currentDate, setCurrentDate] = useState(new Date());
     const [days, setDays] = useState([]);
 
@@ -11,7 +17,7 @@ const FarmerCalendar = ({ meetings }) => {
         const month = currentDate.getMonth();
         const firstDayOfMonth = new Date(year, month, 1).getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
-        
+
         const calendarDays = [];
         // Previous month days to fill the first week
         const prevMonthLastDay = new Date(year, month, 0).getDate();
@@ -28,7 +34,7 @@ const FarmerCalendar = ({ meetings }) => {
         for (let i = 1; i <= nextMonthDays; i++) {
             calendarDays.push({ day: i, currentMonth: false, date: new Date(year, month + 1, i) });
         }
-        
+
         setDays(calendarDays);
     }, [currentDate]);
 
@@ -43,14 +49,14 @@ const FarmerCalendar = ({ meetings }) => {
     const isToday = (date) => {
         const today = new Date();
         return date.getDate() === today.getDate() &&
-               date.getMonth() === today.getMonth() &&
-               date.getFullYear() === today.getFullYear();
+            date.getMonth() === today.getMonth() &&
+            date.getFullYear() === today.getFullYear();
     };
 
     const getMeetingsForDate = (date) => {
         const dateString = date.toISOString().split('T')[0];
-        return meetings.filter(m => 
-            m.meetingDate === dateString && 
+        return meetings.filter(m =>
+            m.meetingDate === dateString &&
             (m.status === 'accepted' || m.status === 'pending' || m.status === 'reschedule')
         );
     };
@@ -60,48 +66,47 @@ const FarmerCalendar = ({ meetings }) => {
     ];
 
     return (
-        <div className="calendar-card-optimized">
-            <div className="calendar-controls">
-                <div className="calendar-current-month">
-                    <i className="fas fa-calendar-alt"></i>
+        <div className={styles.calendarCardOptimized}>
+            <div className={styles.calendarControls}>
+                <div className={styles.calendarCurrentMonth}>
+                    <i className="fas fa-calendar-days"></i>
                     {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
                 </div>
-                <div className="calendar-nav-buttons">
-                    <button className="calendar-btn-icon" onClick={prevMonth} title="Previous Month">
+                <div className={styles.calendarNavButtons}>
+                    <button className={styles.calendarBtnIcon} onClick={prevMonth} title={t('calendar.prevMonth')}>
                         <i className="fas fa-chevron-left"></i>
                     </button>
-                    <button className="calendar-btn-icon" onClick={() => setCurrentDate(new Date())} title="Today">
+                    <button className={styles.calendarBtnIcon} onClick={() => setCurrentDate(new Date())} title={t('calendar.todayBtn')}>
                         <i className="fas fa-circle-dot"></i>
                     </button>
-                    <button className="calendar-btn-icon" onClick={nextMonth} title="Next Month">
+                    <button className={styles.calendarBtnIcon} onClick={nextMonth} title={t('calendar.nextMonth')}>
                         <i className="fas fa-chevron-right"></i>
                     </button>
                 </div>
             </div>
-            
-            <div className="calendar-container">
-                <div className="calendar-grid-header">
+            <div className={styles.calendarContainer}>
+                <div className={styles.calendarGridHeader}>
                     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                         <div key={day}>{day}</div>
                     ))}
                 </div>
-                <div className="calendar-days-grid">
+                <div className={styles.calendarDaysGrid}>
                     {days.map((dayObj, index) => {
                         const dayMeetings = getMeetingsForDate(dayObj.date);
                         return (
-                            <div 
-                                key={index} 
-                                className={`calendar-day-cell ${!dayObj.currentMonth ? 'empty-cell' : ''} ${dayObj.currentMonth && isToday(dayObj.date) ? 'today-cell' : ''}`}
+                            <div
+                                key={index}
+                                className={`${styles.calendarDayCell} ${!dayObj.currentMonth ? styles.emptyCell : ''} ${dayObj.currentMonth && isToday(dayObj.date) ? styles.todayCell : ''}`}
                             >
-                                <div className="day-number">{dayObj.day}</div>
-                                <div className="meeting-indicator-container">
+                                <div className={styles.dayNumber}>{dayObj.day}</div>
+                                <div className={styles.meetingIndicatorContainer}>
                                     {dayMeetings.map(m => (
-                                        <div 
-                                            key={m.id} 
-                                            className={`calendar-meeting-tag tag-${m.status === 'reschedule' ? 'pending' : m.status}`} 
+                                        <div
+                                            key={m.id}
+                                            className={`${styles.calendarMeetingTag} ${styles['tag' + (m.status === 'reschedule' ? 'Pending' : m.status.charAt(0).toUpperCase() + m.status.slice(1))]}`}
                                             title={`${m.status.toUpperCase()}: ${m.meetingTime} - ${m.meetingTitle} (${m.division || 'No Division'})`}
                                         >
-                                            <span className="tag-status-dot"></span>
+                                            <span className={styles.tagStatusDot}></span>
                                             {m.meetingTime} {m.meetingTitle}
                                         </div>
                                     ))}
@@ -115,61 +120,12 @@ const FarmerCalendar = ({ meetings }) => {
     );
 };
 
-// Static mock data that resets on refresh
-const INITIAL_MOCK_MEETINGS = [
-    {
-        id: 'mock-1',
-        meetingTitle: 'Pest Control Advice',
-        meetingDate: new Date().toISOString().split('T')[0],
-        meetingTime: '10:00',
-        meetingDuration: '30',
-        meetingNotes: 'Need urgent help with aphids in my tomato crop.',
-        status: 'pending',
-        requestedBy: 'farmer',
-        farmerId: 'FARM-2026-0001',
-        division: 'Kebithigollewa',
-        createdAt: new Date().toISOString()
-    },
-    {
-        id: 'mock-2',
-        meetingTitle: 'Soil Testing Consultation',
-        meetingDate: new Date(new Date().setDate(new Date().getDate() + 2)).toISOString().split('T')[0],
-        meetingTime: '14:00',
-        meetingDuration: '45',
-        meetingNotes: 'Discussing the recent soil report results.',
-        status: 'accepted',
-        requestedBy: 'farmer',
-        farmerId: 'FARM-2026-0001',
-        instructorName: 'Aruna Shantha',
-        instructorId: 'INST-2026-0007',
-        division: 'Padaviya',
-        createdAt: new Date().toISOString(),
-        zoomLink: 'https://zoom.us/j/123456789'
-    },
-    {
-        id: 'mock-3',
-        meetingTitle: 'Irrigation Planning',
-        meetingDate: new Date(new Date().setDate(new Date().getDate() + 5)).toISOString().split('T')[0],
-        meetingTime: '09:00',
-        meetingDuration: '60',
-        meetingNotes: 'Planning the new drip irrigation system.',
-        status: 'reschedule',
-        requestedBy: 'farmer',
-        farmerId: 'FARM-2026-0001',
-        instructorName: 'Aruna Shantha',
-        instructorId: 'INST-2026-0007',
-        division: 'Rambewa',
-        suggestedDate: new Date(new Date().setDate(new Date().getDate() + 6)).toISOString().split('T')[0],
-        suggestedTime: '11:00',
-        createdAt: new Date().toISOString()
-    }
-];
-
 const Calendar = () => {
     const { showToast } = useOutletContext();
+    const { t } = useTranslation('farmer');
     const todayStr = new Date().toISOString().split('T')[0];
 
-    const [meetings, setMeetings] = useState(INITIAL_MOCK_MEETINGS);
+    const [meetings, setMeetings] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [profileData, setProfileData] = useState(null);
 
@@ -182,22 +138,23 @@ const Calendar = () => {
         division: ''
     });
 
-    const [availableDivisions, setAvailableDivisions] = useState([]); 
+    const [availableDivisions, setAvailableDivisions] = useState([]);
     const [locations, setLocations] = useState([]);
+    const [selectedInstructorName, setSelectedInstructorName] = useState('');
+    const [selectedInstructorId, setSelectedInstructorId] = useState('');
     const [cancellingMeetingId, setCancellingMeetingId] = useState(null);
     const [cancelReason, setCancelReason] = useState('');
     const [viewingMeetingId, setViewingMeetingId] = useState(null);
 
     const fetchMeetings = async () => {
         try {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             const response = await fetch('/api/farmer/meetings', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const result = await response.json();
             if (result.success) {
-                // Combine mock and real meetings
-                setMeetings([...INITIAL_MOCK_MEETINGS, ...result.data]);
+                setMeetings(result.data || []);
             }
         } catch (error) {
             console.error('Error fetching meetings:', error);
@@ -208,38 +165,41 @@ const Calendar = () => {
 
     const fetchProfile = async () => {
         try {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             const response = await fetch('/api/farmer/profile', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const result = await response.json();
             if (result.success) {
                 setProfileData(result.data);
-                
+
                 // Get divisions from locations
                 if (result.data.locations && result.data.locations.length > 0) {
                     setLocations(result.data.locations);
                     const divisions = result.data.locations
                         .map(loc => loc.instructorDivision)
                         .filter(Boolean);
-                    
+
                     // Remove duplicates
                     const uniqueDivisions = [...new Set(divisions)];
                     setAvailableDivisions(uniqueDivisions);
 
                     // Set default division to the first location's division
                     if (uniqueDivisions.length > 0) {
-                        setMeetingForm(prev => ({ 
-                            ...prev, 
-                            division: uniqueDivisions[0] 
+                        setMeetingForm(prev => ({
+                            ...prev,
+                            division: uniqueDivisions[0]
                         }));
+                        const firstLoc = result.data.locations[0];
+                        setSelectedInstructorName(firstLoc.assignedInstructorName || '');
+                        setSelectedInstructorId(firstLoc.assignedInstructorRefId || '');
                     }
                 } else if (result.data.instructor_division) {
                     // Fallback to profile-level division if no locations
                     setAvailableDivisions([result.data.instructor_division]);
-                    setMeetingForm(prev => ({ 
-                        ...prev, 
-                        division: result.data.instructor_division 
+                    setMeetingForm(prev => ({
+                        ...prev,
+                        division: result.data.instructor_division
                     }));
                 }
             }
@@ -251,7 +211,7 @@ const Calendar = () => {
     useEffect(() => {
         fetchMeetings();
         fetchProfile();
-        
+
         const interval = setInterval(fetchMeetings, 10000);
         return () => clearInterval(interval);
     }, []);
@@ -262,26 +222,26 @@ const Calendar = () => {
         const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
         if (!meetingForm.meetingTitle || !meetingForm.meetingDate || !meetingForm.meetingTime || !meetingForm.division) {
-            showToast('Please fill in all required fields', 'error');
+            showToast(t('common.fillRequired'), 'error');
             return;
         }
 
         // Validate date is not in the past
         if (meetingForm.meetingDate < currentTodayStr) {
-            showToast('Cannot select a past date', 'error');
+            showToast(t('calendar.pastDateError'), 'error');
             return;
         }
 
         // Validate time is not in the past for today
         if (meetingForm.meetingDate === currentTodayStr) {
             if (meetingForm.meetingTime < currentTime) {
-                showToast('Cannot select a past time for today', 'error');
+                showToast(t('calendar.pastTimeError'), 'error');
                 return;
             }
         }
 
         try {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             const response = await fetch('/api/farmer/meetings', {
                 method: 'POST',
                 headers: {
@@ -293,7 +253,7 @@ const Calendar = () => {
 
             const result = await response.json();
             if (result.success) {
-                showToast('Meeting request sent successfully!');
+                showToast(t('calendar.meetingSent'));
                 fetchMeetings();
                 // Add window event to trigger dashboard refresh
                 window.dispatchEvent(new Event('farmerActivityLogged'));
@@ -310,7 +270,7 @@ const Calendar = () => {
             }
         } catch (error) {
             console.error('Error requesting meeting:', error);
-            showToast('An error occurred while requesting meeting', 'error');
+            showToast(t('calendar.meetingError'), 'error');
         }
     };
 
@@ -321,12 +281,12 @@ const Calendar = () => {
 
     const confirmCancel = async (meetingId) => {
         if (!cancelReason.trim()) {
-            showToast('Please provide a reason for cancellation', 'error');
+            showToast(t('calendar.cancelReasonRequired'), 'error');
             return;
         }
 
         try {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             const response = await fetch(`/api/farmer/meetings/${meetingId}/cancel`, {
                 method: 'PATCH',
                 headers: {
@@ -338,7 +298,7 @@ const Calendar = () => {
 
             const result = await response.json();
             if (result.success) {
-                showToast('Meeting request cancelled');
+                showToast(t('calendar.meetingCancelled'));
                 fetchMeetings();
                 setCancellingMeetingId(null);
                 setCancelReason('');
@@ -347,13 +307,13 @@ const Calendar = () => {
             }
         } catch (error) {
             console.error('Error cancelling meeting:', error);
-            showToast('An error occurred while cancelling meeting', 'error');
+            showToast(t('calendar.cancelError'), 'error');
         }
     };
 
     const handleAcceptReschedule = async (meeting) => {
         try {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             const response = await fetch(`/api/farmer/meetings/${meeting.id}/accept-reschedule`, {
                 method: 'PATCH',
                 headers: {
@@ -368,86 +328,81 @@ const Calendar = () => {
 
             const result = await response.json();
             if (result.success) {
-                showToast('Reschedule accepted successfully!');
+                showToast(t('calendar.rescheduleAccepted'));
                 fetchMeetings();
             } else {
                 showToast(result.error?.message || 'Failed to accept reschedule', 'error');
             }
         } catch (error) {
             console.error('Error accepting reschedule:', error);
-            showToast('An error occurred while accepting reschedule', 'error');
+            showToast(t('calendar.rescheduleError'), 'error');
         }
     };
 
     const getStatusBadge = (status) => {
         switch (status) {
-            case 'pending': return <span className="badge badge-warning">Pending</span>;
-            case 'accepted': return <span className="badge badge-success">Confirmed</span>;
-            case 'reschedule': return <span className="badge badge-info">Reschedule</span>;
-            case 'declined': return <span className="badge badge-danger">Declined</span>;
-            case 'cancelled':
-                return <span className="badge badge-secondary">Cancelled</span>;
-            default: return <span className="badge">{status}</span>;
+            case 'pending': return <span className={styles.badgeWarning}>{t('calendar.badgePending')}</span>;
+            case 'accepted': return <span className={styles.badgeSuccess}>{t('calendar.badgeConfirmed')}</span>;
+            case 'reschedule': return <span className={styles.badgeInfo}>{t('calendar.badgeReschedule')}</span>;
+            case 'declined': return <span className={styles.badgeDanger}>{t('calendar.badgeDeclined')}</span>;
+            case 'cancelled': return <span className={styles.badgeSecondary}>{t('calendar.badgeCancelled')}</span>;
+            default: return <span className={styles.badge}>{status}</span>;
         }
     };
 
+    // My Requests: newest submitted first
+    const requestMeetings = [...meetings.filter(m => m.status !== 'accepted')]
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    // Scheduled Meetings: accepted only (confirmed), soonest first
+    const scheduledMeetings = [...meetings.filter(m => m.status === 'accepted')]
+        .sort((a, b) => new Date(a.meetingDate + 'T' + (a.meetingTime || '00:00')) - new Date(b.meetingDate + 'T' + (b.meetingTime || '00:00')));
+
     return (
-        <div className="calendar-page-container" id="meeting">
-            <div className="page-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <i className="fas fa-calendar-alt"></i>
-                    <h2>Farmer Calendar</h2>
-                </div>
-                <div style={{ 
-                    fontSize: '0.9rem', 
-                    fontWeight: '600', 
-                    color: '#64748b',
-                    background: '#f8fafc',
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid #e2e8f0'
-                }}>
-                    <i className="fas fa-id-badge" style={{ marginRight: '8px' }}></i>
-                    ID: {profileData?.farmer_id || 'Loading...'}
-                </div>
+        <div className={styles.calendarPageContainer} id="meeting">
+            <div className={styles.pageTitle}>
+                <i className="fas fa-calendar-days"></i>
+                <h2>{t('calendar.title')}</h2>
             </div>
 
-            <div className="calendar-layout">
-                <div className="calendar-section">
-                    <FarmerCalendar meetings={meetings} />
-                </div>
-
-                <div className="request-section">
-                    <div className="card">
-                        <div className="card-header">
-                            <div className="card-title">
-                                <i className="fas fa-handshake"></i> Request Meeting
+            <div className={styles.calendarLayout}>
+                <div className={styles.requestSection}>
+                    <div className={commonCardStyles.card}>
+                        <div className={commonCardStyles.cardHeader}>
+                            <div className={commonCardStyles.cardTitle}>
+                                <i className="fas fa-handshake"></i> {t('calendar.requestMeeting')}
                             </div>
                         </div>
-                        <div className="card-content">
-                            <div className="form-grid-layout">
-                                <div className="form-group">
-                                    <label>Purpose of Meeting</label>
+                        <div className={commonCardStyles.cardContent}>
+                            <div className={styles.formGridLayout}>
+                                <div className={styles.formGroup}>
+                                    <label>{t('calendar.meetingTitle')}</label>
                                     <input
                                         type="text"
-                                        className="form-control"
-                                        placeholder="e.g. Pest Control Advice"
+                                        className={styles.formControl}
+                                        placeholder={t('calendar.meetingTitlePlaceholder')}
                                         value={meetingForm.meetingTitle}
                                         onChange={(e) => setMeetingForm({ ...meetingForm, meetingTitle: e.target.value })}
                                     />
                                 </div>
-                                <div className="form-group">
-                                    <label>Select Land Location</label>
-                                    <select 
-                                        className="form-control"
+                                <div className={styles.formGroup}>
+                                    <label>{t('calendar.division')}</label>
+                                    <select
+                                        className={styles.formControl}
                                         value={meetingForm.division}
-                                        onChange={(e) => setMeetingForm({ ...meetingForm, division: e.target.value })}
+                                        onChange={(e) => {
+                                            const selectedDiv = e.target.value;
+                                            setMeetingForm({ ...meetingForm, division: selectedDiv });
+                                            const loc = locations.find(l => l.instructorDivision === selectedDiv);
+                                            setSelectedInstructorName(loc?.assignedInstructorName || '');
+                                            setSelectedInstructorId(loc?.assignedInstructorRefId || '');
+                                        }}
                                     >
-                                        <option value="">Select Location</option>
+                                        <option value="">{t('calendar.selectLocation')}</option>
                                         {locations.length > 0 ? (
                                             locations.map((loc, idx) => (
                                                 <option key={idx} value={loc.instructorDivision}>
-                                                    {loc.name || `Land ${idx + 1}`} ({loc.instructorDivision})
+                                                    {loc.instructorDivision}
                                                 </option>
                                             ))
                                         ) : (
@@ -457,196 +412,218 @@ const Calendar = () => {
                                         )}
                                     </select>
                                 </div>
-                                <div className="form-group">
-                                    <label>Preferred Date</label>
+                                <div className={styles.formGroup}>
+                                    <label>{t('calendar.assignedInstructor')}</label>
+                                    <input
+                                        type="text"
+                                        className={`${styles.formControl} ${styles.disabledInput} ${selectedInstructorName ? styles.disabledInputActive : ''}`}
+                                        value={selectedInstructorName}
+                                        disabled
+                                        placeholder={t('calendar.autoAssignInstructor')}
+                                    />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>{t('calendar.instructorId')}</label>
+                                    <input
+                                        type="text"
+                                        className={`${styles.formControl} ${styles.disabledInput} ${selectedInstructorId ? styles.disabledInputActive : ''}`}
+                                        value={selectedInstructorId}
+                                        disabled
+                                        placeholder={t('calendar.autoAssignId')}
+                                    />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>{t('calendar.preferredDate')}</label>
                                     <input
                                         type="date"
-                                        className="form-control"
+                                        className={styles.formControl}
                                         min={todayStr}
                                         value={meetingForm.meetingDate}
                                         onChange={(e) => setMeetingForm({ ...meetingForm, meetingDate: e.target.value })}
                                     />
                                 </div>
-                                <div className="form-group">
-                                    <label>Preferred Time & Duration</label>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                <div className={styles.formGroup}>
+                                    <label>{t('calendar.preferredTime')}</label>
+                                    <div className={styles.timeDurationGrid}>
                                         <input
                                             type="time"
-                                            className="form-control"
+                                            className={styles.formControl}
                                             value={meetingForm.meetingTime}
                                             onChange={(e) => setMeetingForm({ ...meetingForm, meetingTime: e.target.value })}
                                         />
-                                        <select 
-                                            className="form-control"
+                                        <select
+                                            className={styles.formControl}
                                             value={meetingForm.meetingDuration}
                                             onChange={(e) => setMeetingForm({ ...meetingForm, meetingDuration: e.target.value })}
                                         >
-                                            <option value="15">15 Mins</option>
-                                            <option value="30">30 Mins</option>
-                                            <option value="45">45 Mins</option>
-                                            <option value="60">1 Hour</option>
-                                            <option value="90">1.5 Hours</option>
-                                            <option value="120">2 Hours</option>
+                                            <option value="15">{t('calendar.mins15')}</option>
+                                            <option value="30">{t('calendar.mins30')}</option>
+                                            <option value="45">{t('calendar.mins45')}</option>
+                                            <option value="60">{t('calendar.hour1')}</option>
+                                            <option value="90">{t('calendar.hour15')}</option>
+                                            <option value="120">{t('calendar.hour2')}</option>
                                         </select>
                                     </div>
                                 </div>
                             </div>
-                            <div className="form-group">
-                                <label>Additional Notes</label>
+                            <div className={styles.formGroup}>
+                                <label>{t('calendar.notes')}</label>
                                 <textarea
-                                    className="form-control"
-                                    placeholder="Briefly describe your issue..."
+                                    className={`${styles.formControl} ${styles.notesTextarea}`}
+                                    placeholder={t('calendar.notesPlaceholder')}
                                     value={meetingForm.meetingNotes}
                                     onChange={(e) => setMeetingForm({ ...meetingForm, meetingNotes: e.target.value })}
-                                    style={{ height: '80px' }}
                                 />
                             </div>
-                            <button className="btn btn-primary submit-btn" onClick={handleMeetingSubmit}>
-                                <i className="fas fa-paper-plane"></i> Send Request
+                            <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnPrimary} ${styles.submitBtn}`} onClick={handleMeetingSubmit}>
+                                <i className="fas fa-paper-plane"></i> {t('calendar.sendRequest')}
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <div className="tables-section">
+                <div className={styles.calendarSection}>
+                    <FarmerCalendar meetings={meetings} />
+                </div>
+
+                <div className={styles.tablesSection}>
                     {/* All Requests */}
-                    <div className="card">
-                        <div className="card-header">
-                            <div className="card-title">
-                                <i className="fas fa-clock"></i> My Requests
+                    <div className={commonCardStyles.card}>
+                        <div className={commonCardStyles.cardHeader}>
+                            <div className={commonCardStyles.cardTitle}>
+                                <i className="fas fa-clock"></i> {t('calendar.myRequests')}
                             </div>
                         </div>
-                        <div className="card-content">
-                            {meetings.filter(m => m.status !== 'accepted').length === 0 ? (
-                                <p className="no-requests">No active requests.</p>
+                        <div className={commonCardStyles.cardContent}>
+                            {requestMeetings.length === 0 ? (
+                                <p className={styles.noRequests}>{t('calendar.noRequests')}</p>
                             ) : (
-                                <div className="table-responsive">
-                                    <table className="table">
+                                <div className={styles.tableResponsive}>
+                                    <table className={styles.meetingsTable}>
                                         <thead>
                                             <tr>
-                                                <th>Title</th>
-                                                <th>Division</th>
-                                                <th>Requested Time</th>
-                                                <th>Status</th>
-                                                <th>Action</th>
+                                                <th>{t('calendar.titleCol')}</th>
+                                                <th>{t('calendar.divisionCol')}</th>
+                                                <th>{t('calendar.timeCol')}</th>
+                                                <th>{t('calendar.statusCol')}</th>
+                                                <th>{t('calendar.actionCol')}</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {meetings.filter(m => m.status !== 'accepted').map(meeting => (
+                                            {requestMeetings.map(meeting => (
                                                 <React.Fragment key={meeting.id}>
                                                     <tr>
                                                         <td>
-                                                            <div className="meeting-title-row">{meeting.meetingTitle}</div>
+                                                            <div className={styles.meetingTitleRow}>{meeting.meetingTitle}</div>
                                                             {meeting.instructorName && (
-                                                                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '4px' }}>
-                                                                    <i className="fas fa-user-tie" style={{ marginRight: '6px', fontSize: '0.8rem' }}></i>
+                                                                <div className={styles.instructorInfoRow}>
+                                                                    <i className={`fas fa-user-tie ${styles.instructorIcon}`}></i>
                                                                     {meeting.instructorName}
-                                                                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: '500', marginLeft: '8px' }}>
-                                                                        (ID: {meeting.instructorId})
+                                                                    <span className={styles.instructorIdSpan}>
+                                                                        (ID: {meeting.instructorDisplayId || meeting.instructorId || 'N/A'})
                                                                     </span>
                                                                 </div>
                                                             )}
                                                             {meeting.status === 'reschedule' && (
-                                                                <div className="suggestion-badge">
-                                                                    <i className="fas fa-info-circle"></i> Suggested: {meeting.suggestedDate} at {meeting.suggestedTime}
+                                                                <div className={styles.suggestionBadge}>
+                                                                    <i className="fas fa-circle-info"></i> Suggested: {meeting.suggestedDate} at {meeting.suggestedTime}
                                                                 </div>
                                                             )}
                                                             {meeting.status === 'declined' && (
-                                                                <div className="declined-info">
-                                                                    Unavailable for this slot
+                                                                <div className={styles.declinedInfo}>
+                                                                    {meeting.instructorNote || 'Unavailable for this slot'}
                                                                 </div>
                                                             )}
                                                             {meeting.status === 'cancelled' && meeting.cancelReason && (
-                                                                <div className="cancelled-reason-text">
-                                                                    <strong>Reason:</strong> {meeting.cancelReason}
+                                                                <div className={styles.cancelledReasonText}>
+                                                                    <strong>{t('calendar.reasonLabel')}</strong> {meeting.cancelReason}
                                                                 </div>
                                                             )}
                                                             {cancellingMeetingId === meeting.id && (
-                                                                <div className="cancel-reason-box">
-                                                                    <textarea 
-                                                                        placeholder="Why are you cancelling this request?"
+                                                                <div className={styles.cancelReasonBox}>
+                                                                    <textarea
+                                                                        placeholder={t('calendar.cancelReasonPlaceholder')}
                                                                         value={cancelReason}
                                                                         onChange={(e) => setCancelReason(e.target.value)}
                                                                         rows="2"
                                                                     />
-                                                                    <div className="cancel-actions">
-                                                                        <button 
-                                                                            className="btn btn-sm btn-link text-muted"
+                                                                    <div className={styles.cancelActions}>
+                                                                        <button
+                                                                            className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSm} ${commonBtnStyles.btnLink} text-muted`}
                                                                             onClick={() => setCancellingMeetingId(null)}
                                                                         >
-                                                                            Dismiss
+                                                                            {t('calendar.dismiss')}
                                                                         </button>
-                                                                        <button 
-                                                                            className="btn btn-sm btn-danger"
+                                                                        <button
+                                                                            className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSm} ${commonBtnStyles.btnDanger}`}
                                                                             onClick={() => confirmCancel(meeting.id)}
                                                                         >
-                                                                            Confirm Cancel
+                                                                            {t('calendar.confirmCancel')}
                                                                         </button>
                                                                     </div>
                                                                 </div>
                                                             )}
                                                         </td>
                                                         <td>
-                                                            <span style={{ 
-                                                                fontSize: '0.85rem', 
-                                                                fontWeight: '600', 
-                                                                color: '#475569',
-                                                                background: '#f1f5f9',
-                                                                padding: '4px 10px',
-                                                                borderRadius: '6px'
-                                                            }}>
+                                                            <span className={styles.divisionBadge}>
                                                                 {meeting.division || '-'}
                                                             </span>
                                                         </td>
-                                                        <td className="time-cell">
-                                                            {meeting.meetingDate} <br/> {meeting.meetingTime}
+                                                        <td className={styles.timeCell}>
+                                                            {meeting.meetingDate} <br /> {meeting.meetingTime}
                                                         </td>
                                                         <td>{getStatusBadge(meeting.status)}</td>
                                                         <td>
-                                                            <div style={{ display: 'flex', gap: '8px' }}>
-                                                                <button 
-                                                                    className="btn btn-sm btn-info"
+                                                            <div className={styles.actionButtonsFlex}>
+                                                                <button
+                                                                    className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSm} ${commonBtnStyles.btnInfo}`}
                                                                     onClick={() => setViewingMeetingId(viewingMeetingId === meeting.id ? null : meeting.id)}
-                                                                    title="View Details"
+                                                                    title={t('calendar.viewDetailsBtn')}
                                                                 >
-                                                                    <i className="fas fa-eye"></i> View
+                                                                    <i className="fas fa-eye"></i> {t('calendar.view')}
                                                                 </button>
                                                                 {meeting.status === 'reschedule' && (
-                                                                    <button 
-                                                                        className="btn btn-sm btn-success"
+                                                                    <button
+                                                                        className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSm} ${commonBtnStyles.btnSuccess}`}
                                                                         onClick={() => handleAcceptReschedule(meeting)}
-                                                                        title="Accept Reschedule"
+                                                                        title={t('calendar.acceptReschedule')}
                                                                     >
-                                                                        <i className="fas fa-check"></i> Accept
+                                                                        <i className="fas fa-check"></i> {t('calendar.accept')}
                                                                     </button>
                                                                 )}
                                                                 {meeting.status !== 'cancelled' && meeting.status !== 'declined' ? (
-                                                                    <button 
-                                                                        className="btn btn-sm btn-outline-danger"
+                                                                    <button
+                                                                        className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSm} ${commonBtnStyles.btnOutlineDanger}`}
                                                                         onClick={() => handleCancelRequest(meeting.id)}
-                                                                        title="Cancel Request"
+                                                                        title={t('calendar.cancelRequestBtn')}
                                                                     >
-                                                                        <i className="fas fa-times"></i> Cancel
+                                                                        <i className="fas fa-xmark"></i> {t('calendar.cancel')}
                                                                     </button>
                                                                 ) : (
-                                                                    <span className="text-muted small">No actions</span>
+                                                                    <span className="text-muted small">{t('calendar.noActions')}</span>
                                                                 )}
                                                             </div>
                                                         </td>
                                                     </tr>
                                                     {viewingMeetingId === meeting.id && (
-                                                        <tr className="details-row">
+                                                        <tr className={styles.detailsRow}>
                                                             <td colSpan="5">
-                                                                <div className="meeting-details-expanded">
-                                                                    <div className="details-grid">
-                                                                        <div className="details-item">
-                                                                            <label>Additional Notes:</label>
-                                                                            <p>{meeting.meetingNotes || 'No notes provided.'}</p>
+                                                                <div className={styles.detailsExpanded}>
+                                                                    <div className={styles.detailsGrid}>
+                                                                        <div className={styles.detailsItem}>
+                                                                            <label>{t('calendar.additionalNotes')}</label>
+                                                                            <p>{meeting.meetingNotes || t('calendar.noNotes')}</p>
                                                                         </div>
-                                                                        <div className="details-item">
-                                                                            <label>Duration:</label>
-                                                                            <p>{meeting.meetingDuration} Minutes</p>
+                                                                        <div className={styles.detailsItem}>
+                                                                            <label>{t('calendar.durationLabel')}</label>
+                                                                            <p>{meeting.meetingDuration} {t('calendar.mins')}</p>
                                                                         </div>
+                                                                        {meeting.instructorNote && (
+                                                                            <div className={styles.detailsItem}>
+                                                                                <label>{t('calendar.instructorNote')}</label>
+                                                                                <p>{meeting.instructorNote}</p>
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                 </div>
                                                             </td>
@@ -662,131 +639,115 @@ const Calendar = () => {
                     </div>
 
                     {/* Scheduled Meetings */}
-                    <div className="card">
-                        <div className="card-header">
-                            <div className="card-title">
-                                <i className="fas fa-calendar-check"></i> Scheduled Meetings
+                    <div className={commonCardStyles.card}>
+                        <div className={commonCardStyles.cardHeader}>
+                            <div className={commonCardStyles.cardTitle}>
+                                <i className="fas fa-calendar-check"></i> {t('calendar.scheduledMeetings')}
                             </div>
                         </div>
-                        <div className="card-content">
-                            {meetings.filter(m => m.status === 'accepted' || m.status === 'cancelled').length === 0 ? (
-                                <p className="no-requests">No scheduled or cancelled meetings yet.</p>
+                        <div className={commonCardStyles.cardContent}>
+                            {scheduledMeetings.length === 0 ? (
+                                <p className={styles.noRequests}>{t('calendar.noMeetings')}</p>
                             ) : (
-                                <div className="table-responsive">
-                                    <table className="table">
+                                <div className={styles.tableResponsive}>
+                                    <table className={styles.meetingsTable}>
                                         <thead>
                                             <tr>
-                                                <th>Title</th>
-                                                <th>Division</th>
-                                                <th>Meeting Time</th>
-                                                <th>Status</th>
-                                                <th>Action</th>
+                                                <th>{t('calendar.titleCol')}</th>
+                                                <th>{t('calendar.divisionCol')}</th>
+                                                <th>{t('calendar.meetingTimeCol')}</th>
+                                                <th>{t('calendar.statusCol')}</th>
+                                                <th>{t('calendar.actionCol')}</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {meetings.filter(m => m.status === 'accepted' || m.status === 'cancelled').map(meeting => (
+                                            {scheduledMeetings.map(meeting => (
                                                 <React.Fragment key={meeting.id}>
                                                     <tr>
                                                         <td>
-                                                            <div className="meeting-title-row">{meeting.meetingTitle}</div>
-                                                            <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '4px' }}>
-                                                                <i className="fas fa-user-tie" style={{ marginRight: '6px', fontSize: '0.8rem' }}></i>
+                                                            <div className={styles.meetingTitleRow}>{meeting.meetingTitle}</div>
+                                                            <div className={styles.instructorInfoRow}>
+                                                                <i className={`fas fa-user-tie ${styles.instructorIcon}`}></i>
                                                                 {meeting.instructorName || 'Assigned Instructor'}
-                                                                <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: '500', marginLeft: '8px' }}>
-                                                                    (ID: {meeting.instructorId || 'N/A'})
+                                                                <span className={styles.instructorIdSpan}>
+                                                                    (ID: {meeting.instructorDisplayId || meeting.instructorId || 'N/A'})
                                                                 </span>
                                                             </div>
-                                                            <div className="duration-info">
+                                                            <div className={styles.durationInfo}>
                                                                 <i className="fas fa-hourglass-half"></i> {meeting.meetingDuration} Mins
                                                             </div>
-                                                            {meeting.status === 'cancelled' && meeting.cancelReason && (
-                                                                <div className="cancelled-reason-text">
-                                                                    <strong>Reason:</strong> {meeting.cancelReason}
-                                                                </div>
-                                                            )}
                                                             {cancellingMeetingId === meeting.id && (
-                                                                <div className="cancel-reason-box">
-                                                                    <textarea 
-                                                                        placeholder="Why are you cancelling this meeting?"
+                                                                <div className={styles.cancelReasonBox}>
+                                                                    <textarea
+                                                                        placeholder={t('calendar.cancelScheduledPlaceholder')}
                                                                         value={cancelReason}
                                                                         onChange={(e) => setCancelReason(e.target.value)}
                                                                         rows="2"
                                                                     />
-                                                                    <div className="cancel-actions">
-                                                                        <button 
-                                                                            className="btn btn-sm btn-link text-muted"
+                                                                    <div className={styles.cancelActions}>
+                                                                        <button
+                                                                            className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSm} ${commonBtnStyles.btnLink} text-muted`}
                                                                             onClick={() => setCancellingMeetingId(null)}
                                                                         >
-                                                                            Dismiss
+                                                                            {t('calendar.dismiss')}
                                                                         </button>
-                                                                        <button 
-                                                                            className="btn btn-sm btn-danger"
+                                                                        <button
+                                                                            className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSm} ${commonBtnStyles.btnDanger}`}
                                                                             onClick={() => confirmCancel(meeting.id)}
                                                                         >
-                                                                            Confirm Cancel
+                                                                            {t('calendar.confirmCancel')}
                                                                         </button>
                                                                     </div>
                                                                 </div>
                                                             )}
                                                         </td>
                                                         <td>
-                                                            <span style={{ 
-                                                                fontSize: '0.85rem', 
-                                                                fontWeight: '600', 
-                                                                color: '#475569',
-                                                                background: '#f1f5f9',
-                                                                padding: '4px 10px',
-                                                                borderRadius: '6px'
-                                                            }}>
+                                                            <span className={styles.divisionBadge}>
                                                                 {meeting.division || '-'}
                                                             </span>
                                                         </td>
-                                                        <td className="time-cell">
-                                                            {meeting.meetingDate} <br/> {meeting.meetingTime}
+                                                        <td className={styles.timeCell}>
+                                                            {meeting.meetingDate} <br /> {meeting.meetingTime}
                                                         </td>
                                                         <td>{getStatusBadge(meeting.status)}</td>
                                                         <td>
-                                                            <div style={{ display: 'flex', gap: '8px' }}>
-                                                                <button 
-                                                                    className="btn btn-sm btn-info"
+                                                            <div className={styles.actionButtonsFlex}>
+                                                                <button
+                                                                    className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSm} ${commonBtnStyles.btnInfo}`}
                                                                     onClick={() => setViewingMeetingId(viewingMeetingId === meeting.id ? null : meeting.id)}
-                                                                    title="View Details"
+                                                                    title={t('calendar.viewDetailsBtn')}
                                                                 >
-                                                                    <i className="fas fa-eye"></i> View
+                                                                    <i className="fas fa-eye"></i> {t('calendar.view')}
                                                                 </button>
-                                                                {meeting.status === 'accepted' && (
-                                                                    <button 
-                                                                        className="btn btn-sm btn-outline-danger"
-                                                                        onClick={() => handleCancelRequest(meeting.id)}
-                                                                        title="Cancel Meeting"
-                                                                    >
-                                                                        <i className="fas fa-times"></i> Cancel
-                                                                    </button>
-                                                                )}
+                                                                <button
+                                                                    className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSm} ${commonBtnStyles.btnOutlineDanger}`}
+                                                                    onClick={() => handleCancelRequest(meeting.id)}
+                                                                    title={t('calendar.cancelMeetingBtn')}
+                                                                >
+                                                                    <i className="fas fa-xmark"></i> {t('calendar.cancel')}
+                                                                </button>
                                                             </div>
-                                                            {meeting.status === 'cancelled' && (
-                                                                <span className="text-muted small">Cancelled</span>
-                                                            )}
                                                         </td>
                                                     </tr>
                                                     {viewingMeetingId === meeting.id && (
-                                                        <tr className="details-row">
+                                                        <tr className={styles.detailsRow}>
                                                             <td colSpan="5">
-                                                                <div className="meeting-details-expanded">
-                                                                    <div className="details-grid">
-                                                                        <div className="details-item">
-                                                                            <label>Notes:</label>
-                                                                            <p>{meeting.meetingNotes || 'No notes provided.'}</p>
+                                                                <div className={styles.detailsExpanded}>
+                                                                    <div className={styles.detailsGrid}>
+                                                                        <div className={styles.detailsItem}>
+                                                                            <label>{t('calendar.notesLabel')}</label>
+                                                                            <p>{meeting.meetingNotes || t('calendar.noNotes')}</p>
                                                                         </div>
                                                                         {meeting.zoomLink && (
-                                                                            <div className="details-item">
-                                                                                <label>Zoom Link:</label>
-                                                                                <div className="zoom-join-box">
-                                                                                    <a href={meeting.zoomLink} target="_blank" rel="noreferrer" className="btn btn-sm btn-success">
-                                                                                        <i className="fas fa-video"></i> Join Zoom Meeting
-                                                                                    </a>
-                                                                                    <code className="zoom-url">{meeting.zoomLink}</code>
-                                                                                </div>
+                                                                            <div className={styles.detailsItem}>
+                                                                                <label>{t('calendar.zoomLink')}</label>
+                                                                                <p>{meeting.zoomLink}</p>
+                                                                            </div>
+                                                                        )}
+                                                                        {meeting.instructorNote && (
+                                                                            <div className={styles.detailsItem}>
+                                                                                <label>{t('calendar.instructorNote')}</label>
+                                                                                <p>{meeting.instructorNote}</p>
                                                                             </div>
                                                                         )}
                                                                     </div>

@@ -1,0 +1,72 @@
+{
+  "nav": {
+    "features": "Features",
+    "stakeholders": "Stakeholders",
+    "contact": "Contact",
+    "login": "Login"
+  },
+  "hero": {
+    "title": "Empowering Smart Agriculture in Sri Lanka",
+    "description": "AgriConnect is a centralized Agriculture Management System developed to enhance coordination between farmers, agricultural instructors, and administrators under the Department of Agriculture, Anuradhapura District.",
+    "loginBtn": "Login",
+    "registerBtn": "Register"
+  },
+  "features": {
+    "title": "About AgriConnect",
+    "subtitle": "Modernizing Sri Lanka's agriculture management process",
+    "items": {
+      "digital": {
+        "title": "Digital Transformation",
+        "desc": "Streamlining paper-based processes with modern digital solutions for efficient agricultural management."
+      },
+      "collaboration": {
+        "title": "Collaboration",
+        "desc": "Linking all agricultural stakeholders in a unified platform for seamless communication and coordination."
+      },
+      "sustainability": {
+        "title": "Sustainability",
+        "desc": "Enabling smart, data-driven farming decisions that promote sustainable agricultural practices."
+      }
+    }
+  },
+  "stakeholders": {
+    "title": "Stakeholders",
+    "subtitle": "Connecting all participants in the agricultural ecosystem",
+    "farmer": {
+      "title": "Farmer",
+      "desc": "Access personalized dashboards to record crop activities, view alerts, and receive guidance from instructors."
+    },
+    "instructor": {
+      "title": "Instructor",
+      "desc": "Support farmers by reviewing plans, monitoring progress, and providing expert advice digitally."
+    },
+    "admin": {
+      "title": "Administrator",
+      "desc": "Oversee all registered users, analyze trends, and make informed decisions at the district level."
+    }
+  },
+  "visionMission": {
+    "title": "Our Vision & Mission",
+    "subtitle": "Guiding principles for agricultural transformation",
+    "vision": {
+      "title": "Our Vision",
+      "desc": "To empower the agricultural community of Sri Lanka through digital technology, promoting efficient farm management, transparent data exchange, and sustainable growth."
+    },
+    "mission": {
+      "title": "Our Mission",
+      "desc": "To provide an integrated platform that connects farmers, instructors, and administrators for smarter, faster, and more collaborative agricultural operations."
+    }
+  },
+  "cta": {
+    "title": "Join the Digital Agriculture Revolution",
+    "desc": "Ready to get started? Create your account today and join our growing community of agricultural professionals.",
+    "loginBtn": "Login",
+    "registerBtn": "Register Now"
+  },
+  "footer": {
+    "tagline": "Modern agriculture for better yields",
+    "contact": "Contact",
+    "dept": "Department of Agriculture",
+    "district": "Anuradhapura District"
+  }
+}

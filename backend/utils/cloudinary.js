@@ -14,4 +14,55 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
+// Helper functions for different file types
+export const uploadImage = async (file, folder = 'agri-connect/images') => {
+    try {
+        const result = await cloudinary.uploader.upload(file, {
+            folder,
+            resource_type: 'image',
+            format: 'webp',
+            quality: 'auto:good',
+            fetch_format: 'auto'
+        });
+        return result;
+    } catch (error) {
+        console.error('Error uploading image:', error);
+        throw error;
+    }
+};
+
+export const uploadPDF = async (file, folder = 'agri-connect/documents') => {
+    try {
+        const result = await cloudinary.uploader.upload(file, {
+            folder,
+            resource_type: 'raw',
+            format: 'pdf',
+            pages: true
+        });
+        return result;
+    } catch (error) {
+        console.error('Error uploading PDF:', error);
+        throw error;
+    }
+};
+
+export const deleteFile = async (publicId) => {
+    try {
+        const result = await cloudinary.uploader.destroy(publicId);
+        return result;
+    } catch (error) {
+        console.error('Error deleting file:', error);
+        throw error;
+    }
+};
+
+export const getFileType = (mimetype) => {
+    if (mimetype.startsWith('image/')) {
+        return 'image';
+    } else if (mimetype === 'application/pdf') {
+        return 'pdf';
+    }
+    return 'raw';
+};
+
 export default cloudinary;

@@ -1,74 +1,59 @@
-/**
- * Simple Rate Limiting Middleware
- * Prevents brute force attacks on login/register endpoints
- * 
- * Note: For production, consider using express-rate-limit package
- * npm install express-rate-limit
- */
-
-// In-memory store (use Redis for production)
-const requestCounts = new Map();
+import rateLimit from 'express-rate-limit';
 
 /**
- * Rate limiter middleware
- * @param {number} maxRequests - Maximum requests allowed
- * @param {number} windowMs - Time window in milliseconds
+ * Rate limiters using express-rate-limit
+ * standardHeaders: true  — sends RateLimit-* headers per the IETF draft
+ * legacyHeaders: false   — suppresses deprecated X-RateLimit-* headers
  */
-export const rateLimiter = (maxRequests = 5, windowMs = 15 * 60 * 1000) => {
-    return (req, res, next) => {
-        const key = req.ip || req.connection.remoteAddress;
-        const now = Date.now();
-        const windowStart = now - windowMs;
 
-        // Get or initialize request history for this IP
-        if (!requestCounts.has(key)) {
-            requestCounts.set(key, []);
+/**
+ * Login rate limiter — 10 attempts per 15 minutes per IP
+ */
+export const loginRateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 25,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+        success: false,
+        error: {
+            code: 'RATE_LIMIT_EXCEEDED',
+            message: 'Too many login attempts. Please wait a moment and try again.'
         }
-
-        const requests = requestCounts.get(key);
-
-        // Filter out requests outside the time window
-        const recentRequests = requests.filter(timestamp => timestamp > windowStart);
-
-        // Check if limit exceeded
-        if (recentRequests.length >= maxRequests) {
-            const resetTime = new Date(recentRequests[0] + windowMs);
-            return res.status(429).json({
-                success: false,
-                error: {
-                    code: 'RATE_LIMIT_EXCEEDED',
-                    message: 'Too many attempts. Please wait a moment and try again.',
-                    retryAfter: resetTime.toISOString()
-                }
-            });
-        }
-
-        // Add current request timestamp
-        recentRequests.push(now);
-        requestCounts.set(key, recentRequests);
-
-        // Clean up old entries periodically (every hour)
-        if (Math.random() < 0.01) { // 1% chance on each request
-            for (const [k, v] of requestCounts.entries()) {
-                const recent = v.filter(timestamp => timestamp > windowStart);
-                if (recent.length === 0) {
-                    requestCounts.delete(k);
-                } else {
-                    requestCounts.set(k, recent);
-                }
-            }
-        }
-
-        next();
-    };
-};
+    }
+});
 
 /**
- * Stricter rate limiter for login endpoints
+ * Registration rate limiter — 10 registrations per hour per IP
  */
-export const loginRateLimiter = rateLimiter(100, 15 * 60 * 1000); // 100 requests per 15 minutes (Increased for testing)
+export const registerRateLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+        success: false,
+        error: {
+            code: 'RATE_LIMIT_EXCEEDED',
+            message: 'Too many registration attempts. Please wait before trying again.'
+        }
+    }
+});
 
 /**
- * Standard rate limiter for registration
+ * Password reset rate limiter — 5 requests per 15 minutes per IP
+ * Covers /forgot-password, /verify-otp, and /reset-password to prevent OTP brute-force
  */
-export const registerRateLimiter = rateLimiter(100, 60 * 60 * 1000); // 100 requests per hour
+export const passwordResetRateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+        success: false,
+        error: {
+            code: 'RATE_LIMIT_EXCEEDED',
+            message: 'Too many password reset attempts. Please wait 15 minutes and try again.'
+        }
+    }
+});

@@ -1,0 +1,180 @@
+/* DataTable.module.css */
+
+/* Import semantic color system */
+@import url('../../../shared/semantic-colors.css');
+
+.dataTableContainer {
+    background: var(--neutral-white);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.dataTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.dataTable th {
+    background: var(--neutral-100);
+    color: var(--neutral-600);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: var(--text-sm);
+    padding: var(--space-md) var(--space-xl);
+    text-align: left;
+    border-bottom: 2px solid var(--neutral-200);
+}
+
+.colActions {
+    width: 120px;
+}
+
+.dataTable td {
+    padding: var(--space-md) var(--space-xl);
+    border-bottom: 1px solid var(--neutral-200);
+    color: var(--neutral-800);
+    font-size: var(--text-sm);
+    vertical-align: middle;
+}
+
+.dataTable tr:last-child td {
+    border-bottom: none;
+}
+
+.dataTable tr:hover {
+    background-color: var(--neutral-50);
+}
+
+.emptyState {
+    text-align: center;
+    padding: var(--space-2xl);
+    color: var(--neutral-400);
+    font-style: italic;
+}
+
+/* Pagination Styles */
+.paginationContainer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md) var(--space-lg);
+    border-top: 1px solid var(--neutral-200);
+    background: var(--neutral-50);
+}
+
+.paginationInfo {
+    color: var(--neutral-500);
+    font-size: var(--text-sm);
+}
+
+.paginationControls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.btnPagination {
+    background: var(--neutral-white);
+    border: 1px solid var(--neutral-300);
+    color: var(--neutral-500);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition-normal);
+    font-size: var(--text-xs);
+}
+
+.btnPagination:hover:not(:disabled) {
+    background: var(--admin-primary);
+    color: var(--neutral-white);
+    border-color: var(--admin-primary);
+    outline: 3px solid var(--admin-primary-light);
+    outline-offset: 2px;
+}
+
+.btnPagination:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pageInfo {
+    margin: 0 var(--space-md);
+    color: var(--neutral-500);
+    font-size: var(--text-sm);
+    font-weight: 500;
+}
+
+/* Action Buttons Container in Cell */
+.actionButtons {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: center;
+}
+
+/* Specific Action Button Enhancement (from UserIdManagement) */
+.btnAction {
+    transition: all 0.2s;
+}
+
+.btnAction:hover {
+    filter: brightness(0.9);
+    transform: scale(1.05);
+    outline: 2px solid var(--admin-primary-light);
+    outline-offset: 1px;
+}
+
+/* Loading State (from UserIdManagement) */
+.loadingContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-2xl) 0;
+    color: var(--neutral-600);
+}
+
+.loadingIcon {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--neutral-100);
+    border-top: 4px solid var(--admin-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: var(--space-md);
+}
+
+.loadingText {
+    font-size: var(--text-sm);
+    color: var(--neutral-500);
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Mobile: allow horizontal scrolling instead of overflowing the viewport */
+@media (max-width: 768px) {
+    .dataTableContainer {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .dataTable th,
+    .dataTable td {
+        padding: var(--space-sm) var(--space-md);
+        white-space: nowrap;
+    }
+
+    .paginationContainer {
+        flex-direction: column;
+        gap: var(--space-sm);
+        text-align: center;
+    }
+}

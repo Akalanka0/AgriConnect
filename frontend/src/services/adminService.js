@@ -7,24 +7,26 @@ export const adminAPI = {
     /**
      * Dashboard
      */
-    getDashboardStats: () => apiService.get('/admin/dashboard/stats'),
+    getDashboardStats: () => apiService.get('/admin/stats'),
 
     /**
      * User Management
      */
-    getUsers: (params) => apiService.get('/admin/users', params),
+    getUsers: (queryString) => apiService.get(`/admin/users${queryString ? queryString : ''}`),
     getUser: (id) => apiService.get(`/admin/users/${id}`),
     createUser: (userData) => apiService.post('/admin/users', userData),
     updateUser: (id, userData) => apiService.put(`/admin/users/${id}`, userData),
     deleteUser: (id) => apiService.delete(`/admin/users/${id}`),
-    toggleUserStatus: (id) => apiService.patch(`/admin/users/${id}/toggle-status`),
+    toggleUserStatus: (id, status) => apiService.put(`/admin/users/${id}/status`, { status }),
+    inviteAdmin: (data) => apiService.post('/admin/invite', data),
 
     /**
      * User ID Management
      */
-    getUserIds: () => apiService.get('/admin/user-ids'),
-    generateUserId: (role) => apiService.post('/admin/user-ids/generate', { role }),
-    updateUserId: (id, userIdData) => apiService.put(`/admin/user-ids/${id}`, userIdData),
+    getUserIds: (type) => apiService.get(`/admin/ids?type=${type}`),
+    generateUserId: (type) => apiService.post('/admin/ids/generate', { type }),
+    updateUserIdStatus: (id, status) => apiService.put(`/admin/ids/${id}/status`, { status }),
+    pruneUserIds: (type, status) => apiService.delete('/admin/ids/prune', { body: JSON.stringify({ type, status }) }),
 
     /**
      * Pest Management
@@ -54,17 +56,31 @@ export const adminAPI = {
     deleteHarvest: (id) => apiService.delete(`/admin/harvests/${id}`),
 
     /**
-     * Reports
+     * Reports & Engagement
      */
-    getEngagementReports: (params) => apiService.get('/admin/reports/engagement', params),
-    getUserReports: (params) => apiService.get('/admin/reports/users', params),
-    getActivityReports: (params) => apiService.get('/admin/reports/activity', params),
+    getEngagementStats: () => apiService.get('/admin/engagement'),
+    getInstructorEngagement: () => apiService.get('/admin/engagement/instructors'),
 
     /**
-     * Settings
+     * Settings & Profile
      */
-    getSettings: () => apiService.get('/admin/settings'),
-    updateSetting: (key, value) => apiService.put('/admin/settings', { key, value }),
-    getSystemSettings: () => apiService.get('/admin/system-settings'),
-    updateSystemSettings: (settings) => apiService.put('/admin/system-settings', settings),
+    getSystemSettings: () => apiService.get('/admin/settings'),
+    updateSetting: (key, value) => apiService.put(`/admin/settings/${key}`, { value }),
+    updateProfile: (formData) => apiService.upload('/admin/profile', formData, 'PUT'),
+    removeProfilePicture: () => apiService.delete('/admin/profile/picture'),
+    updatePassword: (data) => apiService.put('/admin/password', data),
+
+    /**
+     * Region Hierarchy (Zones & Divisions)
+     */
+    getRegionHierarchy: () => apiService.get('/admin/region-hierarchy'),
+    updateRegionHierarchy: (hierarchy) => apiService.put('/admin/region-hierarchy', { hierarchy }),
+
+    /**
+     * Messages
+     */
+    sendMessage: (formData) => apiService.upload('/admin/messages/send', formData),
+    getMessages: () => apiService.get('/admin/messages'),
+    markMessageAsRead: (id) => apiService.patch(`/admin/messages/${id}/read`),
+    deleteMessage: (id) => apiService.delete(`/admin/messages/${id}`)
 };

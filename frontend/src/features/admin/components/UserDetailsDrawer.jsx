@@ -1,70 +1,90 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { useTranslation } from 'react-i18next';
 import StatusBadge from './StatusBadge';
 
+import styles from '../styles/UserDetailsDrawer.module.css';
+
 const UserDetailsDrawer = ({ isOpen, onClose, user, activeTab }) => {
+    const { t } = useTranslation('admin');
     return (
-        <div className={`drawer-overlay ${isOpen ? 'open' : ''}`} onClick={onClose}>
-            <div className="drawer" onClick={(e) => e.stopPropagation()}>
-                <div className="drawer-header">
-                    <h3>User Details</h3>
-                    <button className="close-btn" onClick={onClose}>
-                        <i className="fas fa-times"></i>
+        <div className={`${styles.drawerOverlay} ${isOpen ? styles.open : ''}`} onClick={onClose}>
+            <div className={styles.drawer} onClick={(e) => e.stopPropagation()}>
+                <div className={styles.drawerHeader}>
+                    <h3>{t('users.drawerTitle')}</h3>
+                    <button className={styles.closeBtn} onClick={onClose}>
+                        <i className="fas fa-xmark"></i>
                     </button>
                 </div>
                 {user && (
-                    <div className="drawer-content">
-                        <div className="info-group">
-                            <div className="info-label">Full Name</div>
-                            <div className="info-value">{user.name}</div>
+                    <div className={styles.drawerContent}>
+                        <div className={styles.infoGroup}>
+                            <div className={styles.infoLabel}>{t('users.drawerFullName')}</div>
+                            <div className={styles.infoValue}>{user.name}</div>
                         </div>
-                        <div className="info-group">
-                            <div className="info-label">Email Address</div>
-                            <div className="info-value">{user.email}</div>
+                        <div className={styles.infoGroup}>
+                            <div className={styles.infoLabel}>{t('users.drawerEmailAddress')}</div>
+                            <div className={styles.infoValue}>{user.email}</div>
                         </div>
-                        <div className="info-group">
-                            <div className="info-label">Phone Number</div>
-                            <div className="info-value">{user.phone}</div>
+                        <div className={styles.infoGroup}>
+                            <div className={styles.infoLabel}>{t('users.drawerPhoneNumber')}</div>
+                            <div className={styles.infoValue}>{user.phone}</div>
                         </div>
-                        <div className="info-group">
-                            <div className="info-label">Registration ID</div>
-                            <div className="info-value">{user.id}</div>
+                        <div className={styles.infoGroup}>
+                            <div className={styles.infoLabel}>{t('users.drawerNic')}</div>
+                            <div className={styles.infoValue}>{user.nic}</div>
                         </div>
-                        <div className="info-group">
-                            <div className="info-label">Current Status</div>
+                        <div className={styles.infoGroup}>
+                            <div className={styles.infoLabel}>{t('users.drawerRegistrationId')}</div>
+                            <div className={styles.infoValue}>{user.displayId || user.id}</div>
+                        </div>
+                        <div className={styles.infoGroup}>
+                            <div className={styles.infoLabel}>{t('users.drawerCurrentStatus')}</div>
                             <StatusBadge status={user.status} />
                         </div>
                         {activeTab === 'farmers' ? (
                             <>
-                                <div className="info-group">
-                                    <div className="info-label">District</div>
-                                    <div className="info-value">{user.district}</div>
+                                <div className={styles.infoGroup}>
+                                    <div className={styles.infoLabel}>{t('users.drawerDistrict')}</div>
+                                    <div className={styles.infoValue}>{user.district}</div>
                                 </div>
-                                <div className="info-group">
-                                    <div className="info-label">Zone</div>
-                                    <div className="info-value">{user.location}</div>
+                                <div className={styles.infoGroup}>
+                                    <div className={styles.infoLabel}>{t('users.drawerZone')}</div>
+                                    <div className={styles.infoValue}>{user.location}</div>
                                 </div>
-                                <div className="info-group">
-                                    <div className="info-label">Instructor Division</div>
-                                    <div className="info-value">{user.instructorDivision}</div>
+                                <div className={styles.infoGroup}>
+                                    <div className={styles.infoLabel}>{t('users.drawerInstructorDivisions')}</div>
+                                    <div className={styles.infoValue}>
+                                        {user.farmerLocations && user.farmerLocations.length > 0 ? (
+                                            <div className={styles.divisionTagsWrapper}>
+                                                {user.farmerLocations.map((loc, idx) => (
+                                                    <span key={idx} className={styles.divisionTag}>
+                                                        {loc.instructorDivision || loc.instructor_division || '-'}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            user.instructorDivision
+                                        )}
+                                    </div>
                                 </div>
                             </>
                         ) : (
                             <>
-                                <div className="info-group">
-                                    <div className="info-label">District</div>
-                                    <div className="info-value">{user.district}</div>
+                                <div className={styles.infoGroup}>
+                                    <div className={styles.infoLabel}>{t('users.drawerDistrict')}</div>
+                                    <div className={styles.infoValue}>{user.district}</div>
                                 </div>
-                                <div className="info-group">
-                                    <div className="info-label">Zone</div>
-                                    <div className="info-value">{user.zone}</div>
+                                <div className={styles.infoGroup}>
+                                    <div className={styles.infoLabel}>{t('users.drawerZone')}</div>
+                                    <div className={styles.infoValue}>{user.zone}</div>
                                 </div>
-                                <div className="info-group">
-                                    <div className="info-label">Instructor Divisions</div>
-                                    <div className="info-value">
-                                        <div className="division-tags-wrapper" style={{ marginTop: '5px' }}>
+                                <div className={styles.infoGroup}>
+                                    <div className={styles.infoLabel}>{t('users.drawerInstructorDivisions')}</div>
+                                    <div className={styles.infoValue}>
+                                        <div className={styles.divisionTagsWrapper}>
                                             {user.divisions && user.divisions.map((div, idx) => (
-                                                <span key={idx} className="division-tag" style={{ fontSize: '0.8rem', padding: '2px 8px' }}>
+                                                <span key={idx} className={styles.divisionTag}>
                                                     {div}
                                                 </span>
                                             ))}
@@ -87,14 +107,17 @@ UserDetailsDrawer.propTypes = {
     onClose: PropTypes.func.isRequired,
     user: PropTypes.shape({
         id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+        displayId: PropTypes.string,
         name: PropTypes.string,
         email: PropTypes.string,
         phone: PropTypes.string,
+        nic: PropTypes.string,
         status: PropTypes.string,
         district: PropTypes.string,
         location: PropTypes.string,
         zone: PropTypes.string,
         instructorDivision: PropTypes.string,
+        farmerLocations: PropTypes.arrayOf(PropTypes.object),
         divisions: PropTypes.arrayOf(PropTypes.string)
     }),
     activeTab: PropTypes.string.isRequired

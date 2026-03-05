@@ -1,0 +1,545 @@
+/* InstructorModals.module.css */
+
+/* Import semantic color system */
+@import url('../../../shared/semantic-colors.css');
+
+.instructorModalFlex {
+    /* Instructor theme override — portal renders outside .appContainer scope */
+    --color-primary: var(--instructor-primary);
+    --color-primary-hover: var(--instructor-primary-dark);
+    --color-primary-light: var(--instructor-primary-light);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    background: var(--modal-overlay-bg);
+    justify-content: center;
+    align-items: center;
+    z-index: 99999;
+    display: flex;
+    backdrop-filter: blur(10px);
+}
+
+.instructorModalContent {
+    background: var(--neutral-white);
+    padding: var(--space-2xl);
+    border-radius: var(--radius-md);
+    width: 95%;
+    max-width: 550px;
+    max-height: 85vh;
+    box-shadow: var(--shadow-2xl);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    margin: auto;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    backdrop-filter: blur(20px) saturate(180%);
+}
+
+.instructorModalContent::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, var(--instructor-primary), var(--instructor-primary-light));
+    border-radius: 16px 16px 0 0;
+}
+
+.instructorModalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--neutral-200);
+}
+
+.instructorModalTitle {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--instructor-primary-dark);
+}
+
+.instructorClose {
+    background: var(--neutral-100);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--neutral-600);
+    font-size: 0.9rem;
+    line-height: 1;
+    transition: var(--transition-normal);
+}
+
+.instructorClose:hover {
+    background: var(--state-danger);
+    color: var(--neutral-white);
+}
+
+.instructorModalFooter {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-md);
+    margin-top: var(--space-lg);
+    padding-top: var(--space-lg);
+    border-top: 1px solid var(--neutral-200);
+}
+
+.instructorModalBody {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: var(--space-xs);
+    scrollbar-gutter: stable-both;
+}
+
+.instructor-modal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
+}
+
+/* Large content variant */
+.instructorModalContentLarge {
+    background: var(--neutral-white);
+    padding: var(--space-2xl);
+    border-radius: var(--radius-md);
+    width: 95%;
+    max-width: 600px;
+    max-height: 85vh;
+    box-shadow: var(--shadow-2xl);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    margin: auto;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Ratings Modal Specific Styles */
+.ratingsModalContent {
+    max-width: 800px;
+}
+
+.ratingsSummary {
+    padding: var(--space-lg);
+    background: var(--neutral-50);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-lg);
+}
+
+.ratingsOverview {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: var(--space-xl);
+    align-items: center;
+}
+
+.ratingsAverage {
+    text-align: center;
+    border-right: 1px solid var(--neutral-200);
+    padding-right: var(--space-lg);
+}
+
+.ratingsScore {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.ratingsNumber {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--instructor-primary-dark);
+}
+
+.ratingsSubtitle {
+    color: var(--neutral-500);
+    font-size: 0.9rem;
+}
+
+.ratingsDistribution h4 {
+    margin-top: 0;
+    margin-bottom: var(--space-md);
+    font-size: 1.1rem;
+    color: var(--instructor-primary-dark);
+}
+
+.distributionRow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-xs);
+}
+
+.distributionLabel {
+    width: 60px;
+    font-size: 0.85rem;
+    color: var(--neutral-500);
+}
+
+.distributionBar {
+    flex: 1;
+    height: 8px;
+    background: var(--neutral-50);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.distributionFill {
+    height: 100%;
+    background: var(--state-warning);
+    border-radius: var(--radius-sm);
+}
+
+.distributionCount {
+    width: 30px;
+    font-size: 0.85rem;
+    text-align: right;
+    color: var(--neutral-500);
+}
+
+.ratingsList h4 {
+    margin-bottom: var(--space-lg);
+    color: var(--instructor-primary-dark);
+    font-size: 1.2rem;
+}
+
+.ratingItem {
+    padding: var(--space-lg);
+    border: 1px solid var(--neutral-200);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-md);
+    transition: var(--transition-normal);
+}
+
+.ratingItem:hover {
+    border-color: var(--instructor-primary-light);
+    box-shadow: var(--shadow-sm);
+}
+
+.ratingHeader {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: var(--space-sm);
+}
+
+.ratingFarmer {
+    display: flex;
+    flex-direction: column;
+}
+
+.ratingLocation {
+    font-size: 0.8rem;
+    color: var(--neutral-500);
+    margin-top: 2px;
+}
+
+.ratingDate {
+    font-size: 0.85rem;
+    color: var(--neutral-500);
+}
+
+.ratingStars {
+    margin-bottom: var(--space-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.ratingComments {
+    font-style: italic;
+    color: var(--neutral-700);
+    line-height: 1.5;
+    background: var(--neutral-50);
+    padding: var(--space-sm);
+    border-radius: var(--radius-md);
+}
+
+.noRatings {
+    text-align: center;
+    padding: var(--space-xl);
+    color: var(--neutral-500);
+}
+
+.noRatings i {
+    font-size: 3rem;
+    margin-bottom: var(--space-md);
+    display: block;
+    opacity: 0.3;
+}
+
+.ratingsPagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-md);
+    margin-top: var(--space-lg);
+}
+
+.paginationInfo {
+    font-size: 0.9rem;
+    color: var(--neutral-500);
+}
+
+.star {
+    color: var(--state-warning);
+}
+
+.star.empty {
+    color: var(--neutral-300);
+}
+
+/* Utility */
+.hidden {
+    display: none;
+}
+
+/* ===== FARMER DETAILS MODAL STYLES ===== */
+
+/* Loading State */
+.farmerLoading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-2xl);
+    min-height: 200px;
+    color: var(--neutral-500);
+}
+
+.farmerLoadingIcon {
+    font-size: 2rem;
+    margin-bottom: var(--space-md);
+    color: var(--instructor-primary);
+}
+
+.farmerLoading p {
+    margin: 0;
+    font-size: var(--text-base);
+    color: var(--neutral-600);
+}
+
+/* Profile Header Section */
+.farmerProfileHeader {
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-xl);
+    padding-bottom: var(--space-lg);
+    border-bottom: 1px solid var(--neutral-200);
+}
+
+.farmerAvatarContainer {
+    width: 80px;
+    height: 80px;
+    border-radius: var(--radius-full);
+    background: var(--neutral-100);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 3px solid var(--instructor-primary-light);
+}
+
+.farmerAvatarContainer i {
+    font-size: 2rem;
+    color: var(--neutral-400);
+}
+
+.farmerAvatarImg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: var(--radius-full);
+}
+
+.farmerName {
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    color: var(--instructor-primary-dark);
+    margin: 0 0 var(--space-xs) 0;
+    line-height: 1.2;
+}
+
+.farmerId {
+    font-size: var(--text-sm);
+    color: var(--neutral-500);
+    margin-top: var(--space-xs);
+    font-weight: 500;
+}
+
+/* Information Grid */
+.farmerInfoGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-lg);
+    margin-bottom: var(--space-xl);
+}
+
+.infoItem {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.farmerInfoFullWidth {
+    grid-column: 1 / -1;
+}
+
+.farmerLabel {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--neutral-600);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.farmerValue {
+    font-size: var(--text-base);
+    color: var(--neutral-700);
+    font-weight: 400;
+    line-height: 1.5;
+}
+
+/* Section Styling */
+.farmerDivider {
+    border: none;
+    border-top: 1px solid var(--neutral-200);
+    margin: var(--space-xl) 0;
+}
+
+.farmerSectionTitle {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--instructor-primary-dark);
+    margin: 0 0 var(--space-md) 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.farmerSectionIcon {
+    color: var(--instructor-primary);
+    font-size: var(--text-base);
+}
+
+/* Location Section */
+.farmerLocationRow {
+    display: flex;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-lg);
+    flex-wrap: wrap;
+}
+
+.farmerLocationLabel {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--neutral-600);
+    margin-right: var(--space-xs);
+}
+
+.farmerRegisteredLandsLabel {
+    display: block;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--neutral-600);
+    margin-bottom: var(--space-md);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.farmerLocationsList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.farmerLocationItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-md);
+    background: var(--neutral-50);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--neutral-200);
+    transition: var(--transition-normal);
+}
+
+.farmerLocationItem:hover {
+    border-color: var(--instructor-primary-light);
+    background: var(--neutral-white);
+    box-shadow: var(--shadow-sm);
+}
+
+.farmerVillageText {
+    font-size: var(--text-sm);
+    color: var(--neutral-500);
+    font-style: italic;
+}
+
+.farmerBadgeMain {
+    font-size: var(--text-xs);
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--instructor-primary);
+    color: var(--neutral-white);
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+@media (max-width: 768px) {
+    .instructorModalContent {
+        padding: var(--space-lg);
+    }
+
+    .ratingsOverview {
+        grid-template-columns: 1fr;
+    }
+
+    .instructor-modal-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ratingsAverage {
+        border-right: none;
+        border-bottom: 1px solid var(--neutral-200);
+        padding-right: 0;
+        padding-bottom: calc(var(--space-md) + var(--space-xs));
+    }
+
+    /* Farmer Details Modal Responsive */
+    .farmerProfileHeader {
+        flex-direction: column;
+        text-align: center;
+        gap: var(--space-md);
+    }
+
+    .farmerInfoGrid {
+        grid-template-columns: 1fr;
+        gap: var(--space-md);
+    }
+
+    .farmerLocationRow {
+        flex-direction: column;
+        gap: var(--space-md);
+    }
+
+    .farmerLocationItem {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-sm);
+    }
+}

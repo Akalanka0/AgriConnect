@@ -1,12 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import StatusBadge from '../../admin/components/StatusBadge';
+import { useTranslation } from 'react-i18next';
+import StatusBadge from '../components/InstructorStatusBadge';
 import { Modal, Button, Form, Spinner } from 'react-bootstrap';
 import defaultCropCalendarImage from '../../../assets/crop-calendar-default.jpg';
 import { getDownloadUrl, getFriendlyFileName } from '../../../utils/fileUtils';
+import ConfirmModal from '@/components/common/feedback/ConfirmModal';
+import { getAccessToken } from '@/utils/authStorage';
+import styles from '../styles/CropPlanReview.module.css';
+import commonCardStyles from '@/components/common/styles/Card.module.css';
+import commonBtnStyles from '@/components/common/styles/Button.module.css';
 
 const CropPlanReview = () => {
     const { showToast } = useOutletContext();
+    const { t } = useTranslation('instructor');
     const [pendingPlans, setPendingPlans] = useState([]);
     const [reviewedPlans, setReviewedPlans] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -17,6 +24,7 @@ const CropPlanReview = () => {
     const [selectedCropForImageUpdate, setSelectedCropForImageUpdate] = useState('');
     const [imageFileToUpload, setImageFileToUpload] = useState(null);
     const [isSavingCalendar, setIsSavingCalendar] = useState(false);
+    const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, cropId: null });
 
     // Crop Calendar States
     const [cropCalendars, setCropCalendars] = useState([]);
@@ -26,6 +34,12 @@ const CropPlanReview = () => {
 
     const currentCalendar = cropCalendars.find(cal => cal.id.toString() === currentCalendarId.toString());
     const cropCalendarImage = currentCalendar ? currentCalendar.image : defaultCropCalendarImage;
+
+    useEffect(() => {
+        return () => {
+            document.body.style.overflow = 'auto';
+        };
+    }, []);
 
     const toggleZoom = () => {
         setIsZoomed(!isZoomed);
@@ -50,19 +64,13 @@ const CropPlanReview = () => {
     const fetchPlans = useCallback(async () => {
         setLoading(true);
         try {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             const response = await fetch('/api/instructor/crop-plans', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
             if (data.success) {
-                // Filter out demo data and specific incorrect entries
-                const plans = data.data.filter(p =>
-                    p.farmerId !== 'FARM-2026-DEMO' &&
-                    !p.farmerName?.includes('(Demo)') &&
-                    p.farmerId !== 'FARM-2026-NZSR' &&
-                    p.farmerName !== 'Fred Hickle Jr.'
-                );
+                const plans = data.data;
                 // Correction status is moved to reviewedPlans as the instructor has already acted on it
                 setPendingPlans(plans.filter(p => p.status === 'Pending Review'));
                 setReviewedPlans(plans.filter(p => p.status === 'Approved' || p.status === 'Rejected' || p.status === 'Correction'));
@@ -79,10 +87,9 @@ const CropPlanReview = () => {
 
     const fetchCropCalendars = useCallback(async () => {
         try {
-            console.log('--- fetchCropCalendars Frontend Started ---');
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             if (!token) {
-                console.error('No token found in localStorage');
+                console.error('No auth token found');
                 return;
             }
 
@@ -90,12 +97,9 @@ const CropPlanReview = () => {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             
-            console.log('Response Status:', response.status);
             const data = await response.json();
-            console.log('Full API Response Data:', data);
             
             if (data.success && Array.isArray(data.data)) {
-                console.log(`Successfully received ${data.data.length} crops`);
                 const mappedData = data.data.map(crop => ({
                     ...crop,
                     id: crop.id.toString(),
@@ -114,21 +118,18 @@ const CropPlanReview = () => {
                     });
                 }
             } else {
-                console.error('API Error or Invalid Format:', data);
                 showToast(data.error?.message || 'Failed to load crop calendars', 'error');
             }
         } catch (error) {
-            console.error('CRITICAL FRONTEND FETCH ERROR:', error);
+            console.error('Network error loading crop calendars:', error);
             showToast('Network error while loading crops', 'error');
         }
     }, [showToast]);
 
     useEffect(() => {
         const loadInitialData = async () => {
-            console.log('--- Initial Data Load Starting ---');
             await fetchPlans();
             await fetchCropCalendars();
-            console.log('--- Initial Data Load Complete ---');
         };
         loadInitialData();
     }, [fetchPlans, fetchCropCalendars]);
@@ -140,7 +141,7 @@ const CropPlanReview = () => {
         }
 
         try {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             const status = action === 'approve' ? 'approved' : 'correction';
 
             const formData = new FormData();
@@ -188,7 +189,7 @@ const CropPlanReview = () => {
 
         setIsSavingCalendar(true);
         try {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             const formData = new FormData();
             formData.append('image', file);
 
@@ -223,11 +224,9 @@ const CropPlanReview = () => {
     };
 
     const handleRemoveImage = async (cropId) => {
-        if (!window.confirm('Are you sure you want to remove this crop calendar image?')) return;
-        
         setIsSavingCalendar(true);
         try {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             const response = await fetch(`/api/instructor/crop-calendars/${cropId}/remove-image`, {
                 method: 'DELETE',
                 headers: {
@@ -250,59 +249,56 @@ const CropPlanReview = () => {
         }
     };
 
-    const handleDeleteCrop = (cropId) => {
-        setCropCalendars(prev => prev.filter(crop => crop.id !== cropId));
-        if (currentCalendarId === cropId) {
-            setCurrentCalendarId(cropCalendars[0]?.id || null);
-        }
-        showToast(`Crop ${cropId} deleted successfully!`, 'success');
+    const requestRemoveImage = (cropId) => {
+        setConfirmConfig({ isOpen: true, cropId });
     };
 
+    const closeConfirm = () => {
+        setConfirmConfig({ isOpen: false, cropId: null });
+    };
 
+    const executeRemoveImage = async () => {
+        await handleRemoveImage(confirmConfig.cropId);
+        closeConfirm();
+    };
 
     const renderPlanDetails = (plan) => (
-        <div className="instructor-detail-view">
-            <div className="instructor-detail-header">
-                <h3>{plan.cropName} Plan Details</h3>
-                <button className="btn btn-secondary" onClick={() => setSelectedPlan(null)}>Close</button>
-            </div>
-
-            <div className="instructor-details-grid">
-                <div className="instructor-detail-group">
-                    <p><strong>Farmer:</strong> {plan.farmerName}</p>
+        <div className={styles.instructorDetailView}>
+            <div className={styles.instructorDetailsGrid}>
+                <div className={styles.instructorDetailGroup}>
+                    <p><strong>{t('cropPlans.farmerLabel')}</strong> {plan.farmerName}</p>
                     <p><strong>ID:</strong> {plan.farmerId}</p>
-                    <p><strong>Location:</strong> {plan.location}</p>
-                    <p><strong>Submitted Date:</strong> {plan.submittedDate}</p>
+                    <p><strong>{t('cropPlans.locationLabel')}</strong> {plan.location}</p>
+                    <p><strong>{t('cropPlans.submittedDateLabel')}</strong> {plan.submittedDate}</p>
                 </div>
-                <div className="instructor-detail-group">
-                    <p><strong>Planting Date:</strong> {plan.plantDate}</p>
-                    <p><strong>Expected Harvest:</strong> {plan.harvestDate}</p>
-                    <p><strong>Status:</strong> <StatusBadge status={plan.status} type={plan.status === 'Approved' ? 'success' : plan.status === 'Pending Review' ? 'warning' : 'danger'} /></p>
+                <div className={styles.instructorDetailGroup}>
+                    <p><strong>{t('cropPlans.plantingDateLabel')}</strong> {plan.plantDate}</p>
+                    <p><strong>{t('cropPlans.expectedHarvestLabel')}</strong> {plan.harvestDate}</p>
+                    <p><strong>{t('cropPlans.statusLabel')}</strong> <StatusBadge status={plan.status} type={plan.status === 'Approved' ? 'success' : plan.status === 'Pending Review' ? 'warning' : 'danger'} /></p>
                 </div>
             </div>
 
             <div style={{ marginBottom: '20px' }}>
-                <strong>Farmer's Notes:</strong>
-                <div className="instructor-description-box">
+                <strong>{t('cropPlans.farmersNotesLabel')}</strong>
+                <div className={styles.instructorDescriptionBox}>
                     {plan.cropNotes}
                 </div>
                 {plan.farmerFiles && plan.farmerFiles.length > 0 && (
                     <div style={{ marginTop: '15px' }}>
-                        <strong>Farmer's Attachments:</strong>
-                        <div className="instructor-attachment-list">
+                        <strong>{t('cropPlans.farmersAttachmentsLabel')}</strong>
+                        <div className={styles.instructorAttachmentList}>
                             {plan.farmerFiles.map((file, idx) => (
                                 <a
                                     key={idx}
                                     href={getDownloadUrl(file)}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="instructor-attachment-item"
-                                    style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center' }}
+                                    className={styles.instructorAttachmentItem}
                                     download
                                 >
-                                    <i className={file.endsWith('.pdf') ? 'fas fa-file-pdf' : 'fas fa-image'} style={{ marginRight: '8px' }}></i>
+                                    <i className={`fas ${file.toLowerCase().endsWith('.pdf') ? 'fa-file-pdf' : (file.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/) ? 'fa-file-image' : 'fa-file')}`} style={{ marginRight: '8px' }}></i>
                                     <span style={{ fontSize: '0.9rem' }}>
-                                        {getFriendlyFileName(file)}
+                                        {plan.farmerFileNames?.[idx] || getFriendlyFileName(file)}
                                     </span>
                                     <i className="fas fa-download" style={{ marginLeft: 'auto', fontSize: '0.8rem', color: '#666' }}></i>
                                 </a>
@@ -313,63 +309,62 @@ const CropPlanReview = () => {
             </div>
 
             {plan.status === 'Pending Review' ? (
-                <div className="instructor-action-section">
-                    <label>Your Feedback / Recommendations:</label>
+                <div className={styles.instructorActionSection}>
+                    <label>{t('cropPlans.yourFeedbackLabel')}</label>
                     <textarea
                         className="form-control"
                         rows="5"
-                        placeholder="Provide your professional feedback, recommended adjustments, or approval comments..."
+                        placeholder={t('cropPlans.feedbackPlaceholder')}
                         value={feedback}
                         onChange={(e) => setFeedback(e.target.value)}
                     ></textarea>
 
                     <div className="form-group" style={{ marginTop: '20px' }}>
-                        <label>Attach Supporting Documents (Optional):</label>
-                        <div className="file-upload" style={{ marginTop: '8px' }}>
+                        <label>{t('cropPlans.attachDocsLabel')}</label>
+                        <div className={styles.fileUpload}>
                             <input
                                 type="file"
                                 className="form-control"
                                 accept="image/*,.pdf,.doc,.docx"
                                 onChange={(e) => setAttachment(e.target.files[0])}
                             />
-                            <small className="file-hint" style={{ color: '#666', display: 'block', marginTop: '4px' }}>
-                                Upload cultivation guides or soil report templates for the farmer
+                            <small className={styles.fileHint}>
+                                {t('cropPlans.uploadHint')}
                             </small>
                         </div>
                     </div>
 
                     <div style={{ marginTop: '20px', display: 'flex', gap: '12px' }}>
                         <button className="btn btn-success" onClick={() => handleReviewAction('approve')}>
-                            <i className="fas fa-check-circle"></i> Approve Plan
+                            <i className="fas fa-circle-check"></i> {t('cropPlans.approvePlan')}
                         </button>
                         <button className="btn btn-warning" onClick={() => handleReviewAction('correction')}>
-                            <i className="fas fa-undo"></i> Request Correction
+                            <i className="fas fa-undo"></i> {t('cropPlans.requestCorrectionBtn')}
                         </button>
                     </div>
                 </div>
             ) : (
-                <div className="instructor-action-section">
-                    <strong>Your Feedback (on {plan.reviewedDate}):</strong>
-                    <div className="instructor-history-box">
+                <div className={styles.instructorActionSection}>
+                    <strong>{t('cropPlans.yourFeedbackOn', { date: plan.reviewedDate })}</strong>
+                    <div className={styles.instructorHistoryBox}>
                         {plan.instructorFeedback}
                     </div>
                     {plan.attachments && plan.attachments.length > 0 && (
                         <div style={{ marginTop: '15px' }}>
-                            <strong>Shared Documents:</strong>
-                            <div className="instructor-attachment-list">
+                            <strong>{t('cropPlans.sharedDocsLabel')}</strong>
+                            <div className={styles.instructorAttachmentList}>
                                 {plan.attachments.map((file, idx) => (
                                     <a
                                         key={idx}
                                         href={getDownloadUrl(file)}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="instructor-attachment-item"
-                                        style={{ color: '#2e7d32', borderColor: '#c8e6c9', textDecoration: 'none', display: 'flex', alignItems: 'center' }}
+                                        className={`${styles.instructorAttachmentItem} ${styles.reviewedAttachmentItem}`}
                                         download
                                     >
-                                        <i className="fas fa-file-alt" style={{ marginRight: '8px' }}></i>
+                                        <i className={`fas ${file.toLowerCase().endsWith('.pdf') ? 'fa-file-pdf' : (file.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/) ? 'fa-file-image' : 'fa-file')}`} style={{ marginRight: '8px' }}></i>
                                         <span style={{ fontSize: '0.9rem' }}>
-                                            {getFriendlyFileName(file)}
+                                            {plan.attachmentNames?.[idx] || getFriendlyFileName(file)}
                                         </span>
                                         <i className="fas fa-download" style={{ marginLeft: 'auto', fontSize: '0.8rem', opacity: 0.7 }}></i>
                                     </a>
@@ -384,7 +379,7 @@ const CropPlanReview = () => {
 
     if (loading) {
         return (
-            <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
+            <div className={styles.loadingContainer}>
                 <Spinner animation="border" variant="primary" />
             </div>
         );
@@ -392,28 +387,28 @@ const CropPlanReview = () => {
 
     return (
         <>
-            <div className="cards-grid">
+            <div className={styles.cardsGrid}>
                 {/* New Plans for Review - The mirror of Farmer's 'Plans Sent to Review' */}
-                <div className="card full-width-card">
-                    <div className="card-header">
-                        <div className="card-title">Pending Crop Plan Reviews</div>
-                        <div className="card-icon"><i className="fas fa-hourglass-half"></i></div>
+                <div className={`${commonCardStyles.card} ${commonCardStyles.fullWidthCard}`}>
+                    <div className={commonCardStyles.cardHeader}>
+                        <div className={commonCardStyles.cardTitle}>{t('cropPlans.pendingReviews')}</div>
+                        <div className={commonCardStyles.cardIcon}><i className="fas fa-hourglass-half"></i></div>
                     </div>
-                    <div className="card-content">
-                        <div className="instructor-list-container">
+                    <div className={commonCardStyles.cardContent}>
+                        <div className={styles.instructorListContainer}>
                             {pendingPlans.map((plan) => (
-                                <div className="instructor-list-item" key={plan.id} onClick={() => setSelectedPlan(plan)}>
-                                    <div className="instructor-list-info">
+                                <div className={styles.instructorListItem} key={plan.id} onClick={() => setSelectedPlan(plan)}>
+                                    <div className={styles.instructorListInfo}>
                                         <h4>{plan.cropName}</h4>
-                                        <div className="instructor-list-details">
-                                            <p><strong>Farmer:</strong> {plan.farmerName} ({plan.farmerId})</p>
-                                            <p><strong>Location:</strong> {plan.location}</p>
-                                            <p>Planting: {plan.plantDate} • Submitted: {plan.submittedDate}</p>
+                                        <div className={styles.instructorListDetails}>
+                                            <p><strong>{t('cropPlans.farmerLabel')}</strong> {plan.farmerName} ({plan.farmerId})</p>
+                                            <p><strong>{t('cropPlans.locationLabel')}</strong> {plan.location}</p>
+                                            <p>{t('cropPlans.plantingLabel')} {plan.plantDate} • {t('cropPlans.submittedLabel')} {plan.submittedDate}</p>
                                         </div>
                                     </div>
-                                    <div className="instructor-list-side">
-                                        <StatusBadge status="Review Pending" type="warning" />
-                                        <button className="btn btn-primary btn-sm">Review Plan</button>
+                                    <div className={styles.instructorListSide}>
+                                        <StatusBadge status={t('cropPlans.reviewPending')} type="warning" />
+                                        <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnPrimary} ${commonBtnStyles.btnSm}`}>{t('cropPlans.reviewPlanBtn')}</button>
                                     </div>
                                 </div>
                             ))}
@@ -421,33 +416,26 @@ const CropPlanReview = () => {
                     </div>
                 </div>
 
-                {/* Plan Detail View - The Review Bridge */}
-                {selectedPlan && (
-                    <div className="card full-width-card" style={{ border: '2px solid var(--primary)' }}>
-                        {renderPlanDetails(selectedPlan)}
-                    </div>
-                )}
-
                 {/* Reviewed History - The mirror of Farmer's 'Reviewed Plans' */}
-                <div className="card full-width-card">
-                    <div className="card-header">
-                        <div className="card-title">Reviewed Plans History</div>
-                        <div className="card-icon"><i className="fas fa-history"></i></div>
+                <div className={`${commonCardStyles.card} ${commonCardStyles.fullWidthCard}`}>
+                    <div className={commonCardStyles.cardHeader}>
+                        <div className={commonCardStyles.cardTitle}>{t('cropPlans.reviewedHistory')}</div>
+                        <div className={commonCardStyles.cardIcon}><i className="fas fa-clock-rotate-left"></i></div>
                     </div>
-                    <div className="card-content">
-                        <div className="instructor-list-container">
+                    <div className={commonCardStyles.cardContent}>
+                        <div className={styles.instructorListContainer}>
                             {reviewedPlans.map((plan) => (
-                                <div className="instructor-list-item" key={plan.id} onClick={() => setSelectedPlan(plan)}>
-                                    <div className="instructor-list-info">
+                                <div className={styles.instructorListItem} key={plan.id} onClick={() => setSelectedPlan(plan)}>
+                                    <div className={styles.instructorListInfo}>
                                         <h4>{plan.cropName}</h4>
-                                        <div className="instructor-list-details">
-                                            <p><strong>Farmer:</strong> {plan.farmerName} ({plan.farmerId}) • {plan.location}</p>
-                                            <p>Planting: {plan.plantDate} • Reviewed: {plan.reviewedDate}</p>
+                                        <div className={styles.instructorListDetails}>
+                                            <p><strong>{t('cropPlans.farmerLabel')}</strong> {plan.farmerName} ({plan.farmerId}) • {plan.location}</p>
+                                            <p>{t('cropPlans.plantingLabel')} {plan.plantDate} • {t('cropPlans.reviewedLabel')} {plan.reviewedDate}</p>
                                         </div>
                                     </div>
-                                    <div className="instructor-list-side">
+                                    <div className={styles.instructorListSide}>
                                         <StatusBadge status={plan.status} type={plan.status === 'Approved' ? 'success' : 'danger'} />
-                                        <button className="btn btn-primary btn-sm">View History</button>
+                                        <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnPrimary} ${commonBtnStyles.btnSm}`}>{t('cropPlans.viewHistoryBtn')}</button>
                                     </div>
                                 </div>
                             ))}
@@ -456,81 +444,94 @@ const CropPlanReview = () => {
                 </div>
 
                 {/* Crop Calendar Card - Added at the bottom */}
-                <div className="card full-width-card">
-                    <div className="card-header">
-                        <div className="card-title">Reference Crop Calendar</div>
-                        <div className="card-actions" style={{ display: 'flex', gap: '10px', position: 'relative' }}>
+                <div className={`${commonCardStyles.card} ${commonCardStyles.fullWidthCard}`}>
+                    <div className={commonCardStyles.cardHeader}>
+                        <div className={commonCardStyles.cardTitle}>Reference {t('cropPlans.cropCalendar')}</div>
+                        <div style={{ display: 'flex', gap: '10px', position: 'relative' }}>
                             <select
-                                className="form-select"
+                                className={`form-select ${styles.calendarSelect}`}
                                 value={currentCalendarId}
                                 onChange={(e) => setCurrentCalendarId(e.target.value)}
-                                style={{ 
-                                    width: '150px',
-                                    backgroundColor: 'white',
-                                    color: '#333',
-                                    border: '1px solid #ced4da',
-                                    cursor: 'pointer'
-                                }}
                             >
                                 {cropCalendars.map(cal => (
                                 <option key={cal.id} value={cal.id.toString()}>{cal.name}</option>
                             ))}
                             </select>
-                            <button className="btn btn-secondary" onClick={toggleZoom} title="View Fullscreen">
+                            <button className="btn btn-secondary" onClick={toggleZoom} title={t('cropPlans.viewFullscreen')}>
                                 <i className="fas fa-expand"></i>
                             </button>
-                            <button className="btn btn-info" onClick={() => setShowManageModal(true)} title="Manage Crop Calendars">
+                            <button className="btn btn-info" onClick={() => setShowManageModal(true)} title={t('cropPlans.manageCropCalendars')}>
                                 <i className="fas fa-cog"></i> Manage
                             </button>
                         </div>
                     </div>
-                    <div className="card-content" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
+                    <div className={`${commonCardStyles.cardContent} ${styles.calendarDisplay}`}>
                         {currentCalendar ? (
                             <img
                                 src={currentCalendar.image}
                                 alt={`${currentCalendar.name} Crop Calendar`}
-                                style={{
-                                    maxWidth: '100%',
-                                    maxHeight: '600px',
-                                    borderRadius: '8px',
-                                    objectFit: 'contain',
-                                    cursor: 'pointer',
-                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                                }}
+                                className={styles.calendarImage}
                                 onClick={toggleZoom}
                             />
                         ) : (
-                            <p>No crop calendar selected or available.</p>
+                            <p className={styles.calendarNoData}>{t('cropPlans.noCalendarSelected')}</p>
                         )}
                     </div>
                 </div>
             </div>
 
+            {/* Plan Details Overlay Modal */}
+            {selectedPlan && (
+                <div className={styles.viewModalOverlay} onClick={() => setSelectedPlan(null)}>
+                    <div className={styles.viewModalContent} onClick={e => e.stopPropagation()}>
+                        <div className={styles.viewModalHeader}>
+                            <h3 className={styles.viewModalTitle}>
+                                <i className="fas fa-file-lines"></i> {selectedPlan.cropName} – Plan Details
+                            </h3>
+                            <button className={styles.viewModalCloseBtn} onClick={() => setSelectedPlan(null)}>
+                                <i className="fas fa-xmark"></i>
+                            </button>
+                        </div>
+                        <div className={styles.viewModalBody}>
+                            {renderPlanDetails(selectedPlan)}
+                        </div>
+                        <div className={styles.viewModalFooter}>
+                            <button
+                                className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSecondary}`}
+                                onClick={() => setSelectedPlan(null)}
+                            >
+                                {t('cropPlans.closeBtn')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Fullscreen Zoom Modal */}
             {isZoomed && (
-                <div className="instructor-fullscreen-overlay" onClick={toggleZoom}>
-                    <div className="instructor-fullscreen-container" onClick={e => e.stopPropagation()}>
-                        <div className="instructor-fullscreen-controls">
-                            <div className="instructor-zoom-group">
-                                <button className="btn btn-secondary" onClick={handleZoomOut} title="Zoom Out">
+                <div className={styles.instructorFullscreenOverlay} onClick={toggleZoom}>
+                    <div className={styles.instructorFullscreenContainer} onClick={e => e.stopPropagation()}>
+                        <div className={styles.instructorFullscreenControls}>
+                            <div className={styles.instructorZoomGroup}>
+                                <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSecondary}`} onClick={handleZoomOut} title={t('cropPlans.zoomOut')}>
                                     <i className="fas fa-minus"></i>
                                 </button>
-                                <div className="instructor-zoom-level">
+                                <div className={styles.instructorZoomLevel}>
                                     {Math.round(zoomLevel * 100)}%
                                 </div>
-                                <button className="btn btn-secondary" onClick={handleZoomIn} title="Zoom In">
+                                <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSecondary}`} onClick={handleZoomIn} title={t('cropPlans.zoomIn')}>
                                     <i className="fas fa-plus"></i>
                                 </button>
                             </div>
-                            <button className="btn btn-danger" onClick={toggleZoom}>
-                                <i className="fas fa-times"></i> Close
+                            <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnDanger}`} onClick={toggleZoom}>
+                                <i className="fas fa-xmark"></i> Close
                             </button>
                         </div>
 
                         <img
                             src={cropCalendarImage}
-                            alt="Crop Calendar Fullscreen"
-                            className="instructor-fullscreen-image"
+                            alt={`${t('cropPlans.cropCalendar')} Fullscreen`}
+                            className={styles.instructorFullscreenImage}
                             style={{
                                 width: zoomLevel > 1 ? `${zoomLevel * 90}vw` : 'auto',
                                 height: `${zoomLevel * 90}vh`
@@ -548,17 +549,16 @@ const CropPlanReview = () => {
                 style={{ zIndex: 1050 }}
             >
                 <Modal.Header closeButton>
-                    <Modal.Title>Manage Crop Calendars</Modal.Title>
+                    <Modal.Title>{t('cropPlans.manageCropCalendars')}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body style={{ overflow: 'visible', minHeight: '300px' }}>
                     <div style={{ position: 'relative', zIndex: 1060 }}>
-                        <h5>Update Crop Calendar Image</h5>
+                        <h5>{t('cropPlans.updateCalendarImage')}</h5>
                         <Form.Group controlId="imageUpdateCropSelect" className="mb-3">
-                            <Form.Label>Select Crop to Update Image</Form.Label>
+                            <Form.Label>{t('cropPlans.selectCropToUpdate')}</Form.Label>
                             <Form.Select
                                 value={selectedCropForImageUpdate}
                                 onChange={(e) => {
-                                    console.log('Dropdown changed to:', e.target.value);
                                     setSelectedCropForImageUpdate(e.target.value);
                                 }}
                                 style={{ 
@@ -570,7 +570,7 @@ const CropPlanReview = () => {
                                     border: '1px solid #ced4da'
                                 }}
                             >
-                                <option value="">Select a crop</option>
+                                <option value="">{t('cropPlans.selectCropOption')}</option>
                                 {cropCalendars.map(crop => (
                                     <option key={crop.id} value={crop.id.toString()}>{crop.name}</option>
                                 ))}
@@ -583,31 +583,46 @@ const CropPlanReview = () => {
                         </Form.Group>
                     </div>
                     <Form.Group controlId="newCropImage" className="mb-3">
-                        <Form.Label>Upload New Image</Form.Label>
+                        <Form.Label>{t('cropPlans.uploadNewImage')}</Form.Label>
                         <div className="d-flex align-items-center">
                             <Form.Control
                                 type="file"
-                                accept="image/*"
-                                onChange={(e) => setImageFileToUpload(e.target.files[0])}
+                                accept="image/jpeg,image/png,image/gif,image/webp"
+                                onChange={(e) => {
+                                    const file = e.target.files[0];
+                                    if (!file) return;
+                                    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                                    const MAX_SIZE = 5 * 1024 * 1024;
+                                    if (!ALLOWED_TYPES.includes(file.type)) {
+                                        showToast('Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.', 'error');
+                                        e.target.value = '';
+                                        return;
+                                    }
+                                    if (file.size > MAX_SIZE) {
+                                        showToast('Image size exceeds 5 MB limit.', 'error');
+                                        e.target.value = '';
+                                        return;
+                                    }
+                                    setImageFileToUpload(file);
+                                }}
                                 disabled={!selectedCropForImageUpdate || isSavingCalendar}
                             />
                             {selectedCropForImageUpdate && cropCalendars.find(crop => crop.id.toString() === selectedCropForImageUpdate.toString())?.image && (
                                 <Button
                                     variant="outline-danger"
                                     className="ms-2"
-                                    onClick={() => handleRemoveImage(selectedCropForImageUpdate)}
+                                    onClick={() => requestRemoveImage(selectedCropForImageUpdate)}
                                 >
-                                    Remove Image
+                                    {t('cropPlans.removeImageConfirm')}
                                 </Button>
                             )}
-
                         </div>
                         <Form.Text className="text-muted">
                             Select a crop above before uploading a new image. If an image already exists, you must remove it first.
                         </Form.Text>
                     </Form.Group>
 
-                    <h5 className="mt-4">Existing Crop Calendars</h5>
+                    <h5 className="mt-4">{t('cropPlans.existingCalendars')}</h5>
                     <ul className="list-group">
                         {cropCalendars.map(crop => (
                             <li key={crop.id} className="list-group-item d-flex justify-content-between align-items-center">
@@ -616,9 +631,9 @@ const CropPlanReview = () => {
                                     <Button
                                         variant="danger"
                                         size="sm"
-                                        onClick={() => handleRemoveImage(crop.id)}
+                                        onClick={() => requestRemoveImage(crop.id)}
                                     >
-                                        Remove Image
+                                        {t('cropPlans.removeImage')}
                                     </Button>
                                 )}
                             </li>
@@ -633,13 +648,23 @@ const CropPlanReview = () => {
                         }}
                         disabled={!selectedCropForImageUpdate || !imageFileToUpload || isSavingCalendar}
                     >
-                        {isSavingCalendar ? <Spinner animation="border" size="sm" /> : 'Save'}
+                            {isSavingCalendar ? <Spinner animation="border" size="sm" /> : t('cropPlans.save')}
                     </Button>
                     <Button variant="secondary" onClick={() => setShowManageModal(false)}>
-                        Close
+                        {t('cropPlans.closeBtn')}
                     </Button>
                 </Modal.Footer>
             </Modal>
+
+            <ConfirmModal
+                isOpen={confirmConfig.isOpen}
+                onClose={closeConfirm}
+                onConfirm={executeRemoveImage}
+                title={t('cropPlans.removeImageTitle')}
+                message="Are you sure you want to remove this crop calendar image?"
+                confirmText={t('cropPlans.removeImageConfirm')}
+                type="danger"
+            />
         </>
     );
 };

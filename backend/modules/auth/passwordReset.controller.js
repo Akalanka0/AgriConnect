@@ -37,9 +37,6 @@ export const forgotPassword = async (req, res) => {
         const otp = generateOTP();
         storeOTP(email, otp);
 
-        // Log OTP for development (in production, send email)
-        console.log(`Password reset OTP for ${email}: ${otp}`);
-        
         try {
             await sendPasswordResetEmail(user.email, otp, user.full_name || 'User');
         } catch (emailError) {

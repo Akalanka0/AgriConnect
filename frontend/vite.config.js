@@ -15,9 +15,15 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:5002',
+        target: 'http://localhost:5005',
         changeOrigin: true,
         secure: false,
+      },
+      '/socket.io': {
+        target: 'http://localhost:5005',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
       },
     },
   },
@@ -28,6 +34,30 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true
+    sourcemap: false,
+    chunkSizeWarningLimit: 1600,
+    minify: 'esbuild',
+    target: 'es2020',
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) {
+            return;
+          }
+
+          if (id.includes('jspdf') || id.includes('html2canvas')) {
+            return 'pdf-vendor';
+          }
+
+          if (id.includes('socket.io-client')) {
+            return 'socket-vendor';
+          }
+        }
+      }
+    },
+    reportCompressedSize: true
+  },
+  esbuild: {
+    drop: ['console', 'debugger']
   }
 });

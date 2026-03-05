@@ -63,7 +63,17 @@ const CropPlan = sequelize.define('CropPlan', {
         allowNull: true,
         defaultValue: []
     },
+    farmer_attachment_names: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        defaultValue: []
+    },
     instructor_attachments: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        defaultValue: []
+    },
+    instructor_attachment_names: {
         type: DataTypes.JSON,
         allowNull: true,
         defaultValue: []

@@ -19,8 +19,24 @@ export const validateJWTSecret = (secret) => {
         return { valid: false, message: 'JWT secret must be at least 32 characters long' };
     }
     
-    if (secret === 'your_jwt_secret_key_here' || secret === 'secret' || secret === 'jwt_secret') {
-        return { valid: false, message: 'JWT secret must be changed from default value' };
+    const knownWeakSecrets = [
+        'your_jwt_secret_key_here',
+        'secret',
+        'jwt_secret',
+        'change_me',
+        'changeme',
+        'password',
+        'your-secret-key-change-this'
+    ];
+    const lowerSecret = secret.toLowerCase();
+    if (
+        knownWeakSecrets.includes(lowerSecret) ||
+        lowerSecret.startsWith('your_jwt_secret') ||
+        lowerSecret.startsWith('your-secret') ||
+        lowerSecret.includes('change_this') ||
+        lowerSecret.includes('change-this')
+    ) {
+        return { valid: false, message: 'JWT secret must be changed from default or placeholder value' };
     }
     
     return { valid: true, message: 'JWT secret is valid' };

@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import DataTable from '../../admin/components/DataTable';
-import StatusBadge from '../../admin/components/StatusBadge';
+import { useTranslation } from 'react-i18next';
+import InstructorDataTable from '../components/InstructorDataTable';
 import FarmerDetailsModal from '../components/modals/FarmerDetailsModal';
+import styles from '../styles/FarmerManagement.module.css';
+import commonCardStyles from '@/components/common/styles/Card.module.css';
+import { getAccessToken } from '@/utils/authStorage';
 
 const FarmerManagement = () => {
     const { openModal, showToast } = useOutletContext();
+    const { t } = useTranslation('instructor');
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [divisionFilter, setDivisionFilter] = useState('All');
@@ -24,32 +28,12 @@ const FarmerManagement = () => {
         return name.replace(/\s+Zone$/i, '').trim();
     };
 
-    // Fetch Instructor Info (Divisions)
-    const fetchInstructorInfo = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('/api/instructor/profile', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await response.json();
-            if (data.success) {
-                setInstructorInfo({
-                    zone: data.data.zone || '',
-                    assignedDivisions: data.data.assigned_divisions || []
-                });
-            }
-        } catch (error) {
-            console.error('Error fetching instructor info:', error);
-        }
-    };
-
-    
     useEffect(() => {
         let isMounted = true;
-        
+
         const fetchInstructorInfo = async () => {
             try {
-                const token = localStorage.getItem('token');
+                const token = getAccessToken();
                 const response = await fetch('/api/instructor/profile', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -66,7 +50,7 @@ const FarmerManagement = () => {
         };
 
         fetchInstructorInfo();
-        
+
         return () => {
             isMounted = false;
         };
@@ -74,12 +58,12 @@ const FarmerManagement = () => {
 
     useEffect(() => {
         let isMounted = true;
-        
+
         const fetchFarmersData = async () => {
             if (!isMounted) return;
             setLoading(true);
             try {
-                const token = localStorage.getItem('token');
+                const token = getAccessToken();
                 const response = await fetch('/api/instructor/farmers', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -93,7 +77,7 @@ const FarmerManagement = () => {
             } catch (error) {
                 if (isMounted) {
                     console.error('Error fetching farmers:', error);
-                    showToast('An error occurred while fetching farmers', 'error');
+                    showToast(t('farmerMgmt.fetchError'), 'error');
                 }
             } finally {
                 if (isMounted) setLoading(false);
@@ -101,7 +85,7 @@ const FarmerManagement = () => {
         };
 
         fetchFarmersData();
-        
+
         return () => {
             isMounted = false;
         };
@@ -114,14 +98,14 @@ const FarmerManagement = () => {
     };
 
     const columns = [
-        { header: 'Farmer ID', accessor: 'displayId', width: '150px' },
-        { header: 'Name', accessor: 'name' },
-        { header: 'Division', accessor: 'division' },
-        { header: 'Joined Date', accessor: 'joined' }
+        { header: t('farmers.colId'), accessor: 'displayId', width: '220px' },
+        { header: t('farmers.colName'), accessor: 'name' },
+        { header: t('farmers.colDivision'), accessor: 'division' },
+        { header: t('farmers.colJoinedDate'), accessor: 'joined' }
     ];
 
     const actions = [
-        { name: 'view', type: 'primary', label: 'View' }
+        { name: 'view', type: 'primary', label: t('farmers.actionView') }
     ];
 
     // Filter Logic
@@ -137,25 +121,25 @@ const FarmerManagement = () => {
 
     return (
         <>
-            <div className="card">
-                <div className="table-header">
-                    <div className="header-left">
-                        <div className="search-box">
+            <div className={commonCardStyles.card}>
+                <div className={styles.tableHeader}>
+                    <div className={styles.headerLeft}>
+                        <div className={styles.searchBox}>
                             <i className="fas fa-search"></i>
                             <input
                                 type="text"
-                                placeholder="Search farmers..."
+                                placeholder={t('farmers.searchPlaceholder')}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                        <div className="filters">
+                        <div className={styles.filters}>
                             <select
-                                className="filter-select"
+                                className={styles.filterSelect}
                                 value={divisionFilter}
                                 onChange={(e) => setDivisionFilter(e.target.value)}
                             >
-                                <option value="All">All Divisions</option>
+                                <option value="All">{t('farmers.allDivisions')}</option>
                                 {instructorInfo.assignedDivisions && instructorInfo.assignedDivisions.map(div => (
                                     <option key={div} value={div}>{div}</option>
                                 ))}
@@ -164,7 +148,7 @@ const FarmerManagement = () => {
                     </div>
                 </div>
 
-                <DataTable
+                <InstructorDataTable
                     columns={columns}
                     data={filteredData}
                     loading={loading}
@@ -178,69 +162,11 @@ const FarmerManagement = () => {
             </div>
 
             {/* Farmer Details Modal */}
-            <FarmerDetailsModal 
+            <FarmerDetailsModal
                 isOpen={!!selectedFarmerId}
                 onClose={() => setSelectedFarmerId(null)}
                 farmerId={selectedFarmerId}
             />
-
-            <style jsx>{`
-                .header-left {
-                    display: flex;
-                    gap: 15px;
-                    flex: 1;
-                }
-                .search-box {
-                    position: relative;
-                    min-width: 250px;
-                }
-                .search-box i {
-                    position: absolute;
-                    left: 10px;
-                    top: 50%;
-                    transform: translateY(-50%);
-                    color: #999;
-                }
-                .search-box input {
-                    width: 100%;
-                    padding: 8px 10px 8px 35px;
-                    border: 1px solid #ddd;
-                    border-radius: 6px;
-                    font-size: 0.9em;
-                }
-                .filters {
-                    display: flex;
-                    gap: 10px;
-                }
-                .filter-select {
-                    padding: 8px 10px;
-                    border: 1px solid #ddd;
-                    border-radius: 6px;
-                    background-color: white;
-                    font-size: 0.9em;
-                    min-width: 150px;
-                }
-                @media (max-width: 768px) {
-                    .table-header {
-                        flex-direction: column;
-                        align-items: flex-start;
-                        gap: 15px;
-                    }
-                    .header-left {
-                        flex-direction: column;
-                        width: 100%;
-                    }
-                    .search-box {
-                        width: 100%;
-                    }
-                    .filters {
-                        width: 100%;
-                    }
-                    .filter-select {
-                        flex: 1;
-                    }
-                }
-            `}</style>
         </>
     );
 };

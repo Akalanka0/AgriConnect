@@ -7,9 +7,10 @@
     "scripts": {
         "start": "nodemon server.js",
         "dev": "nodemon server.js",
-        "migrate": "node migrations/run_migrations.js",
-        "seed": "node -r dotenv/config seeders/runSeeders.js",
-        "seed:admin": "node seeders/adminSeeder.js"
+        "migrate": "node migrations/run-migrations.js",
+        "seed": "node -r dotenv/config seeders/run-seeders.js",
+        "seed:admin": "node seeders/admin.seeder.js",
+        "db:ensure": "node scripts/ensure-database.js"
     },
     "keywords": [],
     "author": "",
@@ -19,9 +20,14 @@
         "axios": "^1.13.4",
         "bcryptjs": "^3.0.3",
         "cloudinary": "^2.9.0",
+        "compression": "^1.8.1",
         "cors": "^2.8.5",
         "dotenv": "^16.4.1",
         "express": "^4.18.2",
+        "express-rate-limit": "^8.2.1",
+        "express-validator": "^7.3.1",
+        "form-data": "^4.0.5",
+        "helmet": "^8.1.0",
         "jsonwebtoken": "^9.0.3",
         "multer": "^2.0.2",
         "mysql2": "^3.16.1",

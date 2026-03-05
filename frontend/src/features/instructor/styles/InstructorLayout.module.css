@@ -1,0 +1,326 @@
+/* InstructorLayout.module.css */
+
+/* Import semantic color system */
+@import url('../../../shared/semantic-colors.css');
+
+.appContainer {
+    /* Instructor Theme Variables - Use standardized naming for consistency */
+    --color-primary: var(--instructor-primary);
+    --color-primary-hover: var(--instructor-primary-dark);
+    --color-primary-light: var(--instructor-primary-light);
+    --color-secondary: var(--instructor-secondary);
+    --color-secondary-hover: var(--instructor-secondary-dark);
+    --color-secondary-light: var(--instructor-secondary-light);
+    --color-accent: var(--instructor-accent);
+    --color-background: var(--instructor-background);
+    --color-surface: var(--instructor-surface);
+    --color-border: var(--instructor-border);
+    --color-text: var(--instructor-text);
+    --color-text-muted: var(--instructor-text-muted);
+    
+    /* Legacy variable names for backwards compatibility */
+    --primary: var(--instructor-primary);
+    --primary-dark: var(--instructor-primary-dark);
+    --primary-light: var(--instructor-primary-light);
+    --accent: var(--instructor-secondary);
+    --green: var(--state-success);
+    --green-dark: var(--state-success-hover);
+    --green-light: var(--state-success);
+    --text-dark: var(--neutral-800);
+    --text-muted: var(--neutral-600);
+    --gray: var(--neutral-500);
+    --danger: var(--state-danger);
+    --info: var(--state-info);
+    --border-color: var(--neutral-200);
+    --shadow-sm: var(--shadow-sm);
+    --shadow-md: var(--shadow-md);
+    --shadow-lg: var(--shadow-lg);
+    --transition: var(--transition-normal);
+    --sidebar-width: 250px;
+    --header-height: 70px;
+
+    display: flex;
+    min-height: 100vh;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--text-dark);
+    line-height: 1.6;
+    width: 100%;
+    overflow-x: hidden;
+    position: relative;
+    background: linear-gradient(135deg, var(--neutral-100) 0%, var(--neutral-50) 100%);
+}
+
+.sidebar {
+    width: 250px;
+    background: linear-gradient(180deg, var(--color-primary), var(--color-primary-hover));
+    color: var(--neutral-white);
+    position: fixed;
+    height: 100vh;
+    z-index: 100;
+    box-shadow: var(--shadow-md);
+    display: flex;
+    flex-direction: column;
+    left: 0;
+    transition: transform 0.3s ease;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+
+    .sidebar.sidebarActive {
+        transform: translateX(0);
+    }
+}
+
+.sidebarHeader {
+    padding: var(--space-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    border-bottom: 1px solid var(--border-color);
+    height: 70px;
+    /* var(--header-height) */
+}
+
+.logo {
+    font-size: 1.8em;
+    background: var(--neutral-white);
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-primary);
+    box-shadow: var(--shadow-sm);
+    flex-shrink: 0;
+}
+
+.logo i {
+    font-size: 0.9em;
+    color: var(--color-primary);
+}
+
+.sidebarHeader h1 {
+    font-size: 1.2em;
+    margin: 0;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.sidebarMenu {
+    padding: var(--space-lg) 0;
+    flex: 1;
+}
+
+.menuItem {
+    padding: var(--space-md) var(--space-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+    white-space: nowrap;
+    color: var(--neutral-white);
+    text-decoration: none;
+}
+
+.menuItem:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.menuItem.activePath {
+    background: rgba(255, 255, 255, 0.15);
+    border-left-color: var(--instructor-accent);
+}
+
+.menuItem i {
+    font-size: 1.2em;
+    width: 24px;
+    text-align: center;
+}
+
+.sidebarFooter {
+    margin-top: auto;
+    border-top: 1px solid var(--border-color);
+}
+
+.logoutBtn {
+    padding: var(--space-md) var(--space-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+    white-space: nowrap;
+    color: var(--neutral-white);
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    font-size: 1em;
+}
+
+.logoutBtn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.mainContent {
+    flex: 1;
+    margin-left: 250px;
+    width: calc(100% - 250px);
+    min-width: 0;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    transition: margin-left 0.3s ease, width 0.3s ease;
+}
+
+@media (max-width: 768px) {
+    .mainContent {
+        margin-left: 0;
+        width: 100%;
+    }
+}
+
+.header {
+    background: var(--neutral-white);
+    padding: 0 var(--space-lg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 70px;
+    box-shadow: var(--shadow-sm);
+    position: sticky;
+    top: 0;
+    z-index: 99;
+}
+
+.headerLeft {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.headerLeft h2 {
+    color: var(--color-primary-hover);
+    font-weight: 600;
+    margin: 0;
+}
+
+.mobileToggle {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--color-primary);
+    cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    .mobileToggle {
+        display: block;
+    }
+}
+
+.userInfo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.userAvatar {
+    width: 40px;
+    height: 40px;
+    background: var(--color-primary);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--neutral-white);
+    font-weight: bold;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.hasImage {
+    background: transparent;
+}
+
+.userAvatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: var(--radius-full);
+}
+
+.notificationIcon {
+    position: relative;
+    cursor: pointer;
+    font-size: 1.2em;
+    color: var(--neutral-white);
+    width: 40px;
+    height: 40px;
+    background: var(--color-primary);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition-normal);
+    border: none;
+    padding: 0;
+}
+
+.notificationIcon:hover {
+    background: var(--color-primary-hover);
+}
+
+.notificationBadge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    background: var(--state-danger);
+    color: var(--neutral-white);
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 0.7em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid white;
+}
+
+.instructorPageContainer {
+    padding: var(--space-lg);
+    flex: 1;
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .instructorPageContainer {
+        padding: var(--space-md);
+    }
+}
+
+/* Mobile overlay to dim content behind open sidebar */
+.mobileOverlay {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .mobileOverlay {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+        z-index: 99;
+    }
+}

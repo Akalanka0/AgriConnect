@@ -1,38 +1,40 @@
-import React from 'react';
 import PropTypes from 'prop-types';
+import styles from '../styles/Login.module.css';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const AuthLayout = ({ children }) => {
+    const { t } = useTranslation('auth');
     return (
-        <div className="login-wrapper">
+        <div className={styles.loginWrapper}>
             {/* Left Panel */}
-            <div className="left-panel">
-                <Link to="/" className="logo">
+            <div className={styles.leftPanel}>
+                <Link to="/" className={styles.logo}>
                     <i className="fas fa-seedling"></i>
-                    <div className="logo-text">AgriConnect</div>
+                    <div className={styles.logoText}>AgriConnect</div>
                 </Link>
-                <h1>Efficient Farm Management Platform</h1>
-                <p>Track crops, connect with instructors, and manage farm activities efficiently with our comprehensive platform.</p>
-                <div className="feature-item">
-                    <span className="feature-check">✓</span>
-                    <span>Crop Planning and Reporting</span>
+                <h1>{t('authLayout.tagline')}</h1>
+                <p>{t('authLayout.desc')}</p>
+                <div className={styles.featureItem}>
+                    <span className={styles.featureCheck}>✓</span>
+                    <span>{t('authLayout.feat1')}</span>
                 </div>
-                <div className="feature-item">
-                    <span className="feature-check">✓</span>
-                    <span>Expert guidance & support</span>
+                <div className={styles.featureItem}>
+                    <span className={styles.featureCheck}>✓</span>
+                    <span>{t('authLayout.feat2')}</span>
                 </div>
-                <div className="feature-item">
-                    <span className="feature-check">✓</span>
-                    <span>Weather alerts and updates</span>
+                <div className={styles.featureItem}>
+                    <span className={styles.featureCheck}>✓</span>
+                    <span>{t('authLayout.feat3')}</span>
                 </div>
-                <div className="feature-item">
-                    <span className="feature-check">✓</span>
-                    <span>Resource management tools</span>
+                <div className={styles.featureItem}>
+                    <span className={styles.featureCheck}>✓</span>
+                    <span>{t('authLayout.feat4')}</span>
                 </div>
             </div>
 
             {/* Right Panel */}
-            <div className="right-panel">
+            <div className={styles.rightPanel}>
                 {children}
             </div>
         </div>

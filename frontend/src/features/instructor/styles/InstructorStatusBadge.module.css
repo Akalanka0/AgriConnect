@@ -1,0 +1,36 @@
+/* InstructorStatusBadge.module.css */
+
+.instructorStatusBadge {
+    padding: var(--space-xs) var(--space-md);
+    border-radius: var(--radius-full);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-transform: capitalize;
+}
+
+.instructorBadgeSuccess {
+    background-color: var(--state-success-bg);
+    color: var(--state-success);
+    border: 1px solid var(--state-success-border);
+}
+
+.instructorBadgeWarning {
+    background-color: var(--state-warning-bg);
+    color: var(--state-warning);
+    border: 1px solid var(--state-warning-border);
+}
+
+.instructorBadgeDanger {
+    background-color: var(--state-danger-bg);
+    color: var(--state-danger);
+    border: 1px solid var(--state-danger-border);
+}
+
+.instructorBadgeInfo {
+    background-color: var(--state-info-bg);
+    color: var(--state-info);
+    border: 1px solid var(--state-info-border);
+}

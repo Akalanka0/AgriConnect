@@ -1,0 +1,194 @@
+/* Button.module.css */
+/* Import semantic color system */
+@import url('../../../shared/semantic-colors.css');
+
+/* ========================================
+   BASE BUTTON STYLES
+   ======================================== */
+
+.btn {
+    padding: var(--space-sm) var(--space-lg);
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: var(--text-base);
+    font-family: inherit;
+    transition: var(--transition-normal);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.btn:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+/* ========================================
+   BUTTON GROUPS
+   ======================================== */
+
+.btnGroup {
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+    margin: var(--space-sm) 0;
+}
+
+.btnGroup .btn {
+    margin: 0;
+}
+
+/* ========================================
+   BUTTON SIZES
+   ======================================== */
+
+.btnSm {
+    padding: var(--space-xs) var(--space-md);
+    font-size: var(--text-sm);
+}
+
+/* ========================================
+   BUTTON WIDTH MODIFIERS
+   ======================================== */
+
+.btnFullWidth {
+    width: 100%;
+    justify-content: center;
+}
+
+/* ========================================
+   BUTTON VARIANTS
+   ======================================== */
+
+.btnPrimary {
+    background: var(--color-primary);
+    color: var(--neutral-white);
+}
+
+.btnPrimary:hover:not(:disabled) {
+    background: var(--color-primary-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btnSecondary {
+    background: var(--neutral-white);
+    color: var(--neutral-700);
+    border: 2px solid var(--neutral-200);
+    box-shadow: var(--shadow-sm);
+}
+
+.btnSecondary:hover:not(:disabled) {
+    background: var(--neutral-100);
+    border-color: var(--neutral-300);
+    color: var(--neutral-900);
+    transform: translateY(-2px);
+}
+
+.btnDanger {
+    background: var(--state-danger);
+    color: var(--neutral-white);
+}
+
+.btnDanger:hover:not(:disabled) {
+    background: var(--state-danger-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btnOutline {
+    background: transparent;
+    border: 1px solid var(--neutral-300);
+    color: var(--neutral-600);
+}
+
+.btnOutline:hover:not(:disabled) {
+    border-color: var(--color-primary, var(--instructor-primary));
+    color: var(--color-primary, var(--instructor-primary));
+    background: var(--color-primary, var(--instructor-primary));
+    opacity: 0.1;
+}
+
+.btnWarning {
+    background: var(--state-warning);
+    color: var(--neutral-white);
+}
+
+.btnWarning:hover:not(:disabled) {
+    background: var(--state-warning-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btnInfo {
+    background: var(--state-info);
+    color: var(--neutral-white);
+}
+
+.btnInfo:hover:not(:disabled) {
+    background: var(--state-info-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btnOutlineDanger {
+    background: transparent;
+    border: 1px solid var(--state-danger);
+    color: var(--state-danger);
+}
+
+.btnOutlineDanger:hover:not(:disabled) {
+    background: var(--state-danger);
+    color: var(--neutral-white);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btnSuccess {
+    background: var(--state-success);
+    color: var(--neutral-white);
+}
+
+.btnSuccess:hover:not(:disabled) {
+    background: var(--state-success-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btnLink {
+    background: transparent;
+    color: var(--color-primary, var(--instructor-primary));
+    padding: 0;
+    font-weight: 500;
+    border-radius: 0;
+}
+
+.btnLink:hover:not(:disabled) {
+    text-decoration: underline;
+    background: transparent;
+    transform: none;
+    box-shadow: none;
+}
+
+.btnSend {
+    background: linear-gradient(135deg, var(--color-primary, var(--instructor-primary)), var(--color-primary-hover, var(--instructor-primary-dark)));
+    color: var(--neutral-white);
+    box-shadow: var(--shadow-lg);
+}
+
+.btnSend:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-xl);
+    filter: brightness(1.1);
+}

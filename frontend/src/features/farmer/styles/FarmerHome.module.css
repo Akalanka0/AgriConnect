@@ -1,0 +1,294 @@
+/* FarmerHome.module.css */
+
+/* Import semantic color system */
+@import url('../../../shared/semantic-colors.css');
+
+.page {
+    padding: var(--space-lg);
+    flex: 1;
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.pageTitle {
+    margin-bottom: var(--space-lg);
+    color: var(--primary-dark);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.pageTitle i {
+    color: var(--primary);
+}
+
+/* Dashboard Stats */
+.dashboardStats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+    margin-bottom: 30px;
+}
+
+.statCard {
+    background: var(--neutral-white);
+    padding: 24px;
+    border-radius: 16px;
+    flex: 1;
+    min-width: 200px;
+    box-shadow: var(--shadow-md);
+    text-align: center;
+    transition: all var(--transition-normal);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--neutral-200);
+}
+
+.statCard::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--primary-light));
+    transform: scaleX(0);
+    transition: transform var(--transition-normal);
+}
+
+.statCard:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-2xl);
+    opacity: 1;
+}
+
+.statCard:hover::before {
+    transform: scaleX(1);
+}
+
+.statValue {
+    font-size: 2.2em;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 5px;
+}
+
+.statLabel {
+    color: var(--gray);
+    font-size: 0.9em;
+}
+
+/* Cards Grid */
+.cardsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--space-md);
+}
+
+/* Instructor Card Styles */
+.instructorCard {
+    text-align: center;
+}
+
+.instructorListContainer {
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.instructorListItem {
+    padding: var(--space-sm) var(--space-xs);
+    cursor: pointer;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-md);
+    width: 100%;
+    border-bottom: 1px solid var(--neutral-200);
+    transition: background-color 0.2s;
+    border-radius: var(--radius-sm);
+}
+
+.instructorListItem:hover {
+    background-color: var(--neutral-100);
+}
+
+.instructorListItem:last-child {
+    border-bottom: none;
+}
+
+.instructorAvatarCircle {
+    width: 50px;
+    height: 50px;
+    border-radius: var(--radius-full);
+    margin-right: var(--space-md);
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--neutral-white);
+    font-weight: bold;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.instructorAvatarCircle.hasImage {
+    background: transparent;
+}
+
+.instructorAvatarImg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.instructorDetails {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.instructorInfo {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.instructorName {
+    font-size: 0.95em;
+    font-weight: 600;
+    color: var(--primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.instructorMetaRow {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    gap: var(--space-md);
+}
+
+.instructorId {
+    color: var(--gray);
+    font-weight: 500;
+    font-size: 0.8em;
+}
+
+.instructorViewBtn {
+}
+
+.noInstructors {
+    text-align: center;
+    padding: 30px;
+    color: var(--gray);
+}
+
+@media (max-width: 640px) {
+    .dashboardStats {
+        gap: var(--space-sm);
+    }
+
+    .statCard {
+        min-width: 120px;
+        padding: 16px;
+    }
+
+    .statValue {
+        font-size: 1.6em;
+    }
+
+    .cardsGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Activity List */
+.cardList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.activitiesList {
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.cardList li {
+    padding: var(--space-sm) 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.cardList li:last-child {
+    border-bottom: none;
+}
+
+.emptyActivity {
+    text-align: center;
+    color: var(--gray);
+    padding: var(--space-lg);
+}
+
+.activityContent {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.activityText {
+    font-weight: 500;
+}
+
+.activityTime {
+    font-size: 0.85em;
+    color: var(--gray);
+}
+
+/* Send Message Card */
+.sendMessageCard {
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.sendMessageCard:hover {
+    transform: translateY(-5px);
+}
+
+.sendMessageContent {
+    text-align: center;
+    padding: var(--space-lg) var(--space-sm);
+}
+
+.sendMessageIcon {
+    font-size: 3em;
+    color: var(--primary-light);
+    margin-bottom: var(--space-md);
+}
+
+.sendMessageTitle {
+    font-size: 1.25em;
+    color: var(--primary-dark);
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.sendMessageDesc {
+    color: var(--gray);
+    font-size: 0.9em;
+}

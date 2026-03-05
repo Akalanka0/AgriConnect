@@ -1,0 +1,636 @@
+/* Calendar.module.css */
+
+/* Import semantic color system */
+@import url('../../../shared/semantic-colors.css');
+
+.calendarPageContainer {
+    padding: var(--space-lg);
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.pageTitle {
+    color: var(--primary-dark);
+    margin-bottom: var(--space-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.calendarHeaderFlex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-lg);
+}
+
+.headerLeftGroup {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.headerLeftGroup h2 {
+    color: var(--primary-dark);
+    margin: 0;
+}
+
+.headerLeftGroup i {
+    color: var(--primary);
+    font-size: 1.5rem;
+}
+
+.farmerIdBadge {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--gray);
+    background: var(--light-gray);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--neutral-200);
+    display: flex;
+    align-items: center;
+}
+
+.farmerIdIcon {
+    margin-right: var(--space-sm);
+    color: var(--primary);
+}
+
+.calendarLayout {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: var(--space-lg);
+    margin-top: var(--space-lg);
+}
+
+@media (max-width: 1200px) {
+    .calendarLayout {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Optimized Calendar Card component */
+.calendarCardOptimized {
+    background: var(--neutral-white);
+    border-radius: 16px;
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    border: 1px solid var(--neutral-200);
+}
+
+.calendarControls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-lg) var(--space-lg);
+    background: var(--neutral-white);
+    border-bottom: 1px solid var(--neutral-100);
+}
+
+.calendarCurrentMonth {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.calendarCurrentMonth i {
+    color: var(--primary);
+}
+
+.calendarNavButtons {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.calendarBtnIcon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--neutral-200);
+    background: var(--neutral-white);
+    color: var(--gray);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.calendarBtnIcon:hover {
+    background: var(--light-gray);
+    color: var(--primary);
+    border-color: var(--primary);
+    transform: scale(1.1);
+}
+
+.calendarContainer {
+    padding: 0;
+}
+
+.calendarGridHeader {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background: var(--light-gray);
+    border-bottom: 1px solid var(--neutral-200);
+}
+
+.calendarGridHeader div {
+    padding: var(--space-sm);
+    text-align: center;
+    font-weight: 700;
+    color: var(--gray);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.calendarDaysGrid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background: var(--neutral-200);
+    gap: 1px;
+}
+
+.calendarDayCell {
+    background: var(--neutral-white);
+    min-height: 120px;
+    padding: var(--space-sm);
+    position: relative;
+    transition: background-color var(--transition-fast);
+}
+
+@media (max-width: 640px) {
+    .calendarDayCell {
+        min-height: 60px;
+        padding: 4px;
+    }
+
+    .calendarMeetingTag {
+        font-size: 0.6rem;
+        padding: 2px 4px;
+    }
+
+    .dayNumber {
+        font-size: 0.78rem;
+        width: 22px;
+        height: 22px;
+    }
+
+    .timeDurationGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .calendarControls {
+        padding: var(--space-md);
+    }
+
+    .calendarCurrentMonth {
+        font-size: 1rem;
+    }
+
+    .calendarGridHeader div {
+        font-size: 0.65rem;
+        letter-spacing: 0;
+        padding: 4px 2px;
+    }
+}
+
+.calendarDayCell:hover {
+    background: var(--neutral-50);
+}
+
+.emptyCell {
+    background: var(--light-gray);
+}
+
+.todayCell {
+    background: var(--state-success-bg, #f0fdf4);
+    border: 2px solid var(--state-success-border, #bbf7d0);
+}
+
+.dayNumber {
+    font-weight: 700;
+    color: var(--neutral-700);
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-full);
+    font-size: 0.9rem;
+    margin-bottom: var(--space-sm);
+}
+
+.todayCell .dayNumber {
+    background: var(--primary);
+    color: var(--neutral-white);
+}
+
+.meetingIndicatorContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.calendarMeetingTag {
+    font-size: 0.7rem;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-weight: 600;
+    transition: transform 0.2s;
+}
+
+.calendarMeetingTag:hover {
+    transform: scale(1.02);
+}
+
+.tagStatusDot {
+    width: 6px;
+    height: 6px;
+    border-radius: var(--radius-full);
+    background: currentColor;
+}
+
+.tagPending {
+    background: var(--state-warning-bg, #fff7ed);
+    color: var(--state-warning-hover, #c2410c);
+    border-left: 3px solid var(--state-warning, #f97316);
+}
+
+.tagAccepted {
+    background: var(--state-success-bg, #f0fdf4);
+    color: var(--state-success-hover, #15803d);
+    border-left: 3px solid var(--state-success, #22c55e);
+}
+
+/* Request Section */
+.requestSection {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+}
+
+.formGroup {
+    margin-bottom: var(--space-md);
+    width: 100%;
+}
+
+.formGroup label {
+    display: block;
+    margin-bottom: var(--space-xs);
+    font-weight: 500;
+    color: var(--neutral-700);
+    font-size: 0.9rem;
+}
+
+.formControl {
+    width: 100%;
+    padding: var(--space-xs) var(--space-sm);
+    border: 1px solid var(--neutral-300);
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    background: var(--neutral-white);
+    color: var(--neutral-700);
+    transition: border-color var(--transition-fast);
+}
+
+.formControl:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light, rgba(34,197,94,0.15));
+}
+
+.disabledInput {
+    background-color: var(--neutral-200);
+    cursor: not-allowed;
+}
+
+.disabledInputActive {
+    background-color: var(--neutral-50);
+}
+
+.formGridLayout {
+    display: grid;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.timeDurationGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-sm);
+}
+
+.notesTextarea {
+    min-height: 100px;
+}
+
+.submitBtn {
+    width: 100%;
+    justify-content: center;
+    padding: var(--space-sm);
+    font-weight: 600;
+}
+
+/* Tables Section */
+.tablesSection {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    margin-top: var(--space-lg);
+}
+
+.tableResponsive {
+    overflow-x: auto;
+    width: 100%;
+}
+
+.meetingsTable {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--neutral-white);
+    font-size: 0.9rem;
+}
+
+.meetingsTable thead tr {
+    background: var(--neutral-50);
+    border-bottom: 2px solid var(--neutral-200);
+}
+
+.meetingsTable th {
+    padding: var(--space-sm) var(--space-md);
+    font-weight: 600;
+    color: var(--neutral-600);
+    text-transform: uppercase;
+    font-size: 0.78rem;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    text-align: left;
+}
+
+.meetingsTable td {
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: 1px solid var(--neutral-100);
+    vertical-align: middle;
+    color: var(--neutral-700);
+}
+
+.meetingsTable tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.meetingsTable tbody tr:hover {
+    background: var(--neutral-50);
+    transition: background var(--transition-fast);
+}
+
+.meetingsTable th:last-child,
+.meetingsTable td:last-child {
+    text-align: center;
+}
+
+.noRequests {
+    text-align: center;
+    padding: 40px;
+    color: var(--gray);
+}
+
+/* Status badges */
+.badge,
+.badgeWarning,
+.badgeSuccess,
+.badgeInfo,
+.badgeDanger,
+.badgeSecondary {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+.badge {
+    background: var(--neutral-100);
+    color: var(--neutral-600);
+}
+
+.badgeWarning {
+    background: var(--state-warning-bg, #fff7ed);
+    color: var(--state-warning-hover, #c2410c);
+    border: 1px solid var(--state-warning, #f97316);
+}
+
+.badgeSuccess {
+    background: var(--state-success-bg, #f0fdf4);
+    color: var(--state-success-hover, #15803d);
+    border: 1px solid var(--state-success-border, #bbf7d0);
+}
+
+.badgeInfo {
+    background: var(--state-info-bg, #eff6ff);
+    color: var(--state-info-hover, #1d4ed8);
+    border: 1px solid var(--state-info, #3b82f6);
+}
+
+.badgeDanger {
+    background: var(--state-danger-bg, #fef2f2);
+    color: var(--state-danger-hover, #991b1b);
+    border: 1px solid var(--state-danger, #f43f5e);
+}
+
+.badgeSecondary {
+    background: var(--neutral-100);
+    color: var(--neutral-500);
+    border: 1px solid var(--neutral-300);
+}
+
+.meetingTitleRow {
+    font-weight: 700;
+    color: var(--primary-dark);
+    margin-bottom: 6px;
+}
+
+.instructorInfoRow {
+    font-size: 0.85rem;
+    color: var(--gray);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.instructorIcon {
+    color: var(--primary);
+}
+
+.instructorIdSpan {
+    font-size: 0.75rem;
+    color: var(--neutral-400);
+}
+
+.durationInfo {
+    font-size: 0.8rem;
+    color: var(--gray);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.divisionBadge {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--neutral-600);
+}
+
+.timeCell {
+    line-height: 1.4;
+    font-weight: 500;
+}
+
+.actionButtonsFlex {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+}
+
+.suggestionBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-sm);
+    background: var(--state-info-bg, #eff6ff);
+    color: var(--state-info-hover, #1d4ed8);
+    border-radius: var(--radius-md);
+    font-size: 0.8rem;
+    margin-top: var(--space-sm);
+    font-weight: 600;
+}
+
+.declinedInfo {
+    color: var(--danger);
+    font-size: 0.8rem;
+    margin-top: 4px;
+    font-weight: 600;
+}
+
+.cancelledReasonText {
+    font-size: 0.85rem;
+    padding: var(--space-sm);
+    background: var(--state-danger-bg, #fef2f2);
+    border-radius: var(--radius-sm);
+    margin-top: var(--space-sm);
+    color: var(--state-danger-hover, #991b1b);
+}
+
+.cancelReasonBox {
+    margin-top: var(--space-sm);
+    padding: 16px;
+    background: var(--state-danger-bg, #fff1f2);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--state-danger-border, #fecdd3);
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.cancelReasonBox textarea {
+    width: 100%;
+    padding: var(--space-sm);
+    border: 1px solid var(--state-danger-light, #fda4af);
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    resize: vertical;
+    min-height: 80px;
+    font-family: inherit;
+}
+
+.cancelReasonBox textarea:focus {
+    border-color: var(--state-danger, #f43f5e);
+}
+
+.cancelActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-sm);
+}
+
+.detailsExpanded {
+    padding: var(--space-lg);
+    background: var(--neutral-50);
+    border-top: 1px solid var(--neutral-100);
+}
+
+.detailsRow {
+    background: transparent;
+}
+
+.detailsGrid {
+    display: grid;
+    gap: 16px;
+}
+
+.detailsItem label {
+    display: block;
+    font-weight: 700;
+    color: var(--primary-dark);
+    margin-bottom: 4px;
+}
+
+.zoomJoinBox {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin-top: 8px;
+}
+
+.zoomUrl {
+    font-family: monospace;
+    font-size: 0.8rem;
+    background: var(--light-gray);
+    padding: var(--space-sm);
+    border-radius: var(--radius-sm);
+    word-break: break-all;
+}
+
+/* Badge variants handled in StatusBadge or ad-hoc */
+.rescheduleRow {
+    background: var(--state-info-bg, #f0f7ff);
+}

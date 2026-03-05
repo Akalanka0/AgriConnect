@@ -1,121 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
-import '../../../admin/styles/AdminDash.css'; // Import admin modal styles
-
-// Instructor-specific modal overrides
-const instructorModalStyles = `
-  .theme-instructor .admin-modal {
-    background: rgba(0, 0, 0, 0.45) !important;
-    backdrop-filter: blur(10px) !important;
-    -webkit-backdrop-filter: blur(10px) !important;
-  }
-  
-  .theme-instructor .admin-modal-content {
-    background: rgba(255, 255, 255, 0.95) !important;
-    backdrop-filter: blur(20px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.4) !important;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15) !important;
-  }
-  
-  .theme-instructor .admin-modal-header {
-    background: rgba(248, 249, 250, 0.5) !important;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
-  }
-  
-  .theme-instructor .admin-modal-footer {
-    background: rgba(248, 249, 250, 0.5) !important;
-    border-top: 1px solid rgba(0, 0, 0, 0.05) !important;
-  }
-  
-  .theme-instructor .admin-form-control {
-    background: rgba(255, 255, 255, 0.5) !important;
-    border: 1px solid rgba(0, 0, 0, 0.08) !important;
-    color: var(--neutral-800) !important;
-  }
-  
-  .theme-instructor .admin-form-control:focus {
-    border-color: var(--primary) !important;
-    box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.1) !important;
-  }
-  
-  .theme-instructor .btn-send {
-    background: linear-gradient(135deg, var(--primary), #1565c0) !important;
-    box-shadow: 0 4px 15px rgba(21, 101, 192, 0.3) !important;
-  }
-  
-  .theme-instructor .btn-send:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 8px 25px rgba(21, 101, 192, 0.4) !important;
-    filter: brightness(1.1) !important;
-  }
-  
-  .theme-instructor .user-selection-container {
-    background: rgba(255, 255, 255, 0.3) !important;
-    border: 1px solid rgba(0, 0, 0, 0.08) !important;
-    border-radius: 16px !important;
-    padding: 16px !important;
-    backdrop-filter: blur(5px) !important;
-  }
-  
-  .theme-instructor .farmer-search-container {
-    position: relative !important;
-    margin-bottom: 12px !important;
-  }
-  
-  .theme-instructor .search-icon {
-    position: absolute !important;
-    left: 15px !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    color: var(--primary) !important;
-    opacity: 0.6 !important;
-  }
-  
-  .theme-instructor .farmer-search-container .admin-form-control {
-    padding-left: 45px !important;
-  }
-  
-  .theme-instructor .select-all-container {
-    padding: 8px 12px !important;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
-    margin-bottom: 8px !important;
-  }
-  
-  .theme-instructor .farmer-list {
-    max-height: 180px !important;
-    overflow-y: auto !important;
-    padding: 4px !important;
-  }
-  
-  .theme-instructor .user-checkbox-item {
-    display: flex !important;
-    align-items: center !important;
-    gap: 12px !important;
-    padding: 8px 12px !important;
-    border-radius: 10px !important;
-    transition: all 0.2s !important;
-    cursor: pointer !important;
-    margin-bottom: 4px !important;
-  }
-  
-  .theme-instructor .user-checkbox-item:hover {
-    background: rgba(21, 101, 192, 0.08) !important;
-  }
-  
-  .theme-instructor .user-checkbox-item input[type="checkbox"] {
-    width: 16px !important;
-    height: 16px !important;
-    cursor: pointer !important;
-  }
-  
-  .theme-instructor .user-checkbox-item span {
-    flex: 1 !important;
-    font-size: 0.92em !important;
-    color: var(--neutral-800) !important;
-  }
-`;
+import styles from '../../styles/InstructorMessageModal.module.css';
+import commonBtnStyles from '@/components/common/styles/Button.module.css';
+import { getAccessToken } from '@/utils/authStorage';
 
 const InstructorMessageModal = ({ isOpen, onClose, onSubmit }) => {
     const [formData, setFormData] = useState({
@@ -133,24 +22,7 @@ const InstructorMessageModal = ({ isOpen, onClose, onSubmit }) => {
     const fileInputRef = useRef(null);
     const [isSending, setIsSending] = useState(false);
 
-    // Inject instructor-specific modal styles
-    useEffect(() => {
-        if (isOpen) {
-            // Create style element
-            const styleElement = document.createElement('style');
-            styleElement.id = 'instructor-modal-styles';
-            styleElement.textContent = instructorModalStyles;
-            document.head.appendChild(styleElement);
-
-            // Cleanup function
-            return () => {
-                const existingStyle = document.getElementById('instructor-modal-styles');
-                if (existingStyle) {
-                    document.head.removeChild(existingStyle);
-                }
-            };
-        }
-    }, [isOpen]);
+    const { t } = useTranslation('instructor');
 
     const filteredFarmers = farmers.filter(f =>
         f.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -191,6 +63,14 @@ const InstructorMessageModal = ({ isOpen, onClose, onSubmit }) => {
                 alert('File size exceeds 10MB limit');
                 return;
             }
+
+            // Check file type
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+            if (!allowedTypes.includes(file.type)) {
+                alert('Invalid file type. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed');
+                return;
+            }
+
             setFormData({ ...formData, attachment: file });
         }
     };
@@ -216,7 +96,7 @@ const InstructorMessageModal = ({ isOpen, onClose, onSubmit }) => {
         const data = new FormData();
         data.append('subject', formData.subject);
         data.append('content', formData.content);
-        
+
         if (formData.recipient_type === 'farmers') {
             data.append('recipient_type', 'select');
             data.append('recipient_ids', JSON.stringify(formData.recipient_ids));
@@ -247,12 +127,12 @@ const InstructorMessageModal = ({ isOpen, onClose, onSubmit }) => {
 
     useEffect(() => {
         let isMounted = true;
-        
+
         const fetchFarmers = async () => {
             if (!isMounted) return;
             try {
                 const res = await fetch('/api/instructor/farmers', {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                    headers: { 'Authorization': `Bearer ${getAccessToken()}` }
                 });
                 const data = await res.json();
                 if (data.success && isMounted) {
@@ -268,168 +148,169 @@ const InstructorMessageModal = ({ isOpen, onClose, onSubmit }) => {
                 if (isMounted) setIsLoadingFarmers(false);
             }
         };
-        
+
         if (isOpen) fetchFarmers();
-        
+
         return () => {
             isMounted = false;
         };
     }, [isOpen]);
 
+    if (!isOpen) return null;
+
     return createPortal(
-        <div className="theme-instructor">
-            <div
-                className="admin-modal active"
-                id="instructorMessageModal"
-                onClick={(e) => e.target === e.currentTarget && onClose()}
-            >
-                <div className="admin-modal-content">
-                    <div className="admin-modal-header">
-                        <div className="admin-modal-title">Send New Message</div>
-                        <button className="admin-modal-close-round" onClick={onClose}>
-                            <i className="fas fa-times"></i>
-                        </button>
+        <div
+            className={styles.instructorModalActive}
+            onClick={(e) => e.target === e.currentTarget && onClose()}
+        >
+            <div className={`${styles.instructorModalContent} ${styles.customScrollbar}`}>
+                <div className={styles.instructorModalHeader}>
+                    <div className={styles.instructorModalTitle}>{t('msgModal.title')}</div>
+                    <button className={styles.instructorModalCloseRound} onClick={onClose}>
+                        <i className="fas fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div className={`${styles.instructorModalBody} ${styles.customScrollbar}`}>
+                    <div className={styles.instructorFormGroup}>
+                        <label htmlFor="recipientType">{t('msgModal.sendTo')}</label>
+                        <select
+                            id="recipientType"
+                            className={styles.instructorFormControl}
+                            value={formData.recipient_type}
+                            onChange={(e) => setFormData({ ...formData, recipient_type: e.target.value })}
+                        >
+                            <option value="farmers">{t('msgModal.registeredFarmers')}</option>
+                            <option value="admin">{t('msgModal.systemAdmins')}</option>
+                        </select>
                     </div>
 
-                    <div className="admin-modal-body custom-scrollbar">
-                        <div className="admin-form-group">
-                            <label htmlFor="recipientType">Send to:</label>
-                            <select
-                                id="recipientType"
-                                className="admin-form-control"
-                                value={formData.recipient_type}
-                                onChange={(e) => setFormData({ ...formData, recipient_type: e.target.value })}
-                            >
-                                <option value="farmers">Registered Farmers</option>
-                                <option value="admin">System Administrators</option>
-                            </select>
-                        </div>
+                    {formData.recipient_type === 'farmers' && (
+                        <div className={styles.instructorFormGroup}>
+                            <label>Recipients ({formData.recipient_ids.length} selected):</label>
+                            <div className={`${styles.userSelectionContainer} ${styles.customScrollbar}`}>
+                                <div className={styles.farmerSearchContainer}>
+                                    <input
+                                        type="text"
+                                        className={styles.instructorFormControl}
+                                        placeholder={t('msgModal.searchFarmers')}
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+                                    <i className={`fas fa-search ${styles.searchIcon}`}></i>
+                                </div>
 
-                        {formData.recipient_type === 'farmers' && (
-                            <div className="admin-form-group" id="farmerSelectionModal">
-                                <label>Recipients ({formData.recipient_ids.length} selected):</label>
-                                <div className="user-selection-container custom-scrollbar">
-                                    {/* Search Input */}
-                                    <div className="farmer-search-container">
+                                <div className={styles.selectAllContainer}>
+                                    <label className={styles.userCheckboxItem}>
                                         <input
-                                            type="text"
-                                            className="admin-form-control"
-                                            placeholder="Search farmers..."
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            type="checkbox"
+                                            checked={filteredFarmers.length > 0 && filteredFarmers.every(f => formData.recipient_ids.includes(f.id))}
+                                            onChange={toggleSelectAll}
                                         />
-                                        <i className="fas fa-search search-icon"></i>
-                                    </div>
+                                        <span>Select All Filtered ({filteredFarmers.length})</span>
+                                    </label>
+                                </div>
 
-                                    {/* Select All */}
-                                    <div className="select-all-container">
-                                        <label className="user-checkbox-item">
-                                            <input
-                                                type="checkbox"
-                                                checked={filteredFarmers.length > 0 && filteredFarmers.every(f => formData.recipient_ids.includes(f.id))}
-                                                onChange={toggleSelectAll}
-                                            />
-                                            <span>Select All Filtered ({filteredFarmers.length})</span>
-                                        </label>
-                                    </div>
-
-                                    {/* Farmer List */}
-                                    <div className="farmer-list">
-                                        {filteredFarmers.length > 0 ? filteredFarmers.map(farmer => (
-                                            <label key={farmer.id} className="user-checkbox-item">
+                                <div className={`${styles.farmerList} ${styles.customScrollbar}`}>
+                                    {filteredFarmers.length > 0 ? (
+                                        filteredFarmers.map(farmer => (
+                                            <div
+                                                key={farmer.id}
+                                                className={styles.userCheckboxItem}
+                                                onClick={() => toggleFarmerSelection(farmer.id)}
+                                            >
                                                 <input
                                                     type="checkbox"
-                                                    value={farmer.id}
                                                     checked={formData.recipient_ids.includes(farmer.id)}
-                                                    onChange={() => toggleFarmerSelection(farmer.id)}
+                                                    onChange={() => { }}
                                                 />
                                                 <span>{farmer.name} ({farmer.displayId})</span>
-                                            </label>
-                                        )) : (
-                                            <p style={{ padding: '10px', color: '#666' }}>No farmers found</p>
-                                        )}
-                                    </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className={styles.messageEmptyText}>{t('msgModal.noFarmers')}</p>
+                                    )}
                                 </div>
                             </div>
-                        )}
+                        </div>
+                    )}
 
-                        <div className="admin-form-group">
-                            <label htmlFor="messageSubject">Subject:</label>
+                    <div className={styles.instructorFormGroup}>
+                        <label htmlFor="messageSubject">{t('msgModal.subject')}</label>
+                        <input
+                            type="text"
+                            id="messageSubject"
+                            className={styles.instructorFormControl}
+                            placeholder={t('msgModal.subjectPlaceholder')}
+                            value={formData.subject}
+                            onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                        />
+                    </div>
+
+                    <div className={styles.instructorFormGroup}>
+                        <label htmlFor="messageContent">{t('msgModal.messageContent')}</label>
+                        <textarea
+                            id="messageContent"
+                            className={styles.instructorFormControl}
+                            rows="6"
+                            placeholder={t('msgModal.messagePlaceholder')}
+                            value={formData.content}
+                            onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                        ></textarea>
+                    </div>
+
+                    <div className={styles.instructorFormGroup}>
+                        <label>{t('msgModal.attachment')}</label>
+                        <div
+                            className={styles.fileUploadZone}
+                            onClick={() => fileInputRef.current.click()}
+                        >
+                            <div className={styles.uploadIconWrapper}>
+                                <i className="fas fa-cloud-upload-alt"></i>
+                            </div>
+                            <div className={styles.uploadTextPrimary}>{t('msgModal.addAttachment')}</div>
+                            <div className={styles.uploadTextSecondary}>{t('msgModal.attachmentHint')}</div>
                             <input
-                                type="text"
-                                id="messageSubject"
-                                className="admin-form-control"
-                                placeholder="What is this regarding?"
-                                value={formData.subject}
-                                onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                                type="file"
+                                ref={fileInputRef}
+                                className={styles.hidden}
+                                onChange={handleFileSelect}
                             />
                         </div>
-
-                        <div className="admin-form-group">
-                            <label htmlFor="messageContent">Message Content:</label>
-                            <textarea
-                                id="messageContent"
-                                className="admin-form-control"
-                                rows="6"
-                                placeholder="Type your message here..."
-                                value={formData.content}
-                                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                            ></textarea>
-                        </div>
-
-                        <div className="admin-form-group">
-                            <label>Attachment:</label>
-                            <div
-                                className="file-upload-zone"
-                                onClick={() => fileInputRef.current.click()}
-                            >
-                                <div className="upload-icon-wrapper">
-                                    <i className="fas fa-cloud-upload-alt"></i>
+                        {formData.attachment && (
+                            <div className={styles.fileInfoCard}>
+                                <div className={styles.fileIcon}>
+                                    <i className="fas fa-file-lines"></i>
                                 </div>
-                                <div className="upload-text-primary">Add attachment</div>
-                                <div className="upload-text-secondary">Images, PDF or Documents (Max 10MB)</div>
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    style={{ display: 'none' }}
-                                    onChange={handleFileSelect}
-                                />
+                                <div className={styles.fileDetails}>
+                                    <span className={styles.fileName}>{formData.attachment.name}</span>
+                                    <div className={styles.fileSize}>{(formData.attachment.size / 1024).toFixed(1)} KB</div>
+                                </div>
+                                {formData.attachment.type.startsWith('image/') && (
+                                    <div className={styles.filePreview}>
+                                        <img
+                                            src={URL.createObjectURL(formData.attachment)}
+                                            alt={t('msgModal.preview')}
+                                        />
+                                    </div>
+                                )}
+                                <button type="button" className={styles.btnRemoveFile} onClick={removeAttachment}>
+                                    <i className="fas fa-trash-can"></i>
+                                </button>
                             </div>
-                            {formData.attachment && (
-                                <div className="file-info-card">
-                                    <div className="file-icon">
-                                        <i className="fas fa-file-alt"></i>
-                                    </div>
-                                    <div className="file-details">
-                                        <span className="file-name">{formData.attachment.name}</span>
-                                        <span className="file-size">{(formData.attachment.size / 1024).toFixed(1)} KB</span>
-                                    </div>
-                                    {formData.attachment.type.startsWith('image/') && (
-                                        <div className="file-preview">
-                                            <img
-                                                src={URL.createObjectURL(formData.attachment)}
-                                                alt="Preview"
-                                            />
-                                        </div>
-                                    )}
-                                    <button type="button" className="btn-remove-file" onClick={removeAttachment}>
-                                        <i className="fas fa-trash-alt"></i>
-                                    </button>
-                                </div>
-                            )}
-                        </div>
+                        )}
                     </div>
+                </div>
 
-                    <div className="admin-modal-footer">
-                        <button className="btn btn-secondary" onClick={onClose} disabled={isSending}>Cancel</button>
-                        <button className="btn btn-send" onClick={handleSubmit} disabled={isSending}>
-                            {isSending ? (
-                                <><i className="fas fa-spinner fa-spin"></i> Sending Message...</>
-                            ) : (
-                                <><i className="fas fa-paper-plane"></i> Send Message</>
-                            )}
-                        </button>
-                    </div>
+                <div className={styles.instructorModalFooter}>
+                    <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSecondary}`} onClick={onClose} disabled={isSending}>{t('msgModal.cancel')}</button>
+                    <button className={styles.btnSend} onClick={handleSubmit} disabled={isSending}>
+                        {isSending ? (
+                            <><i className="fas fa-spinner fa-spin"></i> {t('msgModal.sending')}</>
+                        ) : (
+                            <><i className="fas fa-paper-plane"></i> {t('msgModal.send')}</>
+                        )}
+                    </button>
                 </div>
             </div>
         </div>,

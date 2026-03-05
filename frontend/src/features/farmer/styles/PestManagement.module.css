@@ -1,0 +1,400 @@
+/* PestManagement.module.css */
+
+/* Import semantic color system */
+@import url('../../../shared/semantic-colors.css');
+
+.detailView {
+    padding: var(--space-lg);
+}
+
+.detailHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-lg);
+}
+
+.detailHeader h3 {
+    margin: 0;
+}
+
+.detailsGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+}
+
+.capitalize {
+    text-transform: capitalize;
+}
+
+.descriptionBox {
+    padding: var(--space-md);
+    background-color: var(--neutral-50);
+    border-radius: var(--radius-md);
+    margin-top: 8px;
+    border: 1px solid var(--neutral-200);
+}
+
+.attachmentsSection {
+    margin-top: var(--space-md);
+}
+
+.attachmentList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-top: 8px;
+}
+
+.attachmentItem {
+    text-decoration: none;
+    color: var(--neutral-800);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid var(--neutral-300);
+    border-radius: var(--radius-sm);
+    background-color: var(--neutral-white);
+}
+
+.actionSection {
+    border-top: 2px solid var(--state-success-bg);
+    padding-top: var(--space-lg);
+    margin-top: var(--space-lg);
+}
+
+.actionTitle {
+    color: var(--primary);
+    /* var(--primary) */
+    margin-top: 0;
+}
+
+.historyBox {
+    padding: var(--space-md);
+    background-color: var(--state-success-bg);
+    border-radius: var(--radius-md);
+    margin-top: 8px;
+    border: 1px solid var(--state-success-border);
+}
+
+.instructorAttachmentItem {
+    color: var(--primary);
+    border-color: var(--state-success-border);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid var(--state-success-border);
+    border-radius: var(--radius-sm);
+    background-color: var(--neutral-white);
+}
+
+.pageDisplay {
+    display: block;
+}
+
+.selectedReportCard {
+    border: 2px solid var(--primary);
+    margin-bottom: 30px;
+}
+
+.scrollableContent {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.readonlyInput {
+    background-color: var(--neutral-200);
+    cursor: not-allowed;
+}
+
+.reportItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: var(--space-md);
+    border-bottom: 1px solid var(--neutral-200);
+}
+
+.reportInfo {
+    flex: 1;
+}
+
+.emptyState {
+    text-align: center;
+    padding: var(--space-xl);
+    color: var(--neutral-600);
+}
+
+.descriptionWrapper {
+    margin-bottom: var(--space-lg);
+}
+
+.reportsList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.reportHeader h4 {
+    color: var(--primary-dark);
+    margin: 0;
+}
+
+.reportDetails p {
+    margin-bottom: 5px;
+    color: var(--gray);
+    font-size: 0.9em;
+}
+
+.reportSide {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.reportBottom {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.reportDate {
+    font-size: 0.85em;
+    color: var(--gray);
+    margin-bottom: 5px;
+}
+
+.reportActions {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.reviewedReportsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--space-md);
+}
+
+.reviewedReportSide {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: var(--space-md);
+}
+
+.fileUpload {
+    border: 2px dashed var(--neutral-300);
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+    background: var(--neutral-50);
+}
+
+.fileHint {
+    display: block;
+    margin-top: var(--space-xs);
+    color: var(--gray);
+}
+
+/* View Modal */
+.viewModalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9500;
+    background: var(--modal-overlay-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: var(--space-lg);
+}
+
+.viewModalContent {
+    background: var(--neutral-white);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: var(--shadow-lg);
+}
+
+.viewModalHeader {
+    padding: var(--space-lg) var(--space-xl);
+    border-bottom: 1px solid var(--neutral-200);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    background: var(--neutral-white);
+    z-index: 1;
+}
+
+.viewModalTitle {
+    margin: 0;
+    color: var(--neutral-600);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.viewModalTitleIcon {
+    color: var(--primary-light);
+}
+
+.viewModalCloseBtn {
+    background: var(--neutral-100);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--neutral-600);
+    font-size: 0.9rem;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: var(--transition-normal);
+}
+
+.viewModalCloseBtn:hover {
+    background: var(--state-danger);
+    color: var(--neutral-white);
+}
+
+.viewModalBody {
+    padding: var(--space-xl);
+}
+
+.viewModalGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-xl);
+}
+
+@media (max-width: 640px) {
+    .viewModalGrid {
+        grid-template-columns: 1fr;
+        gap: var(--space-md);
+    }
+
+    .detailsGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .viewModalContent {
+        max-height: 95vh;
+    }
+
+    .viewModalBody {
+        padding: var(--space-md);
+    }
+}
+
+.viewModalSectionTitle {
+    color: var(--primary-light);
+    margin-bottom: var(--space-md);
+    border-bottom: 2px solid var(--neutral-200);
+    padding-bottom: var(--space-xs);
+}
+
+.viewModalInfoList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.viewModalInfoItem {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+}
+
+.viewModalNotes {
+    background: var(--neutral-100);
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+    min-height: 100px;
+    border: 1px solid var(--neutral-200);
+}
+
+.viewModalFeedbackContainer {
+    margin-bottom: var(--space-xl);
+}
+
+.viewModalAttachmentsSection {
+    margin-top: var(--space-lg);
+    margin-bottom: var(--space-lg);
+}
+
+.feedbackSectionTitle {
+    color: var(--primary);
+    margin-bottom: var(--space-md);
+    border-bottom: 2px solid var(--state-success-bg);
+    padding-bottom: var(--space-xs);
+}
+
+.feedbackContent {
+    padding: var(--space-lg);
+    border-radius: var(--radius-md);
+    color: var(--neutral-600);
+}
+
+.feedbackResolved {
+    background: var(--state-success-bg);
+    border-left: 5px solid var(--state-success);
+}
+
+.feedbackInProgress {
+    background: var(--neutral-50);
+    border-left: 5px solid var(--neutral-300);
+}
+
+.feedbackText {
+    margin: 0;
+    font-size: 1.1em;
+    font-style: italic;
+}
+
+.attachmentItemFarmer {
+    text-decoration: none;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid var(--state-success-border);
+    border-radius: var(--radius-xl);
+    background-color: var(--state-success-bg);
+    font-size: 0.85em;
+}
+
+.viewModalFooter {
+    padding: var(--space-lg) var(--space-xl);
+    border-top: 1px solid var(--neutral-200);
+    display: flex;
+    justify-content: flex-end;
+    background: var(--neutral-50);
+    border-bottom-left-radius: var(--radius-lg);
+    border-bottom-right-radius: var(--radius-lg);
+}
+
+@media (max-width: 768px) {
+    .viewModalGrid {
+        grid-template-columns: 1fr;
+    }
+}

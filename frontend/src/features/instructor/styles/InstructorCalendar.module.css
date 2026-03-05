@@ -1,0 +1,283 @@
+/* InstructorCalendar.module.css */
+
+/* Import semantic color system */
+@import url('../../../shared/semantic-colors.css');
+
+.calendarCard {
+    background: var(--neutral-white);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    border: 1px solid var(--neutral-100);
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-bottom: var(--space-xl);
+}
+
+.calendarHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-xl);
+    background: var(--neutral-white);
+    border-bottom: 1px solid var(--neutral-100);
+}
+
+.calendarTitle {
+    font-size: var(--text-xl);
+    font-weight: 700;
+    color: var(--instructor-primary-dark);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.calendarTitle i {
+    color: var(--instructor-primary);
+    font-size: 1.4rem;
+}
+
+.calendarNav {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.navBtn {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--neutral-200);
+    background: var(--neutral-white);
+    color: var(--neutral-700);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.navBtn:hover {
+    background: var(--instructor-primary);
+    color: var(--neutral-white);
+    border-color: var(--instructor-primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.calendarBody {
+    padding: var(--space-xl);
+    background: var(--neutral-50);
+}
+
+.gridHeader {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    margin-bottom: var(--space-md);
+    border-bottom: 1px solid var(--neutral-100);
+    padding-bottom: var(--space-sm);
+}
+
+.gridHeader div {
+    padding: var(--space-sm);
+    font-weight: 700;
+    font-size: var(--text-sm);
+    color: var(--neutral-400);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-align: center;
+}
+
+.calendarDays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: var(--space-sm);
+}
+
+.calendarDay {
+    background: var(--neutral-white);
+    min-height: 120px;
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--neutral-100);
+    transition: var(--transition-normal);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-sm);
+}
+
+.calendarDay:hover:not(.notCurrent) {
+    border-color: var(--instructor-primary-light);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    z-index: 2;
+}
+
+.calendarDay.notCurrent {
+    background: var(--neutral-50);
+    border: 1px solid transparent;
+    opacity: 0.6;
+}
+
+.calendarDay.notCurrent .dayNum {
+    color: var(--neutral-300);
+}
+
+.calendarDay.isToday {
+    background: var(--instructor-primary);
+    border-color: var(--instructor-primary);
+}
+
+.dayNum {
+    font-size: var(--text-base);
+    font-weight: 700;
+    color: var(--neutral-800);
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-sm);
+    transition: var(--transition-normal);
+}
+
+.isToday .dayNum {
+    background: var(--instructor-primary);
+    color: var(--neutral-white);
+    box-shadow: var(--shadow-md);
+}
+
+.meetingTags {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    flex: 1;
+    overflow-y: auto;
+    max-height: 70px;
+    scrollbar-width: none;
+}
+
+.meetingTags::-webkit-scrollbar {
+    display: none;
+}
+
+.meetingTag {
+    font-size: var(--text-xs);
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--neutral-white);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--neutral-200);
+    border-left: 4px solid var(--instructor-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition-normal);
+}
+
+.meetingTag:hover {
+    background: var(--neutral-100);
+    transform: translateX(2px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Status Colors */
+.tagAccepted {
+    border-left-color: var(--state-success);
+    color: var(--state-success);
+}
+
+.tagPending {
+    border-left-color: var(--state-info);
+    color: var(--state-info);
+}
+
+.tagReschedule {
+    border-left-color: var(--state-warning);
+    color: var(--state-warning);
+}
+
+.tagDefault {
+    border-left-color: var(--neutral-500);
+    color: var(--neutral-500);
+}
+
+.meetingTime {
+    font-weight: 800;
+}
+
+.meetingDivision {
+    font-size: 0.65rem;
+    opacity: 0.8;
+    display: block;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .calendarDay {
+        min-height: 100px;
+        padding: var(--space-xs);
+    }
+}
+
+@media (max-width: 768px) {
+    .gridHeader div {
+        font-size: 0.7rem;
+        padding: var(--space-xs);
+    }
+
+    .calendarDay {
+        min-height: 80px;
+        padding: var(--space-xs);
+    }
+
+    .dayNum {
+        width: 24px;
+        height: 24px;
+        font-size: 0.8rem;
+    }
+
+    .meetingTag {
+        font-size: 0.6rem;
+        padding: 2px 4px;
+    }
+}
+
+@media (max-width: 480px) {
+    .calendarHeader {
+        padding: var(--space-md);
+    }
+
+    .calendarBody {
+        padding: var(--space-xs);
+    }
+
+    .calendarDays {
+        gap: 2px;
+    }
+
+    .calendarDay {
+        min-height: 55px;
+        padding: 2px;
+    }
+
+    .dayNum {
+        width: 20px;
+        height: 20px;
+        font-size: 0.65rem;
+        margin-bottom: 2px;
+    }
+
+    .meetingTags {
+        max-height: 30px;
+    }
+
+    .gridHeader div {
+        font-size: 0.6rem;
+        letter-spacing: 0;
+        padding: 4px 2px;
+    }
+}

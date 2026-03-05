@@ -1,4 +1,4 @@
-import { GeneratedId, User, FarmerDetail, InstructorDetail, SystemSetting, Message } from '../../models/index.js';
+﻿import { GeneratedId, User, FarmerDetail, InstructorDetail, SystemSetting, Message, InstructorRating } from '../../models/index.js';
 import { Op } from 'sequelize';
 import sequelize from '../../config/db.js';
 import bcrypt from 'bcryptjs';
@@ -45,8 +45,7 @@ export const updateProfile = async (req, res) => {
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to update profile',
-                details: error.message
+                message: 'Failed to update profile'
             }
         });
     }
@@ -89,6 +88,20 @@ export const updatePassword = async (req, res) => {
         const userId = req.user.id;
         const { currentPassword, newPassword } = req.body;
 
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({
+                success: false,
+                error: { message: 'Current password and new password are required' }
+            });
+        }
+
+        if (newPassword.length < 8) {
+            return res.status(400).json({
+                success: false,
+                error: { code: 'WEAK_PASSWORD', message: 'New password must be at least 8 characters long' }
+            });
+        }
+
         const user = await User.findByPk(userId);
         if (!user) {
             return res.status(404).json({
@@ -118,9 +131,88 @@ export const updatePassword = async (req, res) => {
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to update password',
-                details: error.message
+                message: 'Failed to update password'
             }
+        });
+    }
+};
+
+/**
+ * Get Region Hierarchy
+ */
+export const getRegionHierarchy = async (req, res) => {
+    try {
+        const setting = await SystemSetting.findOne({
+            where: { setting_key: 'region_hierarchy' }
+        });
+
+        if (!setting) {
+            return res.status(404).json({ 
+                success: false, 
+                error: { message: 'Region hierarchy not found' } 
+            });
+        }
+
+        let parsed;
+        try {
+            parsed = JSON.parse(setting.setting_value);
+        } catch {
+            return res.status(500).json({ success: false, error: { message: 'Region hierarchy data is corrupted' } });
+        }
+        return res.status(200).json({ success: true, data: parsed });
+    } catch (error) {
+        console.error('Error fetching region hierarchy:', error);
+        return res.status(500).json({ 
+            success: false, 
+            error: { message: 'Failed to fetch region hierarchy' } 
+        });
+    }
+};
+
+/**
+ * Update Region Hierarchy
+ */
+export const updateRegionHierarchy = async (req, res) => {
+    try {
+        const { hierarchy } = req.body;
+
+        if (!hierarchy || typeof hierarchy !== 'object') {
+            return res.status(400).json({ 
+                success: false, 
+                error: { message: 'Invalid hierarchy data provided' } 
+            });
+        }
+
+        const [setting, created] = await SystemSetting.findOrCreate({
+            where: { setting_key: 'region_hierarchy' },
+            defaults: {
+                setting_value: JSON.stringify(hierarchy),
+                description: 'Region hierarchy mapping zones to divisions for instructor assignments'
+            }
+        });
+
+        if (!created) {
+            await setting.update({
+                setting_value: JSON.stringify(hierarchy)
+            });
+        }
+
+        let parsed;
+        try {
+            parsed = JSON.parse(setting.setting_value);
+        } catch {
+            parsed = hierarchy;
+        }
+        return res.status(200).json({
+            success: true,
+            message: 'Region hierarchy updated successfully',
+            data: parsed
+        });
+    } catch (error) {
+        console.error('Error updating region hierarchy:', error);
+        return res.status(500).json({ 
+            success: false, 
+            error: { message: 'Failed to update region hierarchy' } 
         });
     }
 };
@@ -173,8 +265,7 @@ export const getDashboardStats = async (req, res) => {
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to fetch dashboard stats',
-                details: error.message
+                message: 'Failed to fetch dashboard stats'
             }
         });
     }
@@ -204,12 +295,13 @@ export const getSystemSettings = async (req, res) => {
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to fetch system settings',
-                details: error.message
+                message: 'Failed to fetch system settings'
             }
         });
     }
 };
+
+const ALLOWED_SETTING_KEYS = ['maintenance_mode'];
 
 /**
  * Update System Setting
@@ -219,6 +311,13 @@ export const updateSystemSetting = async (req, res) => {
     try {
         const { key } = req.params;
         const { value } = req.body;
+
+        if (!ALLOWED_SETTING_KEYS.includes(key)) {
+            return res.status(400).json({
+                success: false,
+                error: { message: 'Invalid setting key' }
+            });
+        }
 
         const [setting, created] = await SystemSetting.findOrCreate({
             where: { setting_key: key },
@@ -239,8 +338,7 @@ export const updateSystemSetting = async (req, res) => {
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to update system setting',
-                details: error.message
+                message: 'Failed to update system setting'
             }
         });
     }
@@ -261,8 +359,23 @@ export const inviteAdmin = async (req, res) => {
             });
         }
 
+        if (typeof fullName !== 'string' || fullName.trim().length < 2 || fullName.trim().length > 100) {
+            return res.status(400).json({
+                success: false,
+                error: { message: 'Full name must be between 2 and 100 characters' }
+            });
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({
+                success: false,
+                error: { message: 'Invalid email address' }
+            });
+        }
+
         // Check if user already exists
-        const existingUser = await User.findOne({ where: { email } });
+        const existingUser = await User.findOne({ where: { email: email.toLowerCase() } });
         if (existingUser) {
             return res.status(400).json({
                 success: false,
@@ -310,20 +423,10 @@ export const inviteAdmin = async (req, res) => {
 
     } catch (error) {
         console.error('Error inviting admin:', error);
-
-        // Extract validation errors if any
-        let message = 'Failed to send invitation';
-        if (error.name === 'SequelizeValidationError' || error.name === 'SequelizeUniqueConstraintError') {
-            message = error.errors.map(e => e.message).join(', ');
-        } else if (error.message) {
-            message = error.message;
-        }
-
         return res.status(500).json({
             success: false,
             error: {
-                message: message,
-                details: error.message
+                message: 'Failed to send invitation'
             }
         });
     }
@@ -370,8 +473,7 @@ export const getEngagementStats = async (req, res) => {
             data: {
                 summary: {
                     newRegistrations,
-                    totalActiveUsers,
-                    dailyActive: Math.floor(totalActiveUsers * 0.3)
+                    totalActiveUsers
                 },
                 trend: registrationTrend,
                 distribution: activityByRole
@@ -383,8 +485,7 @@ export const getEngagementStats = async (req, res) => {
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to fetch engagement stats',
-                details: error.message
+                message: 'Failed to fetch engagement stats'
             }
         });
     }
@@ -397,10 +498,13 @@ export const getEngagementStats = async (req, res) => {
 export const getUsers = async (req, res) => {
     try {
         const { role, search, status, page = 1, limit = 10 } = req.query;
-        const offset = (page - 1) * limit;
+        const safeLimit = Math.min(Math.max(parseInt(limit) || 10, 1), 1000);
+        const safePage = Math.max(parseInt(page) || 1, 1);
+        const offset = (safePage - 1) * safeLimit;
 
+        const ALLOWED_ROLES = ['farmer', 'instructor', 'admin'];
         const whereClause = {};
-        if (role) whereClause.role = role;
+        if (role && ALLOWED_ROLES.includes(role)) whereClause.role = role;
         if (status && status !== 'all') whereClause.status = status;
         if (search) {
             whereClause[Op.or] = [
@@ -425,13 +529,27 @@ export const getUsers = async (req, res) => {
         const { count, rows } = await User.findAndCountAll({
             where: whereClause,
             include,
-            limit: parseInt(limit),
-            offset: parseInt(offset),
+            limit: safeLimit,
+            offset,
             order: [['created_at', 'DESC']],
             attributes: { exclude: ['password'] }
         });
 
         // --- ENRICHMENT LOGIC START ---
+
+        // 0. For admin queries, identify the original super admin (lowest ID) and flag them
+        if (role === 'admin') {
+            const firstAdmin = await User.findOne({
+                where: { role: 'admin' },
+                order: [['id', 'ASC']],
+                attributes: ['id']
+            });
+            if (firstAdmin) {
+                rows.forEach(user => {
+                    user.dataValues.is_super_admin = user.id === firstAdmin.id;
+                });
+            }
+        }
 
         // 1. Fetch all instructors to map Divisions -> Instructor Names
         const allInstructors = await User.findAll({
@@ -508,10 +626,10 @@ export const getUsers = async (req, res) => {
             success: true,
             data: rows,
             pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
+                page: safePage,
+                limit: safeLimit,
                 total: count,
-                totalPages: Math.ceil(count / limit)
+                totalPages: Math.ceil(count / safeLimit)
             }
         });
     } catch (error) {
@@ -519,8 +637,7 @@ export const getUsers = async (req, res) => {
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to fetch users',
-                details: error.message
+                message: 'Failed to fetch users'
             }
         });
     }
@@ -581,8 +698,7 @@ export const updateUserStatus = async (req, res) => {
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to update user status',
-                details: error.message
+                message: 'Failed to update user status'
             }
         });
     }
@@ -606,14 +722,20 @@ export const deleteUser = async (req, res) => {
             });
         }
 
-        // Prevent deleting admins
-        if (user.role === 'admin' || user.role === 'Super Admin') {
-            return res.status(403).json({
-                success: false,
-                error: {
-                    message: 'Cannot delete administrative users'
-                }
+        // Prevent deleting the original super admin (first admin by lowest ID)
+        if (user.role === 'admin') {
+            const firstAdmin = await User.findOne({
+                where: { role: 'admin' },
+                order: [['id', 'ASC']],
+                attributes: ['id']
             });
+            if (firstAdmin && firstAdmin.id === user.id) {
+                return res.status(403).json({
+                    success: false,
+                    error: { message: 'The original super admin account cannot be deleted' }
+                });
+            }
+            // Allow deletion of other (invited) admin accounts
         }
 
         // Associated details (FarmerDetail/InstructorDetail) will be deleted via ON DELETE CASCADE 
@@ -635,8 +757,7 @@ export const deleteUser = async (req, res) => {
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to delete user',
-                details: error.message
+                message: 'Failed to delete user'
             }
         });
     }
@@ -652,6 +773,13 @@ export const getInstructorEngagement = async (req, res) => {
         const farmers = await User.findAll({
             where: { role: 'farmer' },
             include: [{ model: FarmerDetail, as: 'farmerDetail' }]
+        });
+
+        const allRatings = await InstructorRating.findAll();
+        const ratingsByInstructor = {};
+        allRatings.forEach(r => {
+            if (!ratingsByInstructor[r.instructor_id]) ratingsByInstructor[r.instructor_id] = [];
+            ratingsByInstructor[r.instructor_id].push(r);
         });
 
         const engagementData = instructors.map(inst => {
@@ -677,24 +805,40 @@ export const getInstructorEngagement = async (req, res) => {
                 id: inst.id,
                 displayId: details.instructor_id || `INST-${inst.id}`,
                 name: inst.full_name,
-                nic: inst.nic,
+                nic: inst.nic || '-',
                 phone: inst.phone,
-                district: details.district || '-',
+                district: details.district || 'Anuradhapura',
                 zone: details.zone || '-',
                 divisions: divisions,
                 avatar: inst.avatar ? inst.avatar.replace(/\\/g, '/') : (inst.profile_picture ? inst.profile_picture.replace(/\\/g, '/') : null),
-                averageRating: 0,
+                averageRating: parseFloat(details.average_rating) || 0,
                 farmersCount: myFarmers.length,
-                farmers: myFarmers.map(f => ({
-                    id: f.farmerDetail?.farmer_id || `FARM-${f.id}`,
-                    name: f.full_name,
-                    phone: f.phone,
-                    district: f.farmerDetail?.district || '-',
-                    zone: f.farmerDetail?.zone || '-',
-                    instructorDivision: f.farmerDetail?.instructor_division || '-',
-                    avatar: f.avatar ? f.avatar.replace(/\\/g, '/') : (f.profile_picture ? f.profile_picture.replace(/\\/g, '/') : null)
-                })),
-                reviews: []
+                farmers: myFarmers.map(f => {
+                    const fDetails = f.farmerDetail || {};
+                    let farmerLocations = [];
+                    try {
+                        farmerLocations = Array.isArray(fDetails.locations)
+                            ? fDetails.locations
+                            : (typeof fDetails.locations === 'string' ? JSON.parse(fDetails.locations || '[]') : []);
+                    } catch { farmerLocations = []; }
+                    return {
+                        id: fDetails.farmer_id || `FARM-${f.id}`,
+                        name: f.full_name,
+                        nic: f.nic || '-',
+                        phone: f.phone,
+                        district: fDetails.district || (farmerLocations.length > 0 ? farmerLocations[0].district : null) || 'Anuradhapura',
+                        zone: fDetails.zone || '-',
+                        instructorDivision: fDetails.instructor_division || '-',
+                        farmerLocations,
+                        avatar: f.avatar ? f.avatar.replace(/\\/g, '/') : (f.profile_picture ? f.profile_picture.replace(/\\/g, '/') : null)
+                    };
+                }),
+                reviews: (ratingsByInstructor[details.instructor_id] || []).map(r => ({
+                    id: r.id,
+                    farmer: r.farmer_name || 'Unknown',
+                    rating: r.rating,
+                    comment: r.comments || ''
+                }))
             };
         });
 
@@ -708,8 +852,7 @@ export const getInstructorEngagement = async (req, res) => {
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to fetch instructor engagement',
-                details: error.message
+                message: 'Failed to fetch instructor engagement'
             }
         });
     }
@@ -783,8 +926,7 @@ export const generateIds = async (req, res) => {
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to generate IDs',
-                details: error.message
+                message: 'Failed to generate IDs'
             }
         });
     }
@@ -816,8 +958,7 @@ export const getGeneratedIds = async (req, res) => {
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to fetch IDs',
-                details: error.message
+                message: 'Failed to fetch IDs'
             }
         });
     }
@@ -864,8 +1005,7 @@ export const updateIdStatus = async (req, res) => {
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to update status',
-                details: error.message
+                message: 'Failed to update status'
             }
         });
     }
@@ -905,8 +1045,7 @@ export const deleteIdsByStatus = async (req, res) => {
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to delete IDs',
-                details: error.message
+                message: 'Failed to delete IDs'
             }
         });
     }
@@ -933,58 +1072,54 @@ export const getMyMessages = async (req, res) => {
                 {
                     model: User,
                     as: 'sender',
-                    attributes: ['id', 'full_name', 'role']
+                    attributes: ['id', 'full_name', 'role'],
+                    include: [
+                        { model: FarmerDetail, as: 'farmerDetail', required: false, attributes: ['farmer_id'] },
+                        { model: InstructorDetail, as: 'instructorDetail', required: false, attributes: ['instructor_id'] }
+                    ]
                 },
                 {
                     model: User,
                     as: 'recipient',
-                    attributes: ['id', 'full_name', 'role']
+                    attributes: ['id', 'full_name', 'role'],
+                    include: [
+                        { model: FarmerDetail, as: 'farmerDetail', required: false, attributes: ['farmer_id'] },
+                        { model: InstructorDetail, as: 'instructorDetail', required: false, attributes: ['instructor_id'] }
+                    ]
                 }
             ],
             order: [['created_at', 'DESC']]
         });
 
+        // Helper to get the generated display ID for a user
+        const getDisplayId = (user) => {
+            if (!user) return null;
+            if (user.role === 'farmer' && user.farmerDetail?.farmer_id) return user.farmerDetail.farmer_id;
+            if (user.role === 'instructor' && user.instructorDetail?.instructor_id) return user.instructorDetail.instructor_id;
+            return null;
+        };
+
         const formattedMessages = messages.map(msg => {
-            // Helper function to format custom ID with better error handling
+            // Helper function to get display name only (no embedded ID)
             const formatCustomId = (user) => {
-                if (!user) {
-                    console.warn('⚠️ formatCustomId: user is null or undefined');
-                    return 'Unknown User';
-                }
-                
-                if (user.role === 'admin') {
-                    return 'Admin';
-                }
-                
-                // Handle missing or invalid full_name
+                if (!user) return 'Unknown User';
+                if (user.role === 'admin') return 'Admin';
                 const fullName = user.full_name?.trim() || 'Unknown User';
-                if (!fullName || fullName === 'null' || fullName === 'undefined') {
-                    console.warn('⚠️ formatCustomId: user.full_name is empty/invalid:', user.full_name);
-                    return 'Unknown User';
-                }
-                
-                // Extract first name for display
-                const firstName = fullName.split(' ')[0] || 'User';
-                const paddedId = user.id < 10 ? `0${user.id}` : String(user.id);
-                return `${firstName} (ID: INST-2026-HF${paddedId})`;
+                if (!fullName || fullName === 'null' || fullName === 'undefined') return 'Unknown User';
+                return fullName;
             };
             
-            // Helper function to format recipient name with better error handling
+            // Helper function to format recipient name
             const formatRecipientName = (msg) => {
-                if (msg.recipient_type === 'all') {
-                    return 'All Users';
-                }
-                if (msg.recipient_type === 'admin') {
-                    return 'All Admins';
-                }
-                if (!msg.recipient) {
-                    console.warn('⚠️ formatRecipientName: msg.recipient is null or undefined');
-                    return 'Unknown Recipient';
-                }
+                if (msg.recipient_type === 'all') return 'All Users';
+                if (msg.recipient_type === 'admin') return 'All Admins';
+                if (msg.recipient_type === 'farmers') return 'All Farmers';
+                if (msg.recipient_type === 'instructors') return 'All Instructors';
+                if (!msg.recipient) return 'Unknown Recipient';
                 return formatCustomId(msg.recipient);
             };
             
-            // Get formatted sender and recipient names with custom IDs
+            // Get formatted sender and recipient names
             const senderName = formatCustomId(msg.sender);
             const recipientName = formatRecipientName(msg);
             
@@ -996,8 +1131,10 @@ export const getMyMessages = async (req, res) => {
                 content: msg.content,
                 sender: senderName,
                 senderId: msg.sender_id,
+                senderDisplayId: getDisplayId(msg.sender),
                 recipient: recipientName,
                 recipientId: msg.recipient_id,
+                recipientDisplayId: msg.recipient ? getDisplayId(msg.recipient) : null,
                 type: messageType,
                 date: msg.created_at ? msg.created_at.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
                 time: msg.created_at ? msg.created_at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -1047,5 +1184,41 @@ export const markMessageAsRead = async (req, res) => {
     } catch (error) {
         console.error('Error marking message as read:', error);
         return res.status(500).json({ success: false, error: { message: 'Failed to mark message as read' } });
+    }
+};
+
+export const deleteMessage = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+        const io = req.app.get('io'); // Get Socket.IO instance
+
+        const message = await Message.findOne({
+            where: {
+                id,
+                [Op.or]: [
+                    { sender_id: userId },  // User can delete their own sent messages
+                    { recipient_id: userId },  // User can delete messages they received
+                    { recipient_type: 'all' },  // Broadcast messages
+                    { recipient_type: 'admin' }  // Admin broadcast messages
+                ]
+            }
+        });
+
+        if (!message) {
+            return res.status(404).json({ success: false, error: { message: 'Message not found' } });
+        }
+
+        await message.destroy();
+
+        // Emit WebSocket event for real-time update
+        if (io) {
+            io.emit('messageDeleted', { messageId: id, deletedBy: userId });
+        }
+
+        return res.status(200).json({ success: true, message: 'Message deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting message:', error);
+        return res.status(500).json({ success: false, error: { message: 'Failed to delete message' } });
     }
 };

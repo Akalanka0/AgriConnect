@@ -1,0 +1,141 @@
+/* FarmerSidebar.module.css */
+
+/* Import semantic color system */
+@import url('../../../shared/semantic-colors.css');
+
+.sidebar {
+    width: var(--sidebar-width);
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: var(--neutral-white);
+    position: fixed;
+    height: 100vh;
+    z-index: 100;
+    box-shadow: var(--shadow-md);
+    transition: var(--transition-normal);
+    display: flex;
+    flex-direction: column;
+    left: 0;
+}
+
+.sidebarActive {
+    left: 0;
+}
+
+.sidebarHeader {
+    padding: var(--space-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    height: var(--header-height);
+}
+
+.logo {
+    font-size: 1.8em;
+    background: var(--neutral-white);
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    box-shadow: var(--shadow-sm);
+    border: none;
+    overflow: hidden;
+    margin: 0;
+}
+
+.logo i {
+    color: var(--primary);
+    font-size: .9em;
+}
+
+.sidebarHeader h1 {
+    font-size: 1.2em;
+    white-space: nowrap;
+    font-weight: 600;
+    color: var(--neutral-white);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    margin: 0;
+    line-height: normal;
+    display: block;
+}
+
+.sidebarMenu {
+    padding: var(--space-lg) 0;
+    flex: 1;
+}
+
+.menuItem {
+    padding: var(--space-md) var(--space-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    cursor: pointer;
+    transition: var(--transition-normal);
+    border-left: 4px solid transparent;
+    white-space: nowrap;
+    color: var(--neutral-white);
+    text-decoration: none;
+}
+
+.menuItem:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.menuItem.active {
+    background: rgba(255, 255, 255, 0.15);
+    border-left-color: var(--secondary);
+}
+
+.menuItem i {
+    font-size: 1.2em;
+    width: 24px;
+    text-align: center;
+}
+
+.sidebarFooter {
+    margin-top: auto;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.logoutBtn {
+    padding: var(--space-md) var(--space-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    cursor: pointer;
+    transition: var(--transition-normal);
+    border-left: 4px solid transparent;
+    white-space: nowrap;
+    color: var(--neutral-white);
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    font-size: 1em;
+}
+
+.logoutBtn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.logoutBtn i {
+    font-size: 1.2em;
+    width: 24px;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+        width: var(--sidebar-width);
+    }
+
+    .sidebar.sidebarActive {
+        transform: translateX(0);
+    }
+}

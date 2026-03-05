@@ -1,32 +1,40 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import '../styles/DataTable.css';
+import { useTranslation } from 'react-i18next';
+import styles from '../styles/DataTable.module.css';
+import btnStyles from '@/components/common/styles/Button.module.css';
 
 /**
  * Reusable Data Table Component
  * Supports custom columns, actions, and simple pagination styling
  */
 const DataTable = ({ columns, data, actions, onAction, emptyMessage, loading, pagination }) => {
+    const { t } = useTranslation('admin');
     if (loading) {
         return (
-            <div className="data-table-container">
-                <div style={{ textAlign: 'center', padding: '40px' }}>
-                    <i className="fas fa-spinner fa-spin" style={{ fontSize: '2em', color: 'var(--primary)', marginBottom: '10px' }}></i>
-                    <p style={{ color: 'var(--gray)' }}>Loading data...</p>
+            <div className={styles.dataTableContainer}>
+                <div className={styles.loadingContainer}>
+                    <div className={styles.loadingIcon}></div>
+                    <p className={styles.loadingText}>{t('users.loadingData')}</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="data-table-container">
-            <table className="data-table">
+        <div className={styles.dataTableContainer}>
+            <table className={styles.dataTable}>
                 <thead>
                     <tr>
                         {columns.map((col, index) => (
-                            <th key={index} style={{ width: col.width }}>{col.header}</th>
+                            <th
+                                key={index}
+                                className={col.className}
+                            >
+                                {col.header}
+                            </th>
                         ))}
-                        {actions && <th className="col-actions">Actions</th>}
+                        {actions && <th className={styles.colActions}>{t('users.colActionsLabel')}</th>}
                     </tr>
                 </thead>
                 <tbody>
@@ -40,17 +48,20 @@ const DataTable = ({ columns, data, actions, onAction, emptyMessage, loading, pa
                                 ))}
                                 {actions && (
                                     <td>
-                                        <div className="action-buttons">
+                                        <div className={styles.actionButtons}>
                                             {actions.map((action, actionIndex) => {
                                                 const label = typeof action.label === 'function' ? action.label(row) : action.label;
                                                 const type = typeof action.type === 'function' ? action.type(row) : action.type;
                                                 const name = typeof action.name === 'function' ? action.name(row) : action.name;
                                                 const icon = typeof action.icon === 'function' ? action.icon(row) : action.icon;
-                                                
+
+                                                // Map type to common button styles
+                                                const typeClass = type ? btnStyles[`btn${type.charAt(0).toUpperCase() + type.slice(1)}`] : btnStyles.btnPrimary;
+
                                                 return (
                                                     <button
                                                         key={actionIndex}
-                                                        className={`btn-action btn-${type || 'primary'}`}
+                                                        className={`${styles.btnAction} ${btnStyles.btn} ${typeClass} ${btnStyles.btnSm}`}
                                                         onClick={() => onAction(name, row)}
                                                         title={label}
                                                     >
@@ -66,47 +77,47 @@ const DataTable = ({ columns, data, actions, onAction, emptyMessage, loading, pa
                         ))
                     ) : (
                         <tr>
-                            <td colSpan={columns.length + (actions ? 1 : 0)} className="empty-state">
+                            <td colSpan={columns.length + (actions ? 1 : 0)} className={styles.emptyState}>
                                 {emptyMessage || 'No data available'}
                             </td>
                         </tr>
                     )}
                 </tbody>
             </table>
-            
+
             {/* Pagination */}
             {pagination && pagination.total > pagination.limit && (
-                <div className="pagination-container">
-                    <div className="pagination-info">
+                <div className={styles.paginationContainer}>
+                    <div className={styles.paginationInfo}>
                         Showing {data.length} of {pagination.total} entries
                     </div>
-                    <div className="pagination-controls">
-                        <button 
-                            className="btn-pagination"
+                    <div className={styles.paginationControls}>
+                        <button
+                            className={styles.btnPagination}
                             onClick={() => pagination.onPageChange(1)}
                             disabled={pagination.page === 1}
                         >
                             <i className="fas fa-angle-double-left"></i>
                         </button>
-                        <button 
-                            className="btn-pagination"
+                        <button
+                            className={styles.btnPagination}
                             onClick={() => pagination.onPageChange(pagination.page - 1)}
                             disabled={pagination.page === 1}
                         >
                             <i className="fas fa-angle-left"></i>
                         </button>
-                        <span className="page-info">
+                        <span className={styles.pageInfo}>
                             Page {pagination.page} of {Math.ceil(pagination.total / pagination.limit)}
                         </span>
-                        <button 
-                            className="btn-pagination"
+                        <button
+                            className={styles.btnPagination}
                             onClick={() => pagination.onPageChange(pagination.page + 1)}
                             disabled={pagination.page >= Math.ceil(pagination.total / pagination.limit)}
                         >
                             <i className="fas fa-angle-right"></i>
                         </button>
-                        <button 
-                            className="btn-pagination"
+                        <button
+                            className={styles.btnPagination}
                             onClick={() => pagination.onPageChange(Math.ceil(pagination.total / pagination.limit))}
                             disabled={pagination.page >= Math.ceil(pagination.total / pagination.limit)}
                         >

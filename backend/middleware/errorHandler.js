@@ -73,9 +73,7 @@ export const errorHandler = (err, req, res, next) => {
             success: false,
             error: {
                 code: err.code || 'CLOUDINARY_UPLOAD_ERROR',
-                message: err.message || 'Failed to upload file to Cloudinary',
-                cloudinaryDetails: err.cloudinaryDetails,
-                ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
+                message: 'File upload failed'
             }
         });
     }
@@ -91,7 +89,7 @@ export const errorHandler = (err, req, res, next) => {
             message: process.env.NODE_ENV === 'production' 
                 ? 'An error occurred while processing your request' 
                 : message,
-            ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
+            ...(process.env.NODE_ENV !== 'production' && { stack: error.stack })
         }
     });
 };
@@ -104,7 +102,7 @@ export const notFoundHandler = (req, res) => {
         success: false,
         error: {
             code: 'NOT_FOUND',
-            message: `Route ${req.originalUrl} not found`
+            message: 'The requested resource was not found'
         }
     });
 };

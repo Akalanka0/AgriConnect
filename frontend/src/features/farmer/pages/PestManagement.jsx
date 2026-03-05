@@ -1,10 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import StatusBadge from '../../admin/components/StatusBadge';
+import { useTranslation } from 'react-i18next';
+import FarmerStatusBadge from '../components/modals/FarmerStatusBadge';
 import { getDownloadUrl, getFriendlyFileName } from '../../../utils/fileUtils';
+import styles from '../styles/PestManagement.module.css';
+import commonStyles from '../styles/FarmerCommon.module.css';
+import commonCardStyles from '@/components/common/styles/Card.module.css';
+import commonBtnStyles from '@/components/common/styles/Button.module.css';
+import { getAccessToken } from '@/utils/authStorage';
+
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10 MB
 
 const PestManagement = () => {
     const { showToast } = useOutletContext();
+    const { t } = useTranslation('farmer');
     const [pestForm, setPestForm] = useState({
         pestType: '',
         pestName: '',
@@ -14,7 +24,8 @@ const PestManagement = () => {
         pestNotes: '',
         instructorDivision: '',
         assignedInstructor: '',
-        assignedInstructorId: ''
+        assignedInstructorId: '',
+        assignedInstructorDisplayId: ''
     });
 
     const [reports, setReports] = useState([]);
@@ -22,19 +33,20 @@ const PestManagement = () => {
     const [locations, setLocations] = useState([]);
     const [availableCrops, setAvailableCrops] = useState([]);
     const [selectedReport, setSelectedReport] = useState(null);
+    const fileInputRef = useRef(null);
 
     // Fetch farmer profile, reports, and available crops
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const token = localStorage.getItem('token');
+                const token = getAccessToken();
                 const headers = { 'Authorization': `Bearer ${token}` };
-                
+
                 // Fetch Profile, Reports, and Crops in parallel
                 const [profileRes, reportsRes, cropsRes] = await Promise.all([
                     fetch('/api/farmer/profile', { headers }),
                     fetch('/api/farmer/pest-reports', { headers }),
-                    fetch('/api/instructor/crop-calendars', { headers })
+                    fetch('/api/farmer/crop-calendars', { headers })
                 ]);
 
                 const [profileData, reportsData, cropsData] = await Promise.all([
@@ -61,7 +73,7 @@ const PestManagement = () => {
                 }
             } catch (error) {
                 console.error('Error fetching pest management data:', error);
-                showToast('Failed to load data', 'error');
+                showToast(t('common.loadError'), 'error');
                 // Fallback on error
                 setAvailableCrops(['Paddy', 'Chilli', 'Finger Millet', 'Maize', 'Soya Beans', 'Custom']);
             } finally {
@@ -79,7 +91,8 @@ const PestManagement = () => {
             ...prev,
             instructorDivision: selectedValue,
             assignedInstructor: selectedLoc ? selectedLoc.assignedInstructorName : '',
-            assignedInstructorId: selectedLoc ? (selectedLoc.assignedInstructorDbId || selectedLoc.assignedInstructorId) : ''
+            assignedInstructorId: selectedLoc ? (selectedLoc.assignedInstructorDbId || selectedLoc.assignedInstructorId) : '',
+            assignedInstructorDisplayId: selectedLoc ? (selectedLoc.assignedInstructorRefId || '') : ''
         }));
     };
 
@@ -89,28 +102,27 @@ const PestManagement = () => {
         const finalCropName = isCustom ? pestForm.customCropName : pestForm.pestCrop;
 
         if (!pestForm.pestType || !pestForm.pestName || !finalCropName || !pestForm.pestSeverity || !pestForm.instructorDivision) {
-            showToast('Please fill in all required fields', 'error');
+            showToast(t('common.fillRequired'), 'error');
             return;
         }
 
         try {
-            const token = localStorage.getItem('token');
+            const token = getAccessToken();
             const formData = new FormData();
             formData.append('issue_type', pestForm.pestType);
             formData.append('name', pestForm.pestName);
-            
+
             // Use custom crop name if 'Custom' is selected
             const finalCropName = pestForm.pestCrop === 'Custom' ? pestForm.customCropName : pestForm.pestCrop;
             formData.append('crop', finalCropName);
-            
+
             formData.append('severity', pestForm.pestSeverity);
             formData.append('description', pestForm.pestNotes);
             formData.append('instructor_division', pestForm.instructorDivision);
             formData.append('instructor_id', pestForm.assignedInstructorId);
 
-            const fileInput = document.querySelector('input[type="file"]');
-            if (fileInput && fileInput.files[0]) {
-                formData.append('attachment', fileInput.files[0]);
+            if (fileInputRef.current && fileInputRef.current.files[0]) {
+                formData.append('attachment', fileInputRef.current.files[0]);
             }
 
             const res = await fetch('/api/farmer/pest-reports', {
@@ -121,11 +133,9 @@ const PestManagement = () => {
                 body: formData
             });
 
-            console.log('Response status:', res.status);
             const data = await res.json();
-            console.log('Response data:', data);
             if (res.ok && data.success) {
-                showToast('Pest/disease report submitted successfully!');
+                showToast(t('pest.reportSubmitted'));
                 setPestForm({
                     pestType: '',
                     pestName: '',
@@ -135,7 +145,8 @@ const PestManagement = () => {
                     pestNotes: '',
                     instructorDivision: '',
                     assignedInstructor: '',
-                    assignedInstructorId: ''
+                    assignedInstructorId: '',
+                    assignedInstructorDisplayId: ''
                 });
                 // Refresh reports
                 const reportsRes = await fetch('/api/farmer/pest-reports', {
@@ -150,7 +161,7 @@ const PestManagement = () => {
             }
         } catch (error) {
             console.error('Error submitting pest report:', error);
-            showToast('Failed to submit report', 'error');
+            showToast(t('pest.submitError'), 'error');
         }
     };
 
@@ -158,263 +169,191 @@ const PestManagement = () => {
     const pendingReports = reports.filter(r => r.status.toLowerCase() === 'pending' || r.status.toLowerCase() === 'in_progress');
     const resolvedReports = reports.filter(r => r.status.toLowerCase() === 'resolved');
 
-    const renderReportDetails = (report) => (
-        <div className="instructor-detail-view" style={{ padding: '20px' }}>
-            <div className="instructor-detail-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h3 style={{ margin: 0 }}>{report.name} Report Details</h3>
-                <button className="btn btn-secondary" onClick={() => setSelectedReport(null)}>Close</button>
-            </div>
-
-            <div className="instructor-details-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-                <div className="instructor-detail-group">
-                    <p><strong>Reported Date:</strong> {new Date(report.created_at).toLocaleDateString()}</p>
-                    <p><strong>Issue Type:</strong> <span style={{ textTransform: 'capitalize' }}>{report.issue_type}</span></p>
-                    <p><strong>Affected Crop:</strong> <span style={{ textTransform: 'capitalize' }}>{report.crop}</span></p>
-                </div>
-                <div className="instructor-detail-group">
-                    <p><strong>Severity:</strong> <StatusBadge status={report.severity} type={report.severity.toLowerCase() === 'high' ? 'danger' : report.severity.toLowerCase() === 'medium' ? 'warning' : 'success'} /></p>
-                    <p><strong>Status:</strong> <StatusBadge status={report.status} type={report.status.toLowerCase() === 'pending' ? 'warning' : report.status.toLowerCase() === 'in_progress' ? 'info' : 'success'} /></p>
-                </div>
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-                <strong>Your Description:</strong>
-                <div className="instructor-description-box" style={{ padding: '15px', backgroundColor: '#f9f9f9', borderRadius: '8px', marginTop: '8px', border: '1px solid #eee' }}>
-                    {report.description}
-                </div>
-                {report.farmerFiles && report.farmerFiles.length > 0 && (
-                    <div style={{ marginTop: '15px' }}>
-                        <strong>Your Attachments:</strong>
-                        <div className="instructor-attachment-list" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '8px' }}>
-                            {report.farmerFiles.map((file, idx) => (
-                                <a
-                                    key={idx}
-                                    href={getDownloadUrl(file)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="instructor-attachment-item"
-                                    style={{ textDecoration: 'none', color: '#333', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', border: '1px solid #ddd', borderRadius: '4px', backgroundColor: '#fff' }}
-                                    download
-                                >
-                                    <i className="fas fa-image"></i>
-                                    <span>{getFriendlyFileName(file)}</span>
-                                </a>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {(report.status.toLowerCase() === 'resolved' || (report.status.toLowerCase() === 'in_progress' && report.resolution)) && (
-                <div className="instructor-action-section" style={{ borderTop: '2px solid #e8f5e9', paddingTop: '20px', marginTop: '20px' }}>
-                    <h4 style={{ color: '#2e7d32', marginTop: 0 }}>
-                        {report.status.toLowerCase() === 'resolved' ? "Instructor's Final Resolution" : "Instructor's Intermediate Advice"}
-                    </h4>
-                    <div className="instructor-history-box" style={{ padding: '15px', backgroundColor: '#f1f8e9', borderRadius: '8px', marginTop: '8px', border: '1px solid #c8e6c9' }}>
-                        {report.resolution || 'No notes provided yet.'}
-                    </div>
-                    {report.instructorFiles && report.instructorFiles.length > 0 && (
-                        <div style={{ marginTop: '15px' }}>
-                            <strong>Shared Documents:</strong>
-                            <div className="instructor-attachment-list" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '8px' }}>
-                                {report.instructorFiles.map((file, idx) => (
-                                    <a
-                                        key={idx}
-                                        href={getDownloadUrl(file)}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="instructor-attachment-item"
-                                        style={{ color: '#2e7d32', borderColor: '#c8e6c9', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', border: '1px solid #c8e6c9', borderRadius: '4px', backgroundColor: '#fff' }}
-                                        download
-                                    >
-                                        <i className="fas fa-file-alt"></i>
-                                        <span>{getFriendlyFileName(file)}</span>
-                                    </a>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
-        </div>
-    );
-
     return (
-        <div className="page active" id="pest" style={{ display: 'block' }}>
-            <div className="page-title">
+        <div className={`page active ${styles.pageDisplay}`} id="pest">
+            <div className={commonStyles.pageTitle}>
                 <i className="fas fa-bug"></i>
-                <h2>Pest Management</h2>
+                <h2>{t('pest.title')}</h2>
             </div>
 
-            <div className="cards-grid">
-                {/* Detail View */}
-                {selectedReport && (
-                    <div className="card full-width-card" style={{ border: '2px solid var(--primary)', marginBottom: '30px' }}>
-                        {renderReportDetails(selectedReport)}
+            <div className={commonStyles.cardsGrid}>
+                <div className={commonCardStyles.card}>
+                    <div className={commonCardStyles.cardHeader}>
+                        <div className={commonCardStyles.cardTitle}>{t('pest.report')}</div>
+                        <div className={commonCardStyles.cardIcon}><i className="fas fa-bug"></i></div>
                     </div>
-                )}
-
-                <div className="card">
-                    <div className="card-header">
-                        <div className="card-title">Report Pest/Disease</div>
-                        <div className="card-icon"><i className="fas fa-bug"></i></div>
-                    </div>
-                    <div className="card-content" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-                        <div className="form-group">
-                            <label>Issue Type</label>
+                    <div className={commonCardStyles.cardContent}>
+                        <div className={commonStyles.formGroup}>
+                            <label>{t('pest.issueType')}</label>
                             <select
-                                className="form-control"
+                                className={commonStyles.formControl}
                                 value={pestForm.pestType}
                                 onChange={(e) => setPestForm({ ...pestForm, pestType: e.target.value })}
                             >
-                                <option value="">Select type</option>
-                                <option value="pest">Pest</option>
-                                <option value="disease">Disease</option>
-                                <option value="other">Other</option>
+                                <option value="">{t('pest.selectType')}</option>
+                                <option value="pest">{t('pest.pest')}</option>
+                                <option value="disease">{t('pest.disease')}</option>
+                                <option value="other">{t('pest.other')}</option>
                             </select>
                         </div>
-                        <div className="form-group">
-                            <label>Issue Name</label>
+                        <div className={commonStyles.formGroup}>
+                            <label>{t('pest.issueName')}</label>
                             <input
                                 type="text"
-                                className="form-control"
-                                placeholder="Enter pest or disease name"
+                                className={commonStyles.formControl}
+                                placeholder={t('pest.issueNamePlaceholder')}
                                 value={pestForm.pestName}
                                 onChange={(e) => setPestForm({ ...pestForm, pestName: e.target.value })}
                             />
                         </div>
-                        <div className="form-group">
-                            <label>Affected Crop</label>
+                        <div className={commonStyles.formGroup}>
+                            <label>{t('pest.affectedCrop')}</label>
                             <select
-                                className="form-control"
+                                className={commonStyles.formControl}
                                 value={pestForm.pestCrop}
                                 onChange={(e) => setPestForm({ ...pestForm, pestCrop: e.target.value })}
                             >
-                                <option value="">Select a crop...</option>
+                                <option value="">{t('pest.selectCropOption')}</option>
                                 {availableCrops.map(option => (
                                     <option key={option} value={option}>{option}</option>
                                 ))}
                             </select>
                         </div>
                         {pestForm.pestCrop === 'Custom' && (
-                            <div className="form-group">
-                                <label>Custom Crop Name</label>
+                            <div className={commonStyles.formGroup}>
+                                <label>{t('pest.customCrop')}</label>
                                 <input
                                     type="text"
-                                    className="form-control"
-                                    placeholder="Enter custom crop name"
+                                    className={commonStyles.formControl}
+                                    placeholder={t('pest.customCropPlaceholder')}
                                     value={pestForm.customCropName}
                                     onChange={(e) => setPestForm({ ...pestForm, customCropName: e.target.value })}
                                 />
                             </div>
                         )}
-                        <div className="form-group">
-                            <label>Instructor Division (Select from your registered lands)</label>
+                        <div className={commonStyles.formGroup}>
+                            <label>{t('pest.instructorDiv')}</label>
                             <select
-                                className="form-control"
+                                className={commonStyles.formControl}
                                 value={pestForm.instructorDivision}
                                 onChange={handleInstructorDivisionChange}
                             >
-                                <option value="">Select a field...</option>
+                                <option value="">{t('pest.selectField')}</option>
                                 {locations.map(loc => (
                                     <option key={loc.id} value={`${loc.zone} - ${loc.instructorDivision}`}>
-                                        {loc.zone} - {loc.instructorDivision}
+                                        {loc.instructorDivision}
                                     </option>
                                 ))}
                             </select>
                         </div>
-                        <div className="form-group">
-                            <label>Assigned Instructor</label>
+                        <div className={commonStyles.formGroup}>
+                            <label>{t('pest.assignedInstructor')}</label>
                             <input
                                 type="text"
-                                className="form-control"
+                                className={`${commonStyles.formControl} ${styles.readonlyInput}`}
                                 value={pestForm.assignedInstructor}
                                 readOnly
-                                placeholder="Instructor will be assigned automatically"
-                                style={{ backgroundColor: '#e9ecef', cursor: 'not-allowed' }}
+                                placeholder={t('pest.autoAssign')}
                             />
                         </div>
-                        <div className="form-group">
-                            <label>Instructor ID</label>
+                        <div className={commonStyles.formGroup}>
+                            <label>{t('pest.instructorId')}</label>
                             <input
                                 type="text"
-                                className="form-control"
-                                value={pestForm.assignedInstructorId}
+                                className={`${commonStyles.formControl} ${styles.readonlyInput}`}
+                                value={pestForm.assignedInstructorDisplayId}
                                 readOnly
-                                placeholder="Instructor ID will be assigned automatically"
-                                style={{ backgroundColor: '#e9ecef', cursor: 'not-allowed' }}
+                                placeholder={t('pest.autoAssignId')}
                             />
                         </div>
-                        <div className="form-group">
-                            <label>Severity</label>
+                        <div className={commonStyles.formGroup}>
+                            <label>{t('pest.severity')}</label>
                             <select
-                                className="form-control"
+                                className={commonStyles.formControl}
                                 value={pestForm.pestSeverity}
                                 onChange={(e) => setPestForm({ ...pestForm, pestSeverity: e.target.value })}
                             >
-                                <option value="">Select severity</option>
-                                <option value="low">Low</option>
-                                <option value="medium">Medium</option>
-                                <option value="high">High</option>
+                                <option value="">{t('pest.selectSeverity')}</option>
+                                <option value="low">{t('pest.lowSeverity')}</option>
+                                <option value="medium">{t('pest.medSeverity')}</option>
+                                <option value="high">{t('pest.highSeverity')}</option>
                             </select>
                         </div>
-                        <div className="form-group">
-                            <label>Description</label>
+                        <div className={commonStyles.formGroup}>
+                            <label>{t('pest.description')}</label>
                             <textarea
-                                className="form-control"
-                                placeholder="Describe the issue, symptoms, and affected areas..."
+                                className={commonStyles.formControl}
+                                placeholder={t('pest.descriptionPlaceholder')}
                                 rows="4"
                                 value={pestForm.pestNotes}
                                 onChange={(e) => setPestForm({ ...pestForm, pestNotes: e.target.value })}
                             />
                         </div>
-                        <div className="form-group">
-                            <label>Attach Image</label>
-                            <div className="file-upload">
-                                <input type="file" className="form-control" accept="image/*" />
-                                <small className="file-hint">Upload image of the pest or disease (optional)</small>
+                        <div className={commonStyles.formGroup}>
+                            <label>{t('pest.attachImage')}</label>
+                            <div className={styles.fileUpload}>
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    className={commonStyles.formControl}
+                                    accept="image/jpeg,image/png,image/gif,image/webp"
+                                    onChange={(e) => {
+                                        const file = e.target.files[0];
+                                        if (!file) return;
+                                        if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+                                            showToast(t('pest.invalidImageType'), 'error');
+                                            e.target.value = '';
+                                            return;
+                                        }
+                                        if (file.size > MAX_ATTACHMENT_SIZE) {
+                                            showToast(t('pest.imageSizeError'), 'error');
+                                            e.target.value = '';
+                                        }
+                                    }}
+                                />
+                                <small className={styles.fileHint}>{t('pest.uploadImageHint')}</small>
                             </div>
                         </div>
-                        <button className="btn btn-primary" onClick={handlePestSubmit}>
+                        <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnPrimary}`} onClick={handlePestSubmit}>
                             <i className="fas fa-paper-plane"></i> Submit Report
                         </button>
                     </div>
                 </div>
 
                 {/* Submitted Reports Card */}
-                <div className="card wider-card">
-                    <div className="card-header">
-                        <div className="card-title">Submitted Reports</div>
-                        <div className="card-icon"><i className="fas fa-clipboard-list"></i></div>
+                <div className={`${commonCardStyles.card} ${commonStyles.widerCard}`}>
+                    <div className={commonCardStyles.cardHeader}>
+                        <div className={commonCardStyles.cardTitle}>{t('pest.activeReports')}</div>
+                        <div className={commonCardStyles.cardIcon}><i className="fas fa-clipboard-list"></i></div>
                     </div>
-                    <div className="card-content" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-                        <div className="reports-list">
+                    <div className={`${commonCardStyles.cardContent} ${styles.scrollableContent}`}>
+                        <div className={styles.reportsList}>
                             {pendingReports.length > 0 ? pendingReports.map((report, index) => (
-                                <div className="report-item" key={report.id || index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '15px', borderBottom: '1px solid #eee' }}>
-                                    <div className="report-info" style={{ flex: '1' }}>
-                                        <div className="report-header">
+                                <div className={`report-item ${styles.reportItem}`} key={report.id || index}>
+                                    <div className={`report-info ${styles.reportInfo}`}>
+                                        <div className={styles.reportHeader}>
                                             <h4>{report.name}</h4>
                                         </div>
-                                        <div className="report-details">
-                                            <p><strong>Type:</strong> {report.issue_type}</p>
-                                            <p><strong>Affected Crop:</strong> {report.crop}</p>
-                                            <p><strong>Severity:</strong> <StatusBadge status={report.severity} type={report.severity === 'High' ? 'danger' : report.severity === 'Medium' ? 'warning' : 'success'} /></p>
+                                        <div className={styles.reportDetails}>
+                                            <p><strong>{t('pest.typeLabel')}</strong> {report.issue_type}</p>
+                                            <p><strong>{t('pest.affectedCropLabel')}</strong> {report.crop}</p>
+                                            <p><strong>{t('pest.severityLabel')}</strong> <FarmerStatusBadge status={report.severity} type={report.severity === 'High' ? 'danger' : report.severity === 'Medium' ? 'warning' : 'success'} /></p>
                                             <p>{report.description}</p>
                                         </div>
                                     </div>
-                                    <div className="report-side">
-                                        <StatusBadge status={report.status} type={report.status === 'pending' ? 'warning' : 'success'} />
-                                        <div className="report-bottom">
-                                            <span className="report-date">{new Date(report.created_at).toLocaleDateString()}</span>
-                                            <div className="report-actions">
-                                                <button className="btn btn-primary" onClick={() => setSelectedReport(report)}>View</button>
+                                    <div className={styles.reportSide}>
+                                        <FarmerStatusBadge status={report.status} type={report.status === 'pending' ? 'warning' : 'success'} />
+                                        <div className={styles.reportBottom}>
+                                            <span className={styles.reportDate}>{new Date(report.created_at).toLocaleDateString()}</span>
+                                            <div className={styles.reportActions}>
+                                                <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnPrimary}`} onClick={() => { setSelectedReport(report); document.body.style.overflow = 'hidden'; }}>{t('pest.viewBtn')}</button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             )) : (
-                                <div style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
-                                    No pending reports
+                                <div className={styles.emptyState}>
+                                    {t('pest.noActive')}
                                 </div>
                             )}
                         </div>
@@ -422,40 +361,153 @@ const PestManagement = () => {
                 </div>
 
                 {/* Reviewed Reports Card */}
-                <div className="card full-width-card">
-                    <div className="card-header">
-                        <div className="card-title">Reviewed Reports</div>
-                        <div className="card-icon"><i className="fas fa-check-circle"></i></div>
+                <div className={`${commonCardStyles.card} ${commonStyles.fullWidthCard}`}>
+                    <div className={commonCardStyles.cardHeader}>
+                        <div className={commonCardStyles.cardTitle}>{t('pest.resolvedReports')}</div>
+                        <div className={commonCardStyles.cardIcon}><i className="fas fa-circle-check"></i></div>
                     </div>
-                    <div className="card-content">
-                        <div className="reviewed-reports-grid">
+                    <div className={`${commonCardStyles.cardContent} ${styles.scrollableContent}`}>
+                        <div className={styles.reportsList}>
                             {resolvedReports.length > 0 ? resolvedReports.map((report, index) => (
-                                <div className="reviewed-report-item" key={report.id || index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '15px', borderBottom: '1px solid #eee' }}>
-                                    <div className="report-info" style={{ flex: '1' }}>
-                                        <div className="report-header">
+                                <div className={`report-item ${styles.reportItem}`} key={report.id || index}>
+                                    <div className={`report-info ${styles.reportInfo}`}>
+                                        <div className={styles.reportHeader}>
                                             <h4>{report.name}</h4>
-                                            <span className="report-date">{new Date(report.created_at).toLocaleDateString()}</span>
                                         </div>
-                                        <div className="report-details">
-                                            <p><strong>Type:</strong> {report.issue_type}</p>
-                                            <p><strong>Affected Crop:</strong> {report.crop}</p>
-                                            <p><strong>Severity:</strong> <StatusBadge status={report.severity} type={report.severity === 'High' ? 'danger' : report.severity === 'Medium' ? 'warning' : 'success'} /></p>
+                                        <div className={styles.reportDetails}>
+                                            <p><strong>{t('pest.typeLabel')}</strong> {report.issue_type}</p>
+                                            <p><strong>{t('pest.affectedCropLabel')}</strong> {report.crop}</p>
+                                            <p><strong>{t('pest.severityLabel')}</strong> <FarmerStatusBadge status={report.severity} type={report.severity === 'High' ? 'danger' : report.severity === 'Medium' ? 'warning' : 'success'} /></p>
                                         </div>
                                     </div>
-                                    <div className="reviewed-report-side">
-                                        <StatusBadge status={report.status} type={report.status === 'resolved' ? 'success' : 'warning'} />
-                                        <button className="btn btn-primary" onClick={() => setSelectedReport(report)}>View Details</button>
+                                    <div className={styles.reportSide}>
+                                        <FarmerStatusBadge status={report.status} type="success" />
+                                        <div className={styles.reportBottom}>
+                                            <span className={styles.reportDate}>{new Date(report.created_at).toLocaleDateString()}</span>
+                                            <div className={styles.reportActions}>
+                                                <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnPrimary}`} onClick={() => { setSelectedReport(report); document.body.style.overflow = 'hidden'; }}>{t('pest.viewDetails')}</button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             )) : (
-                                <div style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
-                                    No reviewed reports
+                                <div className={styles.emptyState}>
+                                    {t('pest.noResolved')}
                                 </div>
                             )}
                         </div>
                     </div>
                 </div>
             </div>
+
+            {selectedReport && (
+                <div className={styles.viewModalOverlay} onClick={() => { setSelectedReport(null); document.body.style.overflow = 'auto'; }}>
+                    <div className={styles.viewModalContent} onClick={e => e.stopPropagation()}>
+                        <div className={styles.viewModalHeader}>
+                            <h3 className={styles.viewModalTitle}>
+                                <i className={`fas fa-bug ${styles.viewModalTitleIcon}`}></i>
+                                {selectedReport.name} Report Details
+                            </h3>
+                            <button
+                                onClick={() => { setSelectedReport(null); document.body.style.overflow = 'auto'; }}
+                                className={styles.viewModalCloseBtn}
+                            >
+                                <i className="fas fa-xmark"></i>
+                            </button>
+                        </div>
+                        <div className={styles.viewModalBody}>
+                            <div className={styles.viewModalGrid}>
+                                <div>
+                                    <h4 className={styles.viewModalSectionTitle}>{t('pest.modalReportInfo')}</h4>
+                                    <div className={styles.viewModalInfoList}>
+                                        <p className={styles.viewModalInfoItem}><strong>{t('pest.reportedDate')}:</strong> {new Date(selectedReport.created_at).toLocaleDateString()}</p>
+                                        <p className={styles.viewModalInfoItem}><strong>{t('pest.modalIssueType')}:</strong> <span className={styles.capitalize}>{selectedReport.issue_type}</span></p>
+                                        <p className={styles.viewModalInfoItem}><strong>{t('pest.modalAffectedCrop')}:</strong> <span className={styles.capitalize}>{selectedReport.crop}</span></p>
+                                        <p className={styles.viewModalInfoItem}><strong>{t('pest.modalSeverity')}:</strong>&nbsp;
+                                            <FarmerStatusBadge status={selectedReport.severity} type={selectedReport.severity?.toLowerCase() === 'high' ? 'danger' : selectedReport.severity?.toLowerCase() === 'medium' ? 'warning' : 'success'} />
+                                        </p>
+                                        <p className={styles.viewModalInfoItem}><strong>{t('pest.modalStatus')}:</strong>&nbsp;
+                                            <FarmerStatusBadge status={selectedReport.status} type={selectedReport.status?.toLowerCase() === 'pending' ? 'warning' : selectedReport.status?.toLowerCase() === 'in_progress' ? 'info' : 'success'} />
+                                        </p>
+                                        {selectedReport.location && (
+                                            <p className={styles.viewModalInfoItem}><strong>{t('pest.modalLocation')}:</strong> {selectedReport.location}</p>
+                                        )}
+                                        {(selectedReport.instructor_name || selectedReport.instructor_display_id) && (
+                                            <p className={styles.viewModalInfoItem}><strong>{t('pest.modalInstructor')}:</strong> {selectedReport.instructor_name}{selectedReport.instructor_display_id ? ` (${selectedReport.instructor_display_id})` : ''}</p>
+                                        )}
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4 className={styles.viewModalSectionTitle}>{t('pest.yourDesc')}</h4>
+                                    <div className={styles.viewModalNotes}>
+                                        {selectedReport.description || t('pest.noDesc')}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {selectedReport.farmerFiles && selectedReport.farmerFiles.length > 0 && (
+                                <div className={styles.viewModalAttachmentsSection}>
+                                    <h4 className={styles.viewModalSectionTitle}>{t('pest.yourAttachments')}</h4>
+                                    <div className={styles.attachmentList}>
+                                        {selectedReport.farmerFiles.map((file, idx) => (
+                                            <a
+                                                key={idx}
+                                                href={getDownloadUrl(file)}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className={styles.attachmentItemFarmer}
+                                                download
+                                            >
+                                                <i className={`fas ${file.toLowerCase().endsWith('.pdf') ? 'fa-file-pdf' : (file.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/) ? 'fa-file-image' : 'fa-file')}`}></i>
+                                                <span>{selectedReport.farmerFileNames?.[idx] || getFriendlyFileName(file)}</span>
+                                            </a>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {(selectedReport.status?.toLowerCase() === 'resolved' || (selectedReport.status?.toLowerCase() === 'in_progress' && selectedReport.resolution)) && (
+                                <div className={styles.viewModalFeedbackContainer}>
+                                    <h4 className={styles.feedbackSectionTitle}>
+                                        {selectedReport.status?.toLowerCase() === 'resolved' ? t('pest.instructorFinalResolution') : t('pest.instructorAdvice')}
+                                    </h4>
+                                    <div className={`${styles.feedbackContent} ${selectedReport.status?.toLowerCase() === 'resolved' ? styles.feedbackResolved : styles.feedbackInProgress}`}>
+                                        <p className={styles.feedbackText}>"{selectedReport.resolution || t('pest.noNotes')}"</p>
+                                    </div>
+                                    {selectedReport.instructorFiles && selectedReport.instructorFiles.length > 0 && (
+                                        <div className={styles.viewModalAttachmentsSection}>
+                                            <h4 className={styles.viewModalSectionTitle}>{t('pest.sharedDocs')}</h4>
+                                            <div className={styles.attachmentList}>
+                                                {selectedReport.instructorFiles.map((file, idx) => (
+                                                    <a
+                                                        key={idx}
+                                                        href={getDownloadUrl(file)}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className={styles.instructorAttachmentItem}
+                                                        download
+                                                    >
+                                                        <i className={`fas ${file.toLowerCase().endsWith('.pdf') ? 'fa-file-pdf' : (file.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/) ? 'fa-file-image' : 'fa-file')}`}></i>
+                                                        <span>{selectedReport.instructorFileNames?.[idx] || getFriendlyFileName(file)}</span>
+                                                    </a>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                        <div className={styles.viewModalFooter}>
+                            <button
+                                className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSecondary}`}
+                                onClick={() => { setSelectedReport(null); document.body.style.overflow = 'auto'; }}
+                            >
+                                {t('common.close')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

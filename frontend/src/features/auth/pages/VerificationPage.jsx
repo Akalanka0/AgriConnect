@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import '../styles/VerificationPage.css';
+import styles from '../styles/VerificationPage.module.css';
+import { useTranslation } from 'react-i18next';
 
 const VerificationPage = () => {
+    const { t } = useTranslation('auth');
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -15,6 +17,7 @@ const VerificationPage = () => {
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
     const [sending, setSending] = useState(false);
+    const otpRefs = useRef([]);
 
     const sendOtp = async (targetEmail) => {
         const effectiveEmail = (targetEmail ?? email).trim();
@@ -38,7 +41,7 @@ const VerificationPage = () => {
             if (!response.ok || !data.success) {
                 throw new Error(data?.error?.message || 'Failed to send verification code');
             }
-            
+
             // For demo accounts, show a professional message without exposing OTP
             if (data.demo) {
                 setMessage('Verification code sent to your email (Demo Account)');
@@ -97,15 +100,13 @@ const VerificationPage = () => {
         setOtp(next);
 
         if (value && index < 5) {
-            const nextInput = document.getElementById(`email-otp-${index + 1}`);
-            if (nextInput) nextInput.focus();
+            otpRefs.current[index + 1]?.focus();
         }
     };
 
     const handleOtpKeyDown = (index, e) => {
         if (e.key === 'Backspace' && !otp[index] && index > 0) {
-            const prevInput = document.getElementById(`email-otp-${index - 1}`);
-            if (prevInput) prevInput.focus();
+            otpRefs.current[index - 1]?.focus();
         }
     };
 
@@ -116,115 +117,116 @@ const VerificationPage = () => {
     }, [queryEmail]);
 
     return (
-        <div className="verification-container">
-            <div className="verification-card">
+        <div className={styles.verificationContainer}>
+            <div className={styles.verificationCard}>
                 {/* Header Section */}
-                <div className="verification-header">
-                    <div className="verification-icon">
+                <div className={styles.verificationHeader}>
+                    <div className={styles.verificationIcon}>
                         <i className="fas fa-envelope-open-text"></i>
                     </div>
-                    <h2>Verify Your Account</h2>
-                    <p>Thank you for registering! Please check your email and enter the verification code below.</p>
+                    <h2>{t('verificationPage.title')}</h2>
+                    <p>{t('verificationPage.subtitle')}</p>
                 </div>
 
                 {/* Status Message */}
                 {message && (
-                    <div className={`message-box ${message.includes('Demo account') ? 'demo-message' : message.includes('successfully') ? 'success-message' : 'info-message'}`}>
-                        <i className={`fas ${message.includes('Demo account') ? 'fa-magic' : message.includes('successfully') ? 'fa-check-circle' : 'fa-info-circle'}`}></i>
+                    <div className={`${styles.messageBox} ${message.includes('Demo Account') ? styles.demoMessage : message.includes('successfully') ? styles.successMessage : styles.infoMessage}`}>
+                        <i className={`fas ${message.includes('Demo Account') ? 'fa-wand-magic-sparkles' : message.includes('successfully') ? 'fa-circle-check' : 'fa-circle-info'}`}></i>
                         {message}
                     </div>
                 )}
 
                 {/* Email Section */}
-                <div className="email-section">
-                    <label className="section-label">
+                <div className={styles.emailSection}>
+                    <label className={styles.sectionLabel}>
                         <i className="fas fa-envelope"></i>
-                        Email Address
+                        {t('verificationPage.emailLabel')}
                     </label>
-                    <div className="input-group">
+                    <div className={styles.inputGroup}>
                         <input
                             type="email"
-                            placeholder="Enter your email address"
+                            placeholder={t('verificationPage.emailPlaceholder')}
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="email-input"
+                            className={styles.emailInput}
                         />
-                        <div className="input-icon">
+                        <div className={styles.inputIcon}>
                             <i className="fas fa-envelope"></i>
                         </div>
                     </div>
                 </div>
 
                 {/* OTP Section */}
-                <div className="otp-section">
-                    <label className="section-label">
+                <div className={styles.otpSection}>
+                    <label className={styles.sectionLabel}>
                         <i className="fas fa-key"></i>
-                        Verification Code
+                        {t('verificationPage.verificationCode')}
                     </label>
-                    <p className="section-description">We&apos;ve sent a 6-digit verification code to your email. Please enter it below.</p>
-                    
-                    <div className="otp-inputs-container">
+                    <p className={styles.sectionDescription}>{t('verificationPage.codeDescription')}</p>
+
+                    <div className={styles.otpInputsContainer}>
                         {otp.map((digit, index) => (
-                            <div key={index} className="otp-input-wrapper">
+                            <div key={index} className={styles.otpInputWrapper}>
                                 <input
+                                    ref={el => otpRefs.current[index] = el}
                                     id={`email-otp-${index}`}
                                     type="text"
                                     maxLength="1"
                                     value={digit}
                                     onChange={(e) => handleOtpChange(index, e.target.value)}
                                     onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                                    className="otp-input"
+                                    className={styles.otpInput}
                                     placeholder="0"
                                 />
-                                <div className="otp-input-line"></div>
+                                <div className={styles.otpInputLine}></div>
                             </div>
                         ))}
                     </div>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="action-buttons">
-                    <button 
-                        className="verify-btn" 
-                        onClick={verifyOtp} 
+                <div className={styles.actionButtons}>
+                    <button
+                        className={styles.verifyBtn}
+                        onClick={verifyOtp}
                         disabled={loading || otp.join('').length < 6}
                     >
                         {loading ? (
                             <>
                                 <i className="fas fa-spinner fa-spin"></i>
-                                Verifying...
+                                {t('verificationPage.verifying')}
                             </>
                         ) : (
                             <>
-                                <i className="fas fa-check-circle"></i>
-                                Verify Email
+                                <i className="fas fa-circle-check"></i>
+                                {t('verificationPage.verifyEmail')}
                             </>
                         )}
                     </button>
-                    
-                    <button 
-                        className="resend-btn" 
-                        onClick={() => sendOtp(email)} 
+
+                    <button
+                        className={styles.resendBtn}
+                        onClick={() => sendOtp(email)}
                         disabled={sending}
                     >
                         {sending ? (
                             <>
                                 <i className="fas fa-spinner fa-spin"></i>
-                                Sending...
+                                {t('verificationPage.sending')}
                             </>
                         ) : (
                             <>
                                 <i className="fas fa-redo"></i>
-                                Resend Code
+                                {t('verificationPage.resendCode')}
                             </>
                         )}
                     </button>
                 </div>
                 {/* Footer Section */}
-                <div className="verification-footer">
-                    <div className="expiration-note">
+                <div className={styles.verificationFooter}>
+                    <div className={styles.expirationNote}>
                         <i className="fas fa-clock"></i>
-                        <span>Verification codes expire after 10 minutes.</span>
+                        <span>{t('verificationPage.expiry')}</span>
                     </div>
                 </div>
             </div>

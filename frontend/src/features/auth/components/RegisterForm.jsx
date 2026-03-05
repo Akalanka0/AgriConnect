@@ -1,5 +1,6 @@
-import React from 'react';
 import PropTypes from 'prop-types';
+import styles from '../styles/Login.module.css';
+import { useTranslation } from 'react-i18next';
 
 const RegisterForm = ({
     role,
@@ -16,6 +17,7 @@ const RegisterForm = ({
     loading,
     setIsLogin
 }) => {
+    const { t } = useTranslation('auth');
     // Demo data autofill function
     const fillDemoData = () => {
         const demoData = {
@@ -27,17 +29,13 @@ const RegisterForm = ({
             phone: role === 'farmer' ? '0712345678' : '0718765432',
         };
 
-        // Cycle through demo IDs
         const farmerIds = ['FARM-2025-0001'];
         const instructorIds = ['INST-2026-0001'];
-        
-        // Use current time to cycle through IDs (changes every minute)
-        const minuteIndex = 0; // Fixed to 0 since we only have one reusable ID now
-        
+
         if (role === 'farmer') {
-            demoData.farmerId = farmerIds[minuteIndex];
+            demoData.farmerId = farmerIds[0];
         } else if (role === 'instructor') {
-            demoData.instructorId = instructorIds[minuteIndex];
+            demoData.instructorId = instructorIds[0];
         }
 
         setRegisterData(demoData);
@@ -46,98 +44,98 @@ const RegisterForm = ({
 
     return (
         <div>
-            <div className="login-header">
-                <h2>Create Account</h2>
+            <div className={styles.loginHeader}>
+                <h2>{t('register.title')}</h2>
             </div>
             <form onSubmit={handleRegisterSubmit}>
-                <div className="role-selector">
+                <div className={styles.roleSelector}>
                     <button
                         type="button"
-                        className={`role-btn farmer ${role === 'farmer' ? 'active' : ''}`}
+                        className={`${styles.roleBtn} ${styles.farmerBtn} ${role === 'farmer' ? styles.active : ''}`}
                         onClick={() => setRole('farmer')}
                     >
                         <i className="fas fa-seedling"></i>
-                        <div>Farmer</div>
+                        <div>{t('register.farmer')}</div>
                     </button>
                     <button
                         type="button"
-                        className={`role-btn instructor ${role === 'instructor' ? 'active' : ''}`}
+                        className={`${styles.roleBtn} ${styles.instructorBtn} ${role === 'instructor' ? styles.active : ''}`}
                         onClick={() => setRole('instructor')}
                     >
                         <i className="fas fa-chalkboard-teacher"></i>
-                        <div>Instructor</div>
+                        <div>{t('register.instructor')}</div>
                     </button>
                 </div>
 
-                <div className={`form-group ${errors.fullName ? 'error' : ''}`}>
+                <div className={`${styles.formGroup} ${errors.fullName ? styles.error : ''}`}>
                     <input
                         type="text"
                         value={registerData.fullName}
                         onChange={(e) => setRegisterData({ ...registerData, fullName: e.target.value })}
-                        placeholder="Full Name"
+                        placeholder={t('register.fullName')}
                     />
-                    {errors.fullName && <div className="validation-message">{errors.fullName}</div>}
+                    {errors.fullName && <div className={styles.validationMessage}>{errors.fullName}</div>}
                 </div>
 
-                <div className={`form-group ${errors.email ? 'error' : ''}`}>
+                <div className={`${styles.formGroup} ${errors.email ? styles.error : ''}`}>
                     <input
                         type="email"
                         value={registerData.email}
                         onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
-                        placeholder="Email Address"
+                        placeholder={t('register.email')}
                     />
-                    {errors.email && <div className="validation-message">{errors.email}</div>}
+                    {errors.email && <div className={styles.validationMessage}>{errors.email}</div>}
                 </div>
 
-                <div className={`form-group ${errors.nic ? 'error' : ''}`}>
+                <div className={`${styles.formGroup} ${errors.nic ? styles.error : ''}`}>
                     <input
                         type="text"
                         value={registerData.nic}
                         onChange={(e) => setRegisterData({ ...registerData, nic: e.target.value })}
-                        placeholder="NIC Number"
+                        placeholder={t('register.nic')}
                     />
-                    {errors.nic && <div className="validation-message">{errors.nic}</div>}
+                    {errors.nic && <div className={styles.validationMessage}>{errors.nic}</div>}
                 </div>
 
-                <div className={`form-group ${errors.phone ? 'error' : ''}`}>
+                <div className={`${styles.formGroup} ${errors.phone ? styles.error : ''}`}>
                     <input
                         type="tel"
                         value={registerData.phone}
                         onChange={(e) => setRegisterData({ ...registerData, phone: e.target.value })}
-                        placeholder="Phone Number"
+                        placeholder={t('register.phone')}
                     />
-                    {errors.phone && <div className="validation-message">{errors.phone}</div>}
+                    {errors.phone && <div className={styles.validationMessage}>{errors.phone}</div>}
                 </div>
 
                 {role === 'farmer' && (
                     <>
-                        <div className={`form-group ${errors.farmerId ? 'error' : ''}`}>
+                        <div className={`${styles.formGroup} ${errors.farmerId ? styles.error : ''}`}>
                             <input
                                 type="text"
                                 value={registerData.farmerId}
                                 onChange={(e) => setRegisterData({ ...registerData, farmerId: e.target.value })}
-                                placeholder="Farmer ID"
+                                placeholder={t('register.farmerId')}
                             />
-                            {errors.farmerId && <div className="validation-message">{errors.farmerId}</div>}
-                            <div className="info-text">Provided by Department of Agriculture</div>
+                            {errors.farmerId && <div className={styles.validationMessage}>{errors.farmerId}</div>}
+                            <div className={styles.infoText}>{t('register.idNote')}</div>
                         </div>
                     </>
                 )}
 
                 {role === 'instructor' && (
-                    <div className={`form-group ${errors.instructorId ? 'error' : ''}`}>
+                    <div className={`${styles.formGroup} ${errors.instructorId ? styles.error : ''}`}>
                         <input
                             type="text"
                             value={registerData.instructorId}
                             onChange={(e) => setRegisterData({ ...registerData, instructorId: e.target.value })}
-                            placeholder="Instructor ID"
+                            placeholder={t('register.instructorId')}
                         />
-                        {errors.instructorId && <div className="validation-message">{errors.instructorId}</div>}
-                        <div className="info-text">Provided by Department of Agriculture</div>
+                        {errors.instructorId && <div className={styles.validationMessage}>{errors.instructorId}</div>}
+                        <div className={styles.infoText}>{t('register.idNote')}</div>
                     </div>
                 )}
 
-                <div className={`form-group ${errors.password ? 'error' : ''}`}>
+                <div className={`${styles.formGroup} ${errors.password ? styles.error : ''}`}>
                     <input
                         type={showPassword.register ? 'text' : 'password'}
                         value={registerData.password}
@@ -145,56 +143,56 @@ const RegisterForm = ({
                             setRegisterData({ ...registerData, password: e.target.value });
                             setPasswordStrength(checkPasswordStrength(e.target.value));
                         }}
-                        placeholder="Password"
+                        placeholder={t('register.password')}
                     />
                     <button
                         type="button"
-                        className="password-toggle"
+                        className={styles.passwordToggle}
                         onClick={() => setShowPassword({ ...showPassword, register: !showPassword.register })}
                     >
                         <i className={`fas fa-eye${showPassword.register ? '-slash' : ''}`}></i>
                     </button>
-                    <div className={`password-strength ${passwordStrength}`}>
-                        <div className="password-strength-bar"></div>
+                    <div className={`${styles.passwordStrength} ${passwordStrength}`}>
+                        <div className={styles.passwordStrengthBar}></div>
                     </div>
-                    {errors.password && <div className="validation-message">{errors.password}</div>}
+                    {errors.password && <div className={styles.validationMessage}>{errors.password}</div>}
                 </div>
 
-                <div className={`form-group ${errors.confirmPassword ? 'error' : ''}`}>
+                <div className={`${styles.formGroup} ${errors.confirmPassword ? styles.error : ''}`}>
                     <input
                         type={showPassword.confirm ? 'text' : 'password'}
                         value={registerData.confirmPassword}
                         onChange={(e) => setRegisterData({ ...registerData, confirmPassword: e.target.value })}
-                        placeholder="Confirm Password"
+                        placeholder={t('register.confirmPassword')}
                     />
                     <button
                         type="button"
-                        className="password-toggle"
+                        className={styles.passwordToggle}
                         onClick={() => setShowPassword({ ...showPassword, confirm: !showPassword.confirm })}
                     >
                         <i className={`fas fa-eye${showPassword.confirm ? '-slash' : ''}`}></i>
                     </button>
-                    {errors.confirmPassword && <div className="validation-message">{errors.confirmPassword}</div>}
+                    {errors.confirmPassword && <div className={styles.validationMessage}>{errors.confirmPassword}</div>}
                 </div>
 
-                <button type="submit" className="action-btn" disabled={loading}>
-                    <span>{loading ? 'Creating...' : 'Create Account'}</span>
-                    {loading && <div className="loading"></div>}
+                <button type="submit" className={styles.actionBtn} disabled={loading}>
+                    <span>{loading ? t('register.creating') : t('register.createAccount')}</span>
+                    {loading && <div className={styles.loading}></div>}
                 </button>
-                
+
                 {/* Quick Demo Button */}
-                <button 
-                    type="button" 
-                    className="demo-btn" 
+                <button
+                    type="button"
+                    className={styles.demoBtn}
                     onClick={fillDemoData}
                     disabled={loading}
                 >
-                    <i className="fas fa-magic"></i>
-                    Quick Demo - {role === 'farmer' ? 'Farmer' : 'Instructor'}
+                    <i className="fas fa-wand-magic-sparkles"></i>
+                    {role === 'farmer' ? t('register.quickDemoFarmer') : t('register.quickDemoInstructor')}
                 </button>
-                
-                <div className="switch-form">
-                    <p>Already have an account? <a onClick={() => setIsLogin(true)}>Sign in</a></p>
+
+                <div className={styles.switchForm}>
+                    <p>{t('register.haveAccount')} <a onClick={() => setIsLogin(true)}>{t('register.signIn')}</a></p>
                 </div>
             </form>
         </div>

@@ -1,0 +1,442 @@
+/* Weather.module.css */
+
+/* Import semantic color system */
+@import url('../../../shared/semantic-colors.css');
+
+.loadingContainer {
+  text-align: center;
+  padding: var(--space-2xl);
+}
+
+.spinnerIcon {
+  font-size: 3em;
+  color: var(--color-primary);
+}
+
+.loadingText {
+  margin-top: var(--space-md);
+}
+
+.mainPage {
+  display: block;
+}
+
+.pageTitle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.titleLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.timeDisplay {
+  text-align: right;
+  margin-left: auto;
+  background: var(--neutral-white);
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-primary-light);
+}
+
+.currentTime {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--color-primary-hover);
+  letter-spacing: 1px;
+}
+
+.currentDate {
+  font-size: 0.85em;
+  color: var(--gray);
+  font-weight: 500;
+}
+
+.locationCard {
+  margin-bottom: var(--space-lg);
+  padding: var(--space-lg);
+  text-align: center;
+}
+
+.locationLabel {
+  margin-bottom: var(--space-md);
+  font-size: 1.1em;
+  color: var(--gray);
+  font-weight: 600;
+}
+
+.locationIcon {
+  margin-right: var(--space-sm);
+  color: var(--primary);
+}
+
+.locationSelectContainer {
+  display: flex;
+  justify-content: center;
+}
+
+.locationSelect {
+    max-width: 350px;
+    padding: var(--space-md) var(--space-lg);
+    border-radius: var(--radius-md);
+    border: 2px solid var(--color-primary-light);
+    font-size: var(--text-lg);
+    cursor: pointer;
+    background-color: var(--neutral-100);
+    box-shadow: var(--shadow-sm);
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%222e7d32%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    background-size: 18px;
+    text-align: center;
+}
+
+.weatherCardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--space-md);
+}
+
+.locationInfo {
+    text-align: left;
+}
+
+.locationName {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  margin-bottom: var(--space-xs);
+}
+
+.dayNightBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    background: var(--neutral-white);
+    opacity: 1;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-xl);
+    font-size: var(--text-sm);
+}
+
+.dayNightIcon {
+  color: var(--state-warning);
+}
+
+.lastUpdated {
+  text-align: right;
+  font-size: var(--text-sm);
+  opacity: 0.8;
+}
+
+.temperature {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: var(--space-md) 0;
+}
+
+.currentTemperature {
+    font-size: 4em;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.temperatureRange {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-top: var(--space-xs);
+    font-size: var(--text-lg);
+}
+
+.weatherDescription {
+  font-size: var(--text-xl);
+  text-transform: capitalize;
+  margin-bottom: var(--space-xl);
+  font-weight: 500;
+}
+
+.sunMoonGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--space-lg);
+}
+
+.sunMoonItem {
+    text-align: center;
+    padding: var(--space-md);
+    background: var(--neutral-100);
+    border-radius: var(--radius-md);
+    transition: var(--transition-normal);
+}
+
+.sunMoonItem:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+}
+
+.sunIcon {
+  color: var(--secondary);
+  font-size: 2em;
+  margin-bottom: var(--space-sm);
+}
+
+.moonIcon {
+  color: var(--state-info);
+  font-size: 2em;
+  margin-bottom: var(--space-sm);
+}
+
+.sunMoonLabel {
+  color: var(--gray);
+  font-size: 0.9em;
+  margin-bottom: var(--space-xs);
+}
+
+.sunMoonTime {
+  font-weight: 700;
+  color: var(--dark);
+  font-size: 1.1em;
+}
+
+.nextEvent {
+  grid-column: span 2;
+  text-align: center;
+  background: var(--state-warning-bg);
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--primary-light);
+}
+
+.nextEventText {
+  font-size: 0.85em;
+  color: var(--gray);
+}
+
+.nextEventStrong {
+  color: var(--primary-dark);
+}
+
+.thermoIcon {
+  color: var(--primary);
+  font-size: 1.5em;
+  margin-bottom: var(--space-xs);
+}
+
+.precipIcon {
+  color: var(--state-info-light);
+  font-size: 1.5em;
+  margin-bottom: var(--space-xs);
+}
+
+.cloudIcon {
+  color: var(--neutral-400);
+  font-size: 1.5em;
+  margin-bottom: var(--space-xs);
+}
+
+.dewIcon {
+  color: var(--state-info);
+  font-size: 1.5em;
+  margin-bottom: var(--space-xs);
+}
+
+.forecastCard {
+  grid-column: span 1;
+}
+
+.forecastItem {
+  padding: var(--space-sm) 0;
+}
+
+.forecastDate {
+  font-weight: 500;
+}
+
+.forecastDayContainer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.forecastIconContainer {
+  text-align: center;
+  min-width: 40px;
+}
+
+.forecastIcon {
+  color: var(--primary);
+  display: block;
+}
+
+.forecastPop {
+  font-size: 0.7em;
+  color: var(--info);
+  font-weight: 600;
+}
+
+.forecastTemp {
+  font-weight: 600;
+  min-width: 40px;
+}
+
+.advisoryCard {
+  margin-top: var(--space-lg);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+}
+
+.advisorySection {
+  flex: 1 1 300px;
+}
+
+.advisoryHeader {
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+.advisoryIcon {
+  font-size: 1.5em;
+  color: var(--primary);
+}
+
+.advisoryTitle {
+  color: var(--primary-dark);
+  margin: 0;
+}
+
+.advisoryText {
+  font-size: 0.95em;
+  line-height: 1.5;
+}
+
+.pestSection {
+    flex: 1 1 300px;
+    border-left: 1px solid var(--neutral-200);
+    padding-left: var(--space-lg);
+}
+
+.pestIcon {
+    font-size: var(--text-xl);
+    color: var(--state-danger);
+}
+
+.pestTitle {
+    color: var(--state-danger-hover);
+    margin: 0;
+}
+
+.waterSection {
+    flex: 1 1 100%;
+    border-top: 1px solid var(--neutral-200);
+    padding-top: var(--space-md);
+    margin-top: var(--space-sm);
+}
+
+.waterIcon {
+    font-size: var(--text-xl);
+    color: var(--state-info);
+}
+
+.waterTitle {
+    color: var(--state-info-hover);
+    margin: 0;
+}
+
+.waterGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-md);
+}
+
+.waterBadge {
+    padding: var(--space-md);
+    text-align: left;
+}
+
+.badgeInfo {
+    background: var(--state-info);
+    opacity: 1;
+    color: var(--state-info-hover);
+}
+
+.badgeSuccess {
+    background: var(--state-success);
+    opacity: 1;
+    color: var(--color-primary-hover);
+}
+
+.badgeWarning {
+    background: var(--state-warning);
+    opacity: 1;
+    color: var(--state-warning-hover);
+}
+
+.tempUpIcon {
+    color: var(--state-warning);
+    margin-right: var(--space-sm);
+}
+
+.tempDownIcon {
+    color: var(--state-info);
+    margin-left: var(--space-sm);
+    margin-right: var(--space-sm);
+}
+
+.weatherCard {
+    background: var(--gradient);
+    color: var(--neutral-white);
+    padding: var(--space-xl);
+    text-align: center;
+}
+
+.weatherDetail {
+  text-align: center;
+}
+
+.weatherDetail i {
+    font-size: var(--text-xl);
+    margin-bottom: var(--space-xs);
+}
+
+.cardList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.waterBadge {
+  border-radius: var(--radius-md);
+  font-size: 0.85em;
+  padding: var(--space-sm);
+}
+
+@media (max-width: 480px) {
+    .locationSelect {
+        max-width: 100%;
+    }
+
+    .timeDisplay {
+        margin-left: 0;
+        width: 100%;
+        text-align: center;
+    }
+
+    .pestSection {
+        border-left: none;
+        padding-left: 0;
+        border-top: 1px solid var(--neutral-200);
+        padding-top: var(--space-md);
+    }
+}

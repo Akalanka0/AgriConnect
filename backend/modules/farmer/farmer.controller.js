@@ -1,17 +1,33 @@
-import {
-    Activity,
-    PestReport,
-    HarvestRecord,
-    CropPlan,
-    User,
-    InstructorDetail,
-    FarmerDetail,
-    Message,
-    Meeting
+﻿import {
+    sequelize, 
+    User, 
+    Message, 
+    FarmerDetail, 
+    InstructorDetail, 
+    CropPlan, 
+    PestReport, 
+    HarvestRecord, 
+    Activity, 
+    Meeting 
 } from '../../models/index.js';
 import { Op } from 'sequelize';
+import { upload, uploadToCloudinaryMiddleware } from '../../middleware/uploadMiddleware.js';
 import { DataService } from '../../services/dataService.js';
 import { UserService } from '../../services/userService.js';
+import { updateInstructorAverageRating } from '../../services/ratingService.js';
+
+// Middleware for handling file uploads in messages
+export const uploadMessageAttachment = (req, res, next) => {
+    upload.single('attachment')(req, res, (err) => {
+        if (err) {
+            return res.status(400).json({
+                success: false,
+                error: { message: 'File upload failed' }
+            });
+        }
+        uploadToCloudinaryMiddleware(req, res, next);
+    });
+};
 
 /**
  * Get Farmer Dashboard Stats
@@ -23,12 +39,11 @@ export const getDashboardStats = async (req, res) => {
         // Use DataService for centralized data access
         const stats = await DataService.getFarmerDataSummary(userId);
 
-        // Add meetings count (specific to farmer dashboard)
-        const meetingsCount = await Meeting.count({
-            where: {
-                farmer_id: userId
-            }
-        });
+        // Add meetings count and activities count (specific to farmer dashboard)
+        const [meetingsCount, activitiesCount] = await Promise.all([
+            Meeting.count({ where: { farmer_id: userId } }),
+            Activity.count({ where: { user_id: userId } })
+        ]);
 
         return res.status(200).json({
             success: true,
@@ -36,7 +51,8 @@ export const getDashboardStats = async (req, res) => {
                 activeCrops: stats.activeCrops,
                 plansSubmitted: stats.activeCrops,
                 pestIssues: stats.pestIssues,
-                meetings: meetingsCount
+                meetings: meetingsCount,
+                activitiesCount
             }
         });
     } catch (error) {
@@ -44,8 +60,7 @@ export const getDashboardStats = async (req, res) => {
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to fetch dashboard stats',
-                details: error.message
+                message: 'Failed to fetch dashboard stats'
             }
         });
     }
@@ -59,19 +74,42 @@ export const getRecentHistory = async (req, res) => {
         const userId = req.user.id;
 
         // Use DataService for centralized data access
-        const recentHistory = await DataService.getRecentActivity(userId);
+        const raw = await DataService.getRecentActivity(userId);
+
+        // Flatten all categories into a normalized array sorted by date desc
+        const items = [
+            ...(raw.cropPlans || []).map(r => ({
+                title: `Crop Plan: ${r.crop_name} (${r.status})`,
+                date: r.created_at,
+                type: 'cropPlan'
+            })),
+            ...(raw.pestReports || []).map(r => ({
+                title: `Pest Report: ${r.name} (${r.type}) — ${r.severity} severity`,
+                date: r.created_at,
+                type: 'pestReport'
+            })),
+            ...(raw.activities || []).map(r => ({
+                title: `Activity: ${r.type}${r.crop ? ' — ' + r.crop : ''}${r.notes ? ' (' + r.notes + ')' : ''}`,
+                date: r.created_at,
+                type: 'activity'
+            })),
+            ...(raw.harvests || []).map(r => ({
+                title: `Harvest: ${r.crop} — ${r.quantity}${r.quality ? ' (' + r.quality + ')' : ''}`,
+                date: r.created_at,
+                type: 'harvest'
+            }))
+        ].sort((a, b) => new Date(b.date) - new Date(a.date));
 
         return res.status(200).json({
             success: true,
-            data: recentHistory
+            data: items
         });
     } catch (error) {
         console.error('Error fetching farmer recent history:', error);
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to fetch recent history',
-                details: error.message
+                message: 'Failed to fetch recent history'
             }
         });
     }
@@ -94,8 +132,7 @@ export const getInstructors = async (req, res) => {
         return res.status(500).json({
             success: false,
             error: {
-                message: 'Failed to fetch instructors',
-                details: error.message
+                message: 'Failed to fetch instructors'
             }
         });
     }
@@ -108,11 +145,6 @@ export const reportPest = async (req, res) => {
     try {
         const userId = req.user.id;
         const { issue_type, name, crop, severity, description, instructor_id, instructor_division } = req.body;
-
-        console.log('--- Pest Report Submission Debug ---');
-        console.log('User ID:', userId);
-        console.log('Body:', req.body);
-        console.log('File:', req.file);
 
         // Handle attachment if uploaded
         let attachments = [];
@@ -143,10 +175,9 @@ export const reportPest = async (req, res) => {
             instructor_id: parsedInstructorId,
             instructor_division: instructor_division || null,
             farmer_attachments: attachments,
+            farmer_attachment_names: req.file ? [req.file.originalname] : [],
             status: 'pending'
         };
-
-        console.log('Final Report Data for Sequelize:', reportData);
 
         const report = await PestReport.create(reportData);
 
@@ -156,31 +187,10 @@ export const reportPest = async (req, res) => {
             data: report
         });
     } catch (error) {
-        console.error('--- PEST REPORT SUBMISSION ERROR ---');
-        console.error('Error Name:', error.name);
-        console.error('Error Message:', error.message);
-        if (error.errors) {
-            console.error('Validation Errors:', error.errors.map(e => ({
-                field: e.path,
-                message: e.message,
-                value: e.value
-            })));
-        }
-        if (error.original) {
-            console.error('Original DB Error:', error.original.message);
-            console.error('SQL Statement:', error.sql);
-        }
-        console.error('Stack Trace:', error.stack);
-        console.error('-------------------------------------');
-
+        console.error('Error submitting pest report:', error);
         return res.status(500).json({
             success: false,
-            error: { 
-                message: 'Failed to submit pest report',
-                details: error.message,
-                type: error.name,
-                validationErrors: error.errors ? error.errors.map(e => e.message) : undefined
-            }
+            error: { message: 'Failed to submit pest report' }
         });
     }
 };
@@ -314,16 +324,25 @@ export const submitCropPlan = async (req, res) => {
         const userId = req.user.id;
         const { cropName, fieldLocation, plantDate, harvestDate, notes, instructorId, instructorDivision } = req.body;
 
-        console.log('Submitting crop plan for user:', userId);
-        console.log('Request body:', req.body);
-        console.log('Request file:', req.file);
+        // Validate required fields
+        if (!cropName || !fieldLocation || !plantDate || !harvestDate) {
+            return res.status(400).json({
+                success: false,
+                error: { message: 'Missing required fields: cropName, fieldLocation, plantDate, harvestDate' }
+            });
+        }
 
-        // Handle attachment if uploaded
+        // Handle attachment if uploaded - make it optional and handle failures
         let attachments = [];
-        if (req.file && req.file.path) {
-            attachments = [req.file.path];
-        } else if (req.body.attachment_url) {
-            attachments = [req.body.attachment_url];
+        try {
+            if (req.file && req.file.path) {
+                attachments = [req.file.path];
+            } else if (req.body.attachment_url) {
+                attachments = [req.body.attachment_url];
+            }
+        } catch (uploadError) {
+            console.warn('Upload failed, continuing without attachment:', uploadError.message);
+            // Continue without attachment if upload fails
         }
 
         const parsedInstructorId = (instructorId && instructorId !== 'null' && instructorId !== '') ? parseInt(instructorId) : null;
@@ -338,10 +357,9 @@ export const submitCropPlan = async (req, res) => {
             instructor_id: isNaN(parsedInstructorId) ? null : parsedInstructorId,
             instructor_division: instructorDivision,
             farmer_attachments: attachments,
+            farmer_attachment_names: req.file ? [req.file.originalname] : [],
             status: 'pending'
         };
-
-        console.log('Creating CropPlan with data:', planData);
 
         const plan = await CropPlan.create(planData);
 
@@ -356,7 +374,6 @@ export const submitCropPlan = async (req, res) => {
             success: false,
             error: { 
                 message: 'Failed to submit crop plan',
-                details: error.message,
                 stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
             }
         });
@@ -371,6 +388,22 @@ export const getMyPestReports = async (req, res) => {
         const userId = req.user.id;
         const reports = await PestReport.findAll({
             where: { user_id: userId },
+            include: [
+                {
+                    model: User,
+                    as: 'instructor',
+                    attributes: ['id', 'full_name'],
+                    required: false,
+                    include: [
+                        {
+                            model: InstructorDetail,
+                            as: 'instructorDetail',
+                            attributes: ['instructor_id'],
+                            required: false
+                        }
+                    ]
+                }
+            ],
             order: [['created_at', 'DESC']]
         });
         
@@ -403,6 +436,20 @@ export const getMyPestReports = async (req, res) => {
                 instructorFiles = instructorFiles ? [instructorFiles] : [];
             }
 
+            // Robust parsing for farmer_attachment_names
+            let farmerFileNames = report.farmer_attachment_names;
+            if (typeof farmerFileNames === 'string') {
+                try { farmerFileNames = JSON.parse(farmerFileNames); } catch (e) { farmerFileNames = []; }
+            }
+            if (!Array.isArray(farmerFileNames)) farmerFileNames = [];
+
+            // Robust parsing for instructor_attachment_names
+            let instructorFileNames = report.instructor_attachment_names;
+            if (typeof instructorFileNames === 'string') {
+                try { instructorFileNames = JSON.parse(instructorFileNames); } catch (e) { instructorFileNames = []; }
+            }
+            if (!Array.isArray(instructorFileNames)) instructorFileNames = [];
+
             return {
                 id: report.id,
                 name: report.name,
@@ -413,54 +460,114 @@ export const getMyPestReports = async (req, res) => {
                 status: report.status,
                 resolution: report.resolution,
                 created_at: report.created_at,
+                location: report.instructor_division || null,
+                instructor_name: report.instructor?.full_name || null,
+                instructor_display_id: report.instructor?.instructorDetail?.instructor_id || null,
                 farmerFiles,
-                instructorFiles
+                farmerFileNames,
+                instructorFiles,
+                instructorFileNames
             };
         });
 
         return res.status(200).json({ success: true, data: formattedReports });
     } catch (error) {
-        return res.status(500).json({ success: false, error: { message: error.message } });
+        console.error('Error fetching pest reports:', error);
+        return res.status(500).json({ success: false, error: { message: 'Failed to fetch pest reports' } });
     }
 };
 
 export const getMyHarvestRecords = async (req, res) => {
     try {
         const userId = req.user.id;
+        const farmerId = req.user.farmerDetail?.farmer_id;
+        
         const records = await HarvestRecord.findAll({
             where: { user_id: userId },
             order: [['date', 'DESC']]
         });
-        return res.status(200).json({ success: true, data: records });
+        
+        // Replace internal user_id with generated farmer_id
+        const formattedRecords = records.map(record => {
+            const plainRecord = record.get({ plain: true });
+            if (farmerId) {
+                plainRecord.user_id = farmerId;
+            }
+            return plainRecord;
+        });
+        
+        return res.status(200).json({ success: true, data: formattedRecords });
     } catch (error) {
-        return res.status(500).json({ success: false, error: { message: error.message } });
+        console.error('Error fetching harvest records:', error);
+        return res.status(500).json({ success: false, error: { message: 'Failed to fetch harvest records' } });
     }
 };
 
 export const getMyActivities = async (req, res) => {
     try {
         const userId = req.user.id;
+        const farmerId = req.user.farmerDetail?.farmer_id;
+        
         const activities = await Activity.findAll({
             where: { user_id: userId },
             order: [['date', 'DESC']]
         });
-        return res.status(200).json({ success: true, data: activities });
+        
+        // Replace internal user_id with generated farmer_id
+        const formattedActivities = activities.map(activity => {
+            const plainActivity = activity.get({ plain: true });
+            if (farmerId) {
+                plainActivity.user_id = farmerId;
+            }
+            return plainActivity;
+        });
+        
+        return res.status(200).json({ success: true, data: formattedActivities });
     } catch (error) {
-        return res.status(500).json({ success: false, error: { message: error.message } });
+        console.error('Error fetching activities:', error);
+        return res.status(500).json({ success: false, error: { message: 'Failed to fetch activities' } });
     }
 };
 
 export const getMyCropPlans = async (req, res) => {
     try {
         const userId = req.user.id;
+        const farmerId = req.user.farmerDetail?.farmer_id;
+        
         const plans = await CropPlan.findAll({
             where: { user_id: userId },
+            include: [
+                {
+                    model: User,
+                    as: 'instructor',
+                    attributes: ['id', 'full_name'],
+                    required: false,
+                    include: [
+                        {
+                            model: InstructorDetail,
+                            as: 'instructorDetail',
+                            attributes: ['instructor_id'],
+                            required: false
+                        }
+                    ]
+                }
+            ],
             order: [['created_at', 'DESC']]
         });
 
         // Ensure instructor_attachments are properly handled if they are stored as JSON strings
         const formattedPlans = plans.map(p => {
             const plan = p.get({ plain: true });
+            
+            // Replace internal user_id with generated farmer_id
+            if (farmerId) {
+                plan.user_id = farmerId;
+            }
+
+            // Add instructor info as flat fields
+            plan.instructor_name = plan.instructor?.full_name || null;
+            plan.instructor_display_id = plan.instructor?.instructorDetail?.instructor_id || null;
+            delete plan.instructor;
             
             // Handle instructor_attachments if it's a string (though model says JSON, sometimes Sequelize returns strings)
             if (typeof plan.instructor_attachments === 'string') {
@@ -476,12 +583,24 @@ export const getMyCropPlans = async (req, res) => {
                 plan.instructor_attachments = plan.instructor_attachments ? [plan.instructor_attachments] : [];
             }
 
+            // Ensure name arrays are proper arrays
+            if (typeof plan.farmer_attachment_names === 'string') {
+                try { plan.farmer_attachment_names = JSON.parse(plan.farmer_attachment_names); } catch (e) { plan.farmer_attachment_names = []; }
+            }
+            if (!Array.isArray(plan.farmer_attachment_names)) plan.farmer_attachment_names = [];
+
+            if (typeof plan.instructor_attachment_names === 'string') {
+                try { plan.instructor_attachment_names = JSON.parse(plan.instructor_attachment_names); } catch (e) { plan.instructor_attachment_names = []; }
+            }
+            if (!Array.isArray(plan.instructor_attachment_names)) plan.instructor_attachment_names = [];
+
             return plan;
         });
 
         return res.status(200).json({ success: true, data: formattedPlans });
     } catch (error) {
-        return res.status(500).json({ success: false, error: { message: error.message } });
+        console.error('Error fetching crop plans:', error);
+        return res.status(500).json({ success: false, error: { message: 'Failed to fetch crop plans' } });
     }
 };
 
@@ -491,18 +610,29 @@ export const getMyCropPlans = async (req, res) => {
 export const requestMeeting = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { meetingTitle, meetingDate, meetingTime, meetingDuration, meetingNotes, instructorId, division } = req.body;
+        const { meetingTitle, meetingDate, meetingTime, meetingDuration, meetingNotes, division } = req.body;
+
+        // Find the instructor assigned to this division
+        let resolvedInstructorId = null;
+        if (division) {
+            const instructorDetail = await InstructorDetail.findOne({
+                where: sequelize.literal(`JSON_CONTAINS(assigned_divisions, ${sequelize.escape(JSON.stringify(division))})`)
+            });
+            if (instructorDetail) {
+                resolvedInstructorId = instructorDetail.user_id;
+            }
+        }
 
         const meeting = await Meeting.create({
             farmer_id: userId,
-            meetingTitle,
-            meetingDate,
-            meetingTime,
-            meetingDuration,
-            meetingNotes,
-            instructor_id: instructorId,
+            meeting_title: meetingTitle,
+            meeting_date: meetingDate,
+            meeting_time: meetingTime,
+            meeting_duration: meetingDuration,
+            meeting_notes: meetingNotes,
+            instructor_id: resolvedInstructorId,
             division,
-            requestedBy: 'farmer',
+            requested_by: 'farmer',
             status: 'pending'
         });
 
@@ -528,11 +658,45 @@ export const getMyMeetings = async (req, res) => {
             include: [{
                 model: User,
                 as: 'instructor',
-                attributes: ['full_name', 'email', 'phone']
+                attributes: ['id', 'full_name', 'email', 'phone'],
+                include: [{
+                    model: InstructorDetail,
+                    as: 'instructorDetail',
+                    required: false,
+                    attributes: ['instructor_id']
+                }]
             }],
-            order: [['meetingDate', 'ASC'], ['meetingTime', 'ASC']]
+            order: [['meeting_date', 'ASC'], ['meeting_time', 'ASC']]
         });
-        return res.status(200).json({ success: true, data: meetings });
+
+        const mapped = meetings.map(m => {
+            const raw = m.toJSON();
+            return {
+                id: raw.id,
+                meetingTitle: raw.meeting_title,
+                meetingDate: raw.meeting_date,
+                meetingTime: raw.meeting_time,
+                meetingDuration: raw.meeting_duration,
+                meetingNotes: raw.meeting_notes,
+                instructorNote: raw.instructor_note,
+                status: raw.status,
+                requestedBy: raw.requested_by,
+                farmerId: raw.farmer_id,
+                instructorId: raw.instructor_id,
+                instructorDisplayId: raw.instructor?.instructorDetail?.instructor_id || null,
+                instructorName: raw.instructor ? raw.instructor.full_name : null,
+                instructorEmail: raw.instructor ? raw.instructor.email : null,
+                division: raw.division,
+                suggestedDate: raw.suggested_date,
+                suggestedTime: raw.suggested_time,
+                zoomLink: raw.zoom_link,
+                cancelReason: raw.cancel_reason,
+                createdAt: raw.created_at,
+                updatedAt: raw.updated_at
+            };
+        });
+
+        return res.status(200).json({ success: true, data: mapped });
     } catch (error) {
         console.error('Error fetching meetings:', error);
         return res.status(500).json({ success: false, error: { message: 'Failed to fetch meetings' } });
@@ -551,7 +715,7 @@ export const cancelMeeting = async (req, res) => {
         }
 
         meeting.status = 'cancelled';
-        meeting.cancelReason = reason;
+        meeting.cancel_reason = reason;
         await meeting.save();
 
         return res.status(200).json({ success: true, message: 'Meeting cancelled successfully' });
@@ -572,11 +736,11 @@ export const acceptReschedule = async (req, res) => {
             return res.status(404).json({ success: false, error: { message: 'Meeting not found' } });
         }
 
-        meeting.meetingDate = meetingDate;
-        meeting.meetingTime = meetingTime;
+        meeting.meeting_date = meetingDate;
+        meeting.meeting_time = meetingTime;
         meeting.status = 'accepted';
-        meeting.suggestedDate = null;
-        meeting.suggestedTime = null;
+        meeting.suggested_date = null;
+        meeting.suggested_time = null;
         await meeting.save();
 
         return res.status(200).json({ success: true, message: 'Reschedule accepted successfully' });
@@ -606,16 +770,12 @@ export const getProfile = async (req, res) => {
 
         // Flatten the response for easier frontend access
         const userData = user.toJSON();
-        console.log('🔍 [Backend] Raw user with detail:', userData);
-
         const responseData = {
             ...userData,
             ...userData.farmerDetail
         };
         // Keep farmerDetail for compatibility but make properties top-level
         delete responseData.farmerDetail;
-
-        console.log('🔍 [Backend] Flattened response data:', responseData);
 
         return res.status(200).json({ success: true, data: responseData });
     } catch (error) {
@@ -628,14 +788,6 @@ export const updateProfile = async (req, res) => {
     try {
         const userId = req.user.id;
         const { full_name, email, phone, district, zone, instructor_division, locations } = req.body;
-
-        console.log('📬 [Backend] Update Profile Request Body:', {
-            userId,
-            fullName: full_name,
-            email,
-            locationsCount: locations ? locations.length : 'N/A',
-            locations: locations
-        });
 
         const user = await User.findByPk(userId);
         if (!user) {
@@ -651,15 +803,12 @@ export const updateProfile = async (req, res) => {
         // Update or create FarmerDetail
         let detail = await FarmerDetail.findOne({ where: { user_id: userId } });
         if (detail) {
-            console.log('📄 [Backend] Existing detail found. Updating...');
             detail.district = district !== undefined ? district : detail.district;
             detail.zone = zone !== undefined ? zone : detail.zone;
             detail.instructor_division = instructor_division !== undefined ? instructor_division : detail.instructor_division;
             detail.locations = locations !== undefined ? locations : detail.locations;
             await detail.save();
-            console.log('✅ [Backend] Detail updated successfully');
         } else {
-            console.log('📄 [Backend] No detail found. Creating new...');
             // Generate a farmer ID if it doesn't exist
             const farmerId = `FARM-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
             await FarmerDetail.create({
@@ -670,12 +819,11 @@ export const updateProfile = async (req, res) => {
                 instructor_division,
                 locations: locations || []
             });
-            console.log('✅ [Backend] Detail created successfully');
         }
 
         return res.status(200).json({ success: true, message: 'Profile updated successfully' });
     } catch (error) {
-        console.error('❌ [Backend] Error updating profile:', error);
+        console.error('Error updating profile:', error);
         return res.status(500).json({ success: false, error: { message: 'Failed to update profile' } });
     }
 };
@@ -687,8 +835,24 @@ export const updateProfilePicture = async (req, res) => {
     try {
         const userId = req.user.id;
 
-        if (!req.file || !req.file.path) {
-            return res.status(400).json({ success: false, error: { message: 'No file uploaded' } });
+        // Handle file upload from Cloudinary middleware
+        let profilePictureUrl = null;
+        if (req.file) {
+            // If file was processed through upload middleware
+            if (req.file.secure_url) {
+                // Cloudinary upload
+                profilePictureUrl = req.file.secure_url;
+            } else if (req.file.path) {
+                // Traditional file upload
+                profilePictureUrl = req.file.path.replace(/\\/g, '/');
+            } else if (req.file.public_id) {
+                // Cloudinary public_id fallback
+                profilePictureUrl = req.file.public_id;
+            }
+        }
+
+        if (!profilePictureUrl) {
+            return res.status(400).json({ success: false, error: { message: 'No valid file uploaded' } });
         }
 
         const user = await User.findByPk(userId);
@@ -696,18 +860,21 @@ export const updateProfilePicture = async (req, res) => {
             return res.status(404).json({ success: false, error: { message: 'User not found' } });
         }
 
-        user.profile_picture = req.file.path.replace(/\\/g, '/');
+        user.profile_picture = profilePictureUrl;
         user.avatar = user.profile_picture; // Sync avatar field
         await user.save();
 
         return res.status(200).json({
             success: true,
             message: 'Profile picture updated successfully',
-            data: { profile_picture: user.profile_picture }
+            data: { profile_picture: profilePictureUrl }
         });
     } catch (error) {
         console.error('Error updating profile picture:', error);
-        return res.status(500).json({ success: false, error: { message: 'Failed to update profile picture' } });
+        return res.status(500).json({
+            success: false,
+            error: { message: 'Failed to update profile picture' }
+        });
     }
 };
 
@@ -745,28 +912,20 @@ export const getMyMessages = async (req, res) => {
     try {
         const userId = req.user.id;
 
-        // Helper function to format custom ID with better error handling
+        // Returns generated ID (INST-XXXX or FARM-XXXX), null for admin
+        const getDisplayId = (user) => {
+            if (!user) return null;
+            if (user.role === 'admin') return null;
+            if (user.instructorDetail?.instructor_id) return user.instructorDetail.instructor_id;
+            if (user.farmerDetail?.farmer_id) return user.farmerDetail.farmer_id;
+            return null;
+        };
+
+        // Helper function to format display name only
         const formatCustomId = (user) => {
-            if (!user) {
-                console.warn('⚠️ formatCustomId: user is null or undefined');
-                return 'Unknown User';
-            }
-            
-            if (user.role === 'admin') {
-                return 'Admin';
-            }
-            
-            // Handle missing or invalid full_name
-            const fullName = user.full_name?.trim() || 'Unknown User';
-            if (!fullName || fullName === 'null' || fullName === 'undefined') {
-                console.warn('⚠️ formatCustomId: user.full_name is empty/invalid:', user.full_name);
-                return 'Unknown User';
-            }
-            
-            // Extract first name for display
-            const firstName = fullName.split(' ')[0] || 'User';
-            const paddedId = user.id < 10 ? `0${user.id}` : String(user.id);
-            return `${firstName} (ID: INST-2026-HF${paddedId})`;
+            if (!user) return 'Unknown User';
+            if (user.role === 'admin') return 'Admin';
+            return user.full_name?.trim() || 'Unknown User';
         };
         
         // Helper function to format recipient name with better error handling
@@ -781,7 +940,7 @@ export const getMyMessages = async (req, res) => {
                 return 'All Farmers';
             }
             if (!msg.recipient) {
-                console.warn('⚠️ formatRecipientName: msg.recipient is null or undefined');
+                console.warn('formatRecipientName: msg.recipient is null or undefined');
                 return 'Unknown Recipient';
             }
             return formatCustomId(msg.recipient);
@@ -793,7 +952,7 @@ export const getMyMessages = async (req, res) => {
                     { recipient_id: userId },
                     { recipient_type: 'all' },
                     { recipient_type: 'farmers' },
-                    { recipient_type: 'select' },
+                    { recipient_type: 'select', recipient_id: userId },
                     { sender_id: userId }
                 ]
             },
@@ -801,12 +960,20 @@ export const getMyMessages = async (req, res) => {
                 {
                     model: User,
                     as: 'sender',
-                    attributes: ['id', 'full_name', 'role']
+                    attributes: ['id', 'full_name', 'role'],
+                    include: [
+                        { model: InstructorDetail, as: 'instructorDetail', required: false, attributes: ['instructor_id'] },
+                        { model: FarmerDetail, as: 'farmerDetail', required: false, attributes: ['farmer_id'] }
+                    ]
                 },
                 {
                     model: User,
                     as: 'recipient',
-                    attributes: ['id', 'full_name', 'role']
+                    attributes: ['id', 'full_name', 'role'],
+                    include: [
+                        { model: InstructorDetail, as: 'instructorDetail', required: false, attributes: ['instructor_id'] },
+                        { model: FarmerDetail, as: 'farmerDetail', required: false, attributes: ['farmer_id'] }
+                    ]
                 }
             ],
             order: [['created_at', 'DESC']]
@@ -836,8 +1003,10 @@ export const getMyMessages = async (req, res) => {
                 content: msg.content,
                 sender: senderName,
                 senderId: msg.sender_id,
+                senderDisplayId: getDisplayId(msg.sender),
                 recipient: recipientName,
                 recipientId: msg.recipient_id,
+                recipientDisplayId: msg.recipient ? getDisplayId(msg.recipient) : null,
                 type: messageType,
                 date: msg.created_at ? msg.created_at.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
                 time: msg.created_at ? msg.created_at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -856,10 +1025,27 @@ export const getMyMessages = async (req, res) => {
 
 export const sendMessage = async (req, res) => {
     try {
-        console.log('📩 [Farmer] Sending Message - Body:', req.body);
-        console.log('📎 [Farmer] Sending Message - File:', req.file);
         const userId = req.user.id;
-        const { subject, content, recipient_id, recipient_type } = req.body;
+        const io = req.app.get('io'); // Get Socket.IO instance
+        
+        let { subject, content, recipient_id, recipient_type, recipient_ids } = req.body;
+
+        if (!subject || !content) {
+            return res.status(400).json({ success: false, error: { message: 'Subject and content are required' } });
+        }
+
+        // Parse recipient_ids if sent as JSON string from FormData
+        if (typeof recipient_ids === 'string') {
+            try { recipient_ids = JSON.parse(recipient_ids); } catch { recipient_ids = null; }
+        }
+
+        // If recipient_ids array provided (from MessageModal), use first entry as recipient_id
+        if (!recipient_id && Array.isArray(recipient_ids) && recipient_ids.length > 0) {
+            recipient_id = recipient_ids[0];
+        }
+
+        // Normalise recipient_id to integer
+        if (recipient_id) recipient_id = parseInt(recipient_id, 10);
 
         // Handle file upload from middleware
         let attachment_url = req.body.attachment_url;
@@ -880,8 +1066,52 @@ export const sendMessage = async (req, res) => {
             content,
             attachment_url,
             attachment_name,
-            attachment_public_id
+            attachment_public_id,
+            message_type: req.file ? 'file' : 'text'
         });
+
+        // Emit WebSocket event
+        if (io) {
+            // Look up the farmer's generated ID
+            const senderUser = await User.findByPk(userId, {
+                attributes: ['id', 'full_name'],
+                include: [{ model: FarmerDetail, as: 'farmerDetail', required: false, attributes: ['farmer_id'] }]
+            });
+            const senderDisplayId = senderUser?.farmerDetail?.farmer_id || null;
+            const senderName = senderUser?.full_name || 'Farmer';
+
+            const messageData = {
+                id: message.id,
+                subject: message.subject,
+                content: message.content,
+                recipient_type: message.recipient_type,
+                recipient_id: message.recipient_id,
+                sender_id: userId,
+                sender: senderName,
+                senderId: userId,
+                senderDisplayId,
+                attachment_url: message.attachment_url,
+                attachment_name: message.attachment_name,
+                type: 'received',
+                date: new Date().toISOString().split('T')[0],
+                is_read: false
+            };
+            
+            const senderMessageData = { ...messageData, type: 'sent' };
+            
+            if (recipient_type === 'all') {
+                io.emit('newMessage', messageData);
+            } else if (recipient_type === 'admin') {
+                io.to('admin').emit('newMessage', messageData);
+                io.to(`user_${userId}`).emit('newMessage', senderMessageData);
+            } else if (recipient_type === 'instructors') {
+                io.to('instructor').emit('newMessage', messageData);
+                io.to(`user_${userId}`).emit('newMessage', senderMessageData);
+            } else if (recipient_id) {
+                io.to(`user_${recipient_id}`).emit('newMessage', messageData);
+                io.to(`user_${userId}`).emit('newMessage', senderMessageData);
+            }
+        }
 
         return res.status(201).json({
             success: true,
@@ -930,6 +1160,42 @@ export const markMessageAsRead = async (req, res) => {
     }
 };
 
+export const deleteMessage = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+        const io = req.app.get('io'); // Get Socket.IO instance
+
+        const message = await Message.findOne({
+            where: {
+                id,
+                [Op.or]: [
+                    { sender_id: userId },  // User can delete their own sent messages
+                    { recipient_id: userId },  // User can delete messages they received
+                    { recipient_type: 'all' },  // Broadcast messages
+                    { recipient_type: 'farmers' }  // Farmer broadcast messages
+                ]
+            }
+        });
+
+        if (!message) {
+            return res.status(404).json({ success: false, error: { message: 'Message not found' } });
+        }
+
+        await message.destroy();
+
+        // Emit WebSocket event for real-time update
+        if (io) {
+            io.emit('messageDeleted', { messageId: id, deletedBy: userId });
+        }
+
+        return res.status(200).json({ success: true, message: 'Message deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting message:', error);
+        return res.status(500).json({ success: false, error: { message: 'Failed to delete message' } });
+    }
+};
+
 /**
  * Submit Instructor Rating
  */
@@ -967,7 +1233,7 @@ export const submitInstructorRating = async (req, res) => {
         }
 
         // Import InstructorRating model here to avoid circular dependencies
-        const { InstructorRating } = await import('../models/index.js');
+        const { InstructorRating } = await import('../../models/index.js');
 
         // Check if farmer has already rated this instructor
         const existingRating = await InstructorRating.findOne({
@@ -1013,38 +1279,5 @@ export const submitInstructorRating = async (req, res) => {
             success: false, 
             error: { message: 'Failed to submit rating' } 
         });
-    }
-};
-
-// Update instructor's average rating
-const updateInstructorAverageRating = async (instructor_id) => {
-    try {
-        const { InstructorRating } = await import('../models/index.js');
-        
-        const ratings = await InstructorRating.findAll({
-            where: { 
-                instructor_id,
-                status: 'approved'
-            },
-            attributes: ['rating']
-        });
-
-        if (ratings.length === 0) {
-            await InstructorDetail.update(
-                { average_rating: 0 },
-                { where: { instructor_id } }
-            );
-            return;
-        }
-
-        const averageRating = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
-
-        await InstructorDetail.update(
-            { average_rating: parseFloat(averageRating.toFixed(1)) },
-            { where: { instructor_id } }
-        );
-
-    } catch (error) {
-        console.error('Error updating instructor average rating:', error);
     }
 };

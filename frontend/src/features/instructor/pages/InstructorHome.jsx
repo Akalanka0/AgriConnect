@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import styles from '../styles/InstructorHome.module.css';
+import commonStyles from '../styles/InstructorCommon.module.css';
+import commonBtnStyles from '@/components/common/styles/Button.module.css';
+import commonCardStyles from '@/components/common/styles/Card.module.css';
+import { getAccessToken } from '@/utils/authStorage';
 
 const InstructorHome = () => {
     const { openModal } = useOutletContext();
+    const { t } = useTranslation('instructor');
+
     const [weatherSummary, setWeatherSummary] = useState({
         temp: 28,
         status: 'Loading...',
@@ -22,7 +30,7 @@ const InstructorHome = () => {
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                const token = localStorage.getItem('token');
+                const token = getAccessToken();
                 const [statsRes, historyRes] = await Promise.all([
                     fetch('/api/instructor/dashboard/stats', {
                         headers: { 'Authorization': `Bearer ${token}` }
@@ -78,8 +86,8 @@ const InstructorHome = () => {
             '02n': { icon: 'fa-cloud-moon', color: '#7986cb' },
             '03d': { icon: 'fa-cloud', color: '#90a4ae' },
             '03n': { icon: 'fa-cloud', color: '#90a4ae' },
-            '04d': { icon: 'fa-cloud-meatball', color: '#78909c' },
-            '04n': { icon: 'fa-cloud-meatball', color: '#78909c' },
+            '04d': { icon: 'fa-cloud', color: '#78909c' },
+            '04n': { icon: 'fa-cloud', color: '#78909c' },
             '09d': { icon: 'fa-cloud-showers-heavy', color: '#4fc3f7' },
             '09n': { icon: 'fa-cloud-showers-heavy', color: '#4fc3f7' },
             '10d': { icon: 'fa-cloud-sun-rain', color: '#4fc3f7' },
@@ -98,59 +106,79 @@ const InstructorHome = () => {
 
     return (
         <>
-            <div className="dashboard-stats">
-                <div className="stat-card">
-                    <div className="stat-value">{stats.assignedFarmers}</div>
-                    <div className="stat-label">Assigned Farmers</div>
-                    <div className="stat-trend trend-up"></div>
+            <div className={styles.pageTitle}>
+                <i className="fas fa-home"></i>
+                <h2>{t('home.title')}</h2>
+            </div>
+
+            <div className={commonStyles.dashboardStats}>
+                <div className={commonStyles.statCard}>
+                    <div className={commonCardStyles.cardHeader}>
+                        <div className={`${commonCardStyles.cardTitle} ${commonStyles.statValue}`}>{stats.assignedFarmers}</div>
+                    </div>
+                    <div className={commonCardStyles.cardContent}>
+                        <div className={commonStyles.statLabel}>{t('home.assignedFarmers')}</div>
+                    </div>
                 </div>
-                <div className="stat-card">
-                    <div className="stat-label">Pending Tasks</div>
-                    <div className="pending-tasks">
-                        <div className="pending-task-item">
-                            <div className="pending-task-value">{stats.pendingTasks.crop}</div>
-                            <div className="pending-task-label">Crop Plans</div>
-                        </div>
-                        <div className="pending-task-item">
-                            <div className="pending-task-value">{stats.pendingTasks.pest}</div>
-                            <div className="pending-task-label">Pest Issues</div>
+                <div className={commonStyles.statCard}>
+                    <div className={commonCardStyles.cardHeader}>
+                        <div className={`${commonCardStyles.cardTitle} ${commonStyles.statValue}`}>{t('home.pendingTasks')}</div>
+                    </div>
+                    <div className={commonCardStyles.cardContent}>
+                        <div className={styles.pendingTasks}>
+                            <div className={styles.pendingTaskItem}>
+                                <div className={styles.pendingTaskValue}>{stats.pendingTasks.crop}</div>
+                                <div className={styles.pendingTaskLabel}>{t('home.cropPlans')}</div>
+                            </div>
+                            <div className={styles.pendingTaskItem}>
+                                <div className={styles.pendingTaskValue}>{stats.pendingTasks.pest}</div>
+                                <div className={styles.pendingTaskLabel}>{t('home.pestIssues')}</div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div className="stat-card">
-                    <div className="stat-value">{stats.upcomingMeetings}</div>
-                    <div className="stat-label">Upcoming Meetings</div>
+                <div className={commonStyles.statCard}>
+                    <div className={commonCardStyles.cardHeader}>
+                        <div className={`${commonCardStyles.cardTitle} ${commonStyles.statValue}`}>{stats.upcomingMeetings}</div>
+                    </div>
+                    <div className={commonCardStyles.cardContent}>
+                        <div className={commonStyles.statLabel}>{t('home.upcomingMeetings')}</div>
+                    </div>
                 </div>
-                <div className="stat-card" onClick={() => openModal('ratings')} style={{ cursor: 'pointer' }}>
-                    <div className="stat-value">{stats.averageRating}</div>
-                    <div className="stat-label">Average Rating</div>
-                    <button className="btn btn-primary" style={{ marginTop: '10px', width: '100%' }}>
-                        <i className="fas fa-arrow-right"></i> Click here
-                    </button>
+                <div className={`${commonStyles.statCard} ${styles.statsCard}`} onClick={() => openModal('ratings')}>
+                    <div className={commonCardStyles.cardHeader}>
+                        <div className={`${commonCardStyles.cardTitle} ${commonStyles.statValue}`}>{stats.averageRating}</div>
+                    </div>
+                    <div className={commonCardStyles.cardContent}>
+                        <div className={commonStyles.statLabel}>{t('home.averageRating')}</div>
+                        <div className={styles.statsButton}>
+                            <i className="fas fa-arrow-right"></i> {t('home.clickHere')}
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div className="cards-grid">
+            <div className={commonStyles.cardsGrid}>
                 {/* Recent History Card */}
-                <div className="card">
-                    <div className="card-header">
-                        <div className="card-title">Recent History</div>
-                        <div className="card-icon"><i className="fas fa-history"></i></div>
+                <div className={`${commonCardStyles.card} ${commonCardStyles.cardBorderTop}`}>
+                    <div className={commonCardStyles.cardHeader}>
+                        <div className={commonCardStyles.cardTitle}>{t('home.recentHistory')}</div>
+                        <div className={commonCardStyles.cardIcon}><i className="fas fa-clock-rotate-left"></i></div>
                     </div>
-                    <div className="card-content">
-                        <ul className="card-list activities-list">
+                    <div className={commonCardStyles.cardContent}>
+                        <ul className={`${commonStyles.cardList} ${commonStyles.activitiesList}`}>
                             {history.length > 0 ? (
                                 history.map((item, index) => (
                                     <li key={index}>
-                                        <div className="activity-content">
-                                            <div className="activity-text">{item.action}</div>
-                                            <div className="activity-time">{item.date}</div>
+                                        <div className={commonStyles.activityContent}>
+                                            <div className={commonStyles.activityText}>{item.action}</div>
+                                            <div className={commonStyles.activityTime}>{item.date}</div>
                                         </div>
                                     </li>
                                 ))
                             ) : (
-                                <li style={{ textAlign: 'center', color: 'var(--gray)', padding: '20px 0' }}>
-                                    No recent activities
+                                <li className={styles.historyEmpty}>
+                                    {t('home.noActivities')}
                                 </li>
                             )}
                         </ul>
@@ -158,46 +186,44 @@ const InstructorHome = () => {
                 </div>
 
                 {/* Weather Information Card */}
-                <div className="card clickable-card" onClick={() => openModal('weather')} style={{ cursor: 'pointer' }}>
-                    <div className="card-header">
-                        <div className="card-title">Weather Information</div>
-                        <div className="card-icon"><i className="fas fa-cloud-sun"></i></div>
+                <div className={`${commonCardStyles.card} ${commonCardStyles.cardBorderTop} ${styles.weatherCard}`} onClick={() => openModal('weather')}>
+                    <div className={commonCardStyles.cardHeader}>
+                        <div className={commonCardStyles.cardTitle}>{t('home.weatherInfo')}</div>
+                        <div className={commonCardStyles.cardIcon}><i className="fas fa-cloud-sun"></i></div>
                     </div>
-                    <div className="card-content">
-                        <div className="weather-card-container" style={{ padding: '15px 0', textAlign: 'center' }}>
-                            <div style={{ fontSize: '1.1em', fontWeight: 600, color: 'var(--primary-dark)', marginBottom: '5px' }}>Anuradhapura</div>
-                            <div className="weather-icon-small" style={{ margin: '8px 0' }}>
-                                <i className={`fas ${weatherUI.icon}`} style={{ color: weatherUI.color, fontSize: '2.2em' }}></i>
+                    <div className={commonCardStyles.cardContent}>
+                        <div className={styles.weatherCardContainer}>
+                            <div className={styles.locationName}>Anuradhapura</div>
+                            <div className={styles.weatherIconSmall}>
+                                <i className={`fas ${weatherUI.icon}`} style={{ color: weatherUI.color }}></i>
                             </div>
-                            <div className="weather-temp-large" style={{ fontSize: '2em', fontWeight: 700 }}>
+                            <div className={styles.weatherTempLarge}>
                                 {weatherSummary.temp}°C
                             </div>
-                            <div className="weather-status-text" style={{ fontSize: '1.1em', color: 'var(--gray)', textTransform: 'capitalize' }}>{weatherSummary.status}</div>
+                            <div className={styles.weatherStatusText}>{weatherSummary.status}</div>
                         </div>
-                        <div style={{ textAlign: 'center', marginTop: '15px' }}>
-                            <button className="btn btn-primary btn-sm" style={{ width: '100%' }}>
-                                <i className="fas fa-expand-alt" style={{ marginRight: '8px' }}></i> View Details
+                        <div className={styles.weatherButtonContainer}>
+                            <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnPrimary} ${commonBtnStyles.btnSm} ${styles.weatherButton}`} onClick={() => openModal('weather')}>
+                                <i className={`fas fa-up-right-and-down-left-from-center ${styles.weatherButtonIcon}`}></i> {t('home.viewDetails')}
                             </button>
                         </div>
                     </div>
                 </div>
 
                 {/* Send Message Card */}
-                <div className="card" onClick={() => openModal('sendMessage')} style={{ cursor: 'pointer' }}>
-                    <div className="card-header">
-                        <div className="card-title">Send Message to Farmers</div>
-                        <div className="card-icon"><i className="fas fa-comment-alt"></i></div>
+                <div className={`${commonCardStyles.card} ${commonCardStyles.cardBorderTop} ${styles.messageCard}`} onClick={() => openModal('sendMessage')}>
+                    <div className={commonCardStyles.cardHeader}>
+                        <div className={commonCardStyles.cardTitle}>{t('home.sendMsgToFarmers')}</div>
+                        <div className={commonCardStyles.cardIcon}><i className="fas fa-message"></i></div>
                     </div>
-                    <div className="card-content">
-                        <div style={{ textAlign: 'center', padding: '30px 20px' }}>
-                            <div style={{ fontSize: '3em', color: 'var(--primary-light)', marginBottom: '15px' }}>
+                    <div className={commonCardStyles.cardContent}>
+                        <div className={styles.messageContent}>
+                            <div className={styles.messageIcon}>
                                 <i className="fas fa-paper-plane"></i>
                             </div>
-                            <div style={{ fontSize: '1.2em', color: 'var(--primary-dark)', fontWeight: 600, marginBottom: '10px' }}>
-                                Send Message
-                            </div>
-                            <div style={{ color: 'var(--gray)' }}>
-                                Click to compose and send messages to farmers
+                            <div className={styles.messageTitle}>{t('home.sendMessage')}</div>
+                            <div className={styles.messageDescription}>
+                                {t('home.sendMsgDesc')}
                             </div>
                         </div>
                     </div>

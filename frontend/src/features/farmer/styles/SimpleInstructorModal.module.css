@@ -1,0 +1,416 @@
+/* SimpleInstructorModal.module.css */
+
+/* Import semantic color system */
+@import url('../../../shared/semantic-colors.css');
+
+.modalOverlay {
+  --color-primary: var(--farmer-primary);
+  --color-primary-hover: var(--farmer-primary-dark);
+  --color-secondary: var(--farmer-secondary);
+  --color-secondary-hover: var(--farmer-secondary-dark);
+  --color-border: var(--farmer-border);
+  --color-text: var(--farmer-text);
+  --color-text-muted: var(--farmer-text-muted);
+
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--modal-overlay-bg);
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md);
+}
+
+.modalContainer {
+  background: var(--neutral-white);
+  border: 1px solid var(--neutral-200);
+  box-shadow: var(--shadow-xl);
+  border-radius: var(--radius-lg);
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.modalHeader {
+  padding: var(--space-lg);
+  background: var(--neutral-50);
+  border-bottom: 1px solid var(--neutral-200);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.instructorIcon {
+  color: var(--color-primary);
+}
+
+.modalTitle {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: 1.25em;
+  font-weight: 600;
+}
+
+.closeButton {
+  background: var(--neutral-100);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--neutral-600);
+  font-size: 0.9rem;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: var(--transition-normal);
+}
+
+.closeButton:hover {
+  background: var(--state-danger);
+  color: var(--neutral-white);
+}
+
+.modalContent {
+  padding: var(--space-xl);
+  overflow-y: auto;
+  flex: 1;
+}
+
+.avatarSection {
+  text-align: center;
+  margin-bottom: var(--space-xl);
+}
+
+.avatarContainer {
+  width: 120px;
+  height: 120px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-secondary-hover));
+  background-size: cover;
+  background-position: center;
+  color: var(--neutral-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  margin: 0 auto var(--space-md);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+.avatarContainer.hasPicture {
+  background: none;
+}
+
+.avatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.instructorName {
+  margin: 0 0 var(--space-xs) 0;
+  color: var(--color-primary);
+  font-size: 1.5em;
+}
+
+.infoSection {
+  margin-bottom: var(--space-lg);
+}
+
+.sectionTitle {
+  color: var(--color-primary);
+  margin-bottom: var(--space-sm);
+  font-size: 1.1em;
+  font-weight: 600;
+  border-bottom: var(--space-xs) solid var(--state-success-border);
+  padding-bottom: var(--space-xs);
+}
+
+.sectionIcon {
+  margin-right: var(--space-sm);
+}
+
+.briefcaseIcon {
+  margin-right: var(--space-sm);
+}
+
+.infoCard {
+  background: var(--neutral-100);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--neutral-300);
+}
+
+.infoRow {
+  margin: var(--space-sm) 0;
+  font-size: 0.95em;
+  display: grid;
+  grid-template-columns: minmax(140px, auto) 1fr;
+  align-items: start;
+  column-gap: var(--space-sm);
+}
+
+.infoLabel {
+  font-weight: bold;
+}
+
+.infoValue {
+  margin-left: 0;
+  color: var(--neutral-600);
+  word-break: break-word;
+}
+
+.existingRatingCard {
+  background: var(--state-success-bg);
+  border: 1px solid var(--color-primary-light, var(--farmer-primary-light));
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.existingRatingTitle {
+  color: var(--color-primary);
+  margin-bottom: var(--space-sm);
+  font-size: 1em;
+  font-weight: 600;
+}
+
+.starIcon {
+  margin-right: var(--space-sm);
+  color: var(--state-warning);
+}
+
+.ratingDisplay {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--space-xs);
+}
+
+.ratingLabel {
+  margin-right: var(--space-sm);
+  font-weight: 500;
+}
+
+.ratingStars {
+  display: flex;
+}
+
+.ratingStar {
+  color: var(--neutral-300);
+  font-size: 1.2em;
+  margin-right: var(--space-xs);
+}
+
+.ratingStar.filled {
+  color: var(--state-warning);
+}
+
+.ratingValue {
+  margin-left: var(--space-sm);
+  color: var(--neutral-600);
+}
+
+.commentSection {
+  margin-bottom: var(--space-sm);
+}
+
+.commentLabel {
+  font-weight: 500;
+}
+
+.commentText {
+  background: var(--neutral-white);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  margin-top: var(--space-xs);
+  font-style: italic;
+  color: var(--neutral-700);
+}
+
+.ratingDate {
+  font-size: 0.85em;
+  color: var(--neutral-600);
+}
+
+.ratingSection {
+  margin-bottom: var(--space-xl);
+}
+
+.ratingTitle {
+  color: var(--color-primary);
+  margin-bottom: var(--space-md);
+  font-size: 1.1em;
+  font-weight: 600;
+}
+
+.ratingStarsContainer {
+  text-align: center;
+  margin-bottom: var(--space-md);
+}
+
+.ratingStarButton {
+  cursor: pointer;
+  font-size: 2.5em;
+  color: var(--neutral-300);
+  margin: 0 5px;
+  transition: color 0.2s ease;
+}
+
+.ratingStarButton.filled {
+  color: var(--state-warning);
+}
+
+.ratingStarButton:hover {
+  color: var(--state-warning-hover);
+}
+
+.ratingError {
+  color: var(--state-danger);
+  text-align: center;
+  margin-top: var(--space-sm);
+  font-size: 0.9em;
+}
+
+.commentsLabel {
+  display: block;
+  margin-bottom: var(--space-sm);
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.commentIcon {
+  margin-right: var(--space-sm);
+}
+
+.commentsTextarea {
+  width: 100%;
+  min-height: 100px;
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm);
+  border: 1px solid var(--neutral-300);
+  border-radius: var(--radius-md);
+  font-size: 0.95em;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.actionButtons {
+  display: flex;
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+  flex-wrap: wrap;
+}
+
+.cancelButton {
+  flex: 1;
+  padding: var(--space-sm) var(--space-lg);
+  font-size: 1em;
+  font-weight: 500;
+  background: var(--neutral-500);
+  color: var(--neutral-white);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.cancelButton:hover {
+  background: var(--neutral-600);
+}
+
+.deleteButton {
+  flex: 1;
+  padding: var(--space-sm) var(--space-lg);
+  font-size: 1em;
+  font-weight: 500;
+  background: var(--state-danger);
+  color: var(--neutral-white);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.deleteButton:hover {
+  background: var(--state-danger-hover);
+}
+
+.submitButton {
+  flex: 2;
+  padding: var(--space-sm) var(--space-lg);
+  font-size: 1em;
+  font-weight: 500;
+  background: var(--color-primary);
+  color: var(--neutral-white);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.submitButton:hover {
+  background: var(--color-primary-hover);
+}
+
+.submitButton.updateMode {
+  flex: 1;
+}
+
+.buttonIcon {
+  margin-right: var(--space-sm);
+}
+
+@media (max-width: 768px) {
+  .modalOverlay {
+    padding: var(--space-sm);
+  }
+
+  .modalContainer {
+    width: 100%;
+    max-height: 95vh;
+  }
+
+  .modalContent {
+    padding: var(--space-md);
+  }
+
+  .infoRow {
+    grid-template-columns: 1fr;
+    row-gap: var(--space-xs);
+  }
+
+  .actionButtons {
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .cancelButton,
+  .deleteButton,
+  .submitButton,
+  .submitButton.updateMode {
+    width: 100%;
+    flex: 1;
+  }
+}

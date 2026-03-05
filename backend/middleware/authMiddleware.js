@@ -23,8 +23,14 @@ export const authenticate = async (req, res, next) => {
         // Extract token
         const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
-        // Verify token
-        const jwtSecret = process.env.JWT_SECRET || 'your-secret-key-change-this';
+        // Verify token - no fallback; JWT_SECRET must always be set via env
+        const jwtSecret = process.env.JWT_SECRET;
+        if (!jwtSecret) {
+            return res.status(500).json({
+                success: false,
+                error: { code: 'SERVER_CONFIG_ERROR', message: 'Server configuration error.' }
+            });
+        }
         const decoded = jwt.verify(token, jwtSecret);
 
         // Get user from database with associated details

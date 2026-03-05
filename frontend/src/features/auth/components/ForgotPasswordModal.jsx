@@ -1,5 +1,6 @@
-import React from 'react';
 import PropTypes from 'prop-types';
+import styles from '../styles/Login.module.css';
+import { useTranslation } from 'react-i18next';
 
 const ForgotPasswordModal = ({
     showForgotModal,
@@ -12,6 +13,7 @@ const ForgotPasswordModal = ({
     setResetEmailError,
     resetLoading,
     otp,
+    otpRefs,
     handleOtpChange,
     handleOtpKeyDown,
     handleResetPassword,
@@ -22,10 +24,11 @@ const ForgotPasswordModal = ({
     showResetPassword,
     setShowResetPassword
 }) => {
+    const { t } = useTranslation('auth');
     if (!showForgotModal) return null;
 
     return (
-        <div className="reset-modal-overlay" onClick={() => {
+        <div className={styles.resetModalOverlay} onClick={() => {
             if (!resetLoading) {
                 setShowForgotModal(false);
                 setResetStep('email');
@@ -34,33 +37,33 @@ const ForgotPasswordModal = ({
                 setNewPasswordData({ password: '', confirmPassword: '' });
             }
         }}>
-            <div className="reset-modal" onClick={(e) => e.stopPropagation()}>
-                <div className={`reset-step-container ${resetStep}`}>
+            <div className={styles.resetModal} onClick={(e) => e.stopPropagation()}>
+                <div className={styles.resetStepContainer}>
                     {resetStep === 'email' ? (
-                        <div className="reset-step">
-                            <h3>Reset Password</h3>
-                            <p>Enter your registered email to receive reset instructions</p>
-                            <div className="form-group">
+                        <div className={styles.resetStep}>
+                            <h3>{t('forgotPassword.title')}</h3>
+                            <p>{t('forgotPassword.emailSubtitle')}</p>
+                            <div className={styles.formGroup}>
                                 <input
                                     type="email"
-                                    placeholder="Enter your registered email"
+                                    placeholder={t('forgotPassword.emailPlaceholder')}
                                     value={resetEmail}
                                     onChange={(e) => setResetEmail(e.target.value)}
-                                    className={resetEmailError ? 'error' : ''}
+                                    className={resetEmailError ? styles.error : ''}
                                 />
-                                {resetEmailError && <div className="validation-message">{resetEmailError}</div>}
+                                {resetEmailError && <div className={styles.validationMessage}>{resetEmailError}</div>}
                             </div>
-                            <div className="reset-sample-data">
-                                <div className="sample-label"><i className="fas fa-lightbulb"></i> Sample Data</div>
-                                <div className="sample-items">
-                                    <div className="sample-item" onClick={() => setResetEmail('testuseragri@gmail.com')}>
+                            <div className={styles.resetSampleData}>
+                                <div className={styles.sampleLabel}><i className="fas fa-lightbulb"></i> {t('forgotPassword.sampleLabel')}</div>
+                                <div className={styles.sampleItems}>
+                                    <div className={styles.sampleItem} onClick={() => setResetEmail('testuseragri@gmail.com')}>
                                         <span>Email:</span> testuseragri@gmail.com
                                     </div>
                                 </div>
                             </div>
-                            <div className="reset-modal-actions">
+                            <div className={styles.resetModalActions}>
                                 <button
-                                    className="btn-secondary"
+                                    className={styles.btnSecondary}
                                     onClick={() => {
                                         setShowForgotModal(false);
                                         setResetEmail('');
@@ -68,110 +71,112 @@ const ForgotPasswordModal = ({
                                     }}
                                     disabled={resetLoading}
                                 >
-                                    Cancel
+                                    {t('forgotPassword.cancel')}
                                 </button>
                                 <button
-                                    className="btn-primary"
+                                    className={styles.btnPrimary}
                                     onClick={handleResetPassword}
                                     disabled={resetLoading}
                                 >
-                                    {resetLoading ? 'Verifying...' : 'Continue'}
-                                    {resetLoading && <div className="loading"></div>}
+                                    {resetLoading ? t('forgotPassword.verifying') : t('forgotPassword.continue')}
+                                    {resetLoading && <div className={styles.loading}></div>}
                                 </button>
                             </div>
                         </div>
                     ) : resetStep === 'otp' ? (
-                        <div className="reset-step">
-                            <h3>Verify OTP</h3>
-                            <p>Enter the 4-digit code sent to <strong>{resetEmail}</strong></p>
-                            <div className="otp-input-group">
+                        <div className={styles.resetStep}>
+                            <h3>{t('forgotPassword.otpTitle')}</h3>
+                            <p>{t('forgotPassword.otpSubtitle')} <strong>{resetEmail}</strong></p>
+                            <div className={styles.otpInputGroup}>
                                 {otp.map((digit, index) => (
                                     <input
                                         key={index}
+                                        ref={el => otpRefs.current[index] = el}
                                         id={`otp-${index}`}
                                         type="text"
                                         maxLength="1"
                                         value={digit}
                                         onChange={(e) => handleOtpChange(index, e.target.value)}
                                         onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                                        className={resetEmailError ? 'error' : ''}
+                                        className={`${styles.otpInput} ${resetEmailError ? styles.error : ''}`}
+                                        placeholder="0"
                                     />
                                 ))}
                             </div>
-                            {resetEmailError && <div className="validation-message" style={{ textAlign: 'center', marginTop: '10px' }}>{resetEmailError}</div>}
-                            <div className="reset-modal-actions">
+                            {resetEmailError && <div className={styles.validationMessage} style={{ textAlign: 'center', marginTop: '10px' }}>{resetEmailError}</div>}
+                            <div className={styles.resetModalActions}>
                                 <button
-                                    className="btn-secondary"
+                                    className={styles.btnSecondary}
                                     onClick={() => setResetStep('email')}
                                     disabled={resetLoading}
                                 >
-                                    Back
+                                    {t('forgotPassword.back')}
                                 </button>
                                 <button
-                                    className="btn-primary"
+                                    className={styles.btnPrimary}
                                     onClick={handleVerifyOtp}
                                     disabled={resetLoading}
                                 >
-                                    {resetLoading ? 'Verifying...' : 'Verify Code'}
-                                    {resetLoading && <div className="loading"></div>}
+                                    {resetLoading ? t('forgotPassword.verifying') : t('forgotPassword.verifyCode')}
+                                    {resetLoading && <div className={styles.loading}></div>}
                                 </button>
                             </div>
-                            <div className="resend-otp">
-                                Didn&apos;t receive code? <a onClick={handleResetPassword}>Resend OTP</a>
+                            <div className={styles.resendOtp}>
+                                {t('forgotPassword.resendOtp')} <a onClick={handleResetPassword}>{t('forgotPassword.resendLink')}</a>
                             </div>
                         </div>
                     ) : (
-                        <div className="reset-step">
-                            <h3>Create New Password</h3>
-                            <p>Please enter your new strong password for <strong>{resetEmail}</strong></p>
-                            <div className="form-group">
+                        <div className={styles.resetStep}>
+                            <h3>{t('forgotPassword.newPasswordTitle')}</h3>
+                            <p>{t('forgotPassword.newPasswordSubtitle')} <strong>{resetEmail}</strong></p>
+                            <div className={styles.formGroup}>
                                 <input
                                     type={showResetPassword.new ? 'text' : 'password'}
-                                    placeholder="New Password"
+                                    placeholder={t('forgotPassword.newPasswordPlaceholder')}
                                     value={newPasswordData.password}
                                     onChange={(e) => setNewPasswordData({ ...newPasswordData, password: e.target.value })}
-                                    className={resetEmailError && resetEmailError.includes('Password') ? 'error' : ''}
+                                    className={resetEmailError && resetEmailError.includes('Password') ? styles.error : ''}
                                 />
                                 <button
                                     type="button"
-                                    className="password-toggle"
+                                    className={styles.passwordToggle}
                                     onClick={() => setShowResetPassword({ ...showResetPassword, new: !showResetPassword.new })}
                                 >
                                     <i className={`fas fa-eye${showResetPassword.new ? '-slash' : ''}`}></i>
                                 </button>
                             </div>
-                            <div className="form-group">
+                            <div className={styles.formGroup}>
                                 <input
                                     type={showResetPassword.confirm ? 'text' : 'password'}
-                                    placeholder="Confirm New Password"
+                                    placeholder={t('forgotPassword.confirmPasswordPlaceholder')}
                                     value={newPasswordData.confirmPassword}
                                     onChange={(e) => setNewPasswordData({ ...newPasswordData, confirmPassword: e.target.value })}
-                                    className={resetEmailError && resetEmailError.includes('match') ? 'error' : ''}
+                                    className={resetEmailError && resetEmailError.includes('match') ? styles.error : ''}
                                 />
                                 <button
                                     type="button"
-                                    className="password-toggle"
+                                    className={styles.passwordToggle}
                                     onClick={() => setShowResetPassword({ ...showResetPassword, confirm: !showResetPassword.confirm })}
                                 >
                                     <i className={`fas fa-eye${showResetPassword.confirm ? '-slash' : ''}`}></i>
                                 </button>
-                                {resetEmailError && <div className="validation-message">{resetEmailError}</div>}
+                                {resetEmailError && <div className={styles.validationMessage}>{resetEmailError}</div>}
                             </div>
-                            <div className="reset-modal-actions">
+                            <div className={styles.resetModalActions}>
                                 <button
-                                    className="btn-secondary"
+                                    className={styles.btnSecondary}
                                     onClick={() => setResetStep('email')}
                                     disabled={resetLoading}
                                 >
-                                    Back
+                                    {t('forgotPassword.back')}
                                 </button>
                                 <button
-                                    className="btn-primary"
+                                    className={styles.btnPrimary}
                                     onClick={handleUpdatePassword}
                                     disabled={resetLoading}
                                 >
-                                    {resetLoading ? 'Updating...' : 'Update Password'}
-                                    {resetLoading && <div className="loading"></div>}
+                                    {resetLoading ? t('forgotPassword.updating') : t('forgotPassword.updatePassword')}
+                                    {resetLoading && <div className={styles.loading}></div>}
                                 </button>
                             </div>
                         </div>
@@ -193,6 +198,7 @@ ForgotPasswordModal.propTypes = {
     setResetEmailError: PropTypes.func.isRequired,
     resetLoading: PropTypes.bool.isRequired,
     otp: PropTypes.array.isRequired,
+    otpRefs: PropTypes.object.isRequired,
     handleOtpChange: PropTypes.func.isRequired,
     handleOtpKeyDown: PropTypes.func.isRequired,
     handleResetPassword: PropTypes.func.isRequired,

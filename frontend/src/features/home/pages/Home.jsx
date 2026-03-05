@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import '@/features/home/styles/Home.css';
+import styles from '../styles/Home.module.css';
 
 // Component imports
 import NavBar from '@/features/home/components/NavBar';
@@ -39,7 +39,7 @@ const Home = () => {
   }, [navigate, handleCloseMenu]);
 
   return (
-    <div className="home-page">
+    <div className={styles.homePage}>
       <NavBar
         menuOpen={menuOpen}
         onMenuToggle={handleMenuToggle}
