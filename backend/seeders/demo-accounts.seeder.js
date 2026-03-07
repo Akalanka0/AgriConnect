@@ -1,14 +1,30 @@
-import { User, FarmerDetail, InstructorDetail, Meeting, SystemSetting } from '../models/index.js';
+import { User, FarmerDetail, InstructorDetail, SystemSetting, Region } from '../models/index.js';
+import GeneratedId from '../models/GeneratedId.js';
 import bcrypt from 'bcryptjs';
 
 const seedDemoAccounts = async () => {
   try {
+    // --- SYSTEM SETTINGS ---
+    await SystemSetting.findOrCreate({
+      where:    { setting_key: 'maintenance_mode' },
+      defaults: { setting_value: 'false', description: 'Set to true to enable maintenance mode.' }
+    });
+    console.log('✅ System settings ensured');
+
+    // Read zone defaults from regions table
+    const regionRows = await Region.findAll({ order: [['zone', 'ASC']], raw: true });
+    const zones = [...new Set(regionRows.map(r => r.zone))];
+    const zone = zones[0] || 'Anuradhapura town';
+    const subDivisions = regionRows.filter(r => r.zone === zone && r.division !== r.zone).map(r => r.division);
+    const assignedDivisions = subDivisions.length > 0 ? subDivisions.slice(0, 2) : [zone];
+    const instructorDivision = assignedDivisions[0];
+
     // --- ADMIN ---
     let adminUser = await User.findOne({ where: { email: 'admin@agriconnect.lk' } });
     if (!adminUser) {
       const hashedPassword = await bcrypt.hash('admin123', 10);
       adminUser = await User.create({
-        full_name: 'Admin User',
+        full_name: 'AgriConnect Admin',
         email: 'admin@agriconnect.lk',
         password: hashedPassword,
         role: 'admin',
@@ -31,7 +47,7 @@ const seedDemoAccounts = async () => {
     if (!instructorUser) {
       const hashedPassword = await bcrypt.hash('instructor123', 10);
       instructorUser = await User.create({
-        full_name: 'Instructor User',
+        full_name: 'Demo Instructor',
         email: 'instructor@example.com',
         password: hashedPassword,
         role: 'instructor',
@@ -50,71 +66,34 @@ const seedDemoAccounts = async () => {
     }
 
     // Ensure Instructor Detail
-    let instructorDetail = await InstructorDetail.findOne({ where: { user_id: instructorUser.id } });
-    if (!instructorDetail) {
-        const demoId = 'INST-2026-0001';
-        let detail = await InstructorDetail.findOne({ where: { instructor_id: demoId } });
-        
-        // Get region hierarchy from database
-        const regionSetting = await SystemSetting.findOne({
-            where: { setting_key: 'region_hierarchy' }
-        });
-        
-        let zone = 'Nuwaragam Palatha';
-        let assignedDivisions = ['Nuwaragam Palatha Central'];
-        
-        if (regionSetting) {
-            try {
-                const hierarchy = JSON.parse(regionSetting.setting_value);
-                const zones = Object.keys(hierarchy);
-                if (zones.length > 0) {
-                    zone = zones[0]; // Use first available zone
-                    assignedDivisions = hierarchy[zone].slice(0, 2); // Assign first 2 divisions
-                }
-            } catch (e) {
-                console.error('Error parsing region hierarchy:', e);
-            }
-        }
-        
-        if (detail && detail.user_id === null) {
-            await detail.update({
-                user_id: instructorUser.id,
-                zone: zone,
-                assigned_divisions: assignedDivisions,
-                average_rating: 0.0
-            });
-            console.log(`Assigned available ${demoId} to instructor with zone: ${zone}`);
-        } else if (detail && detail.user_id !== null) {
-            console.log(`${demoId} is taken. Creating new detail.`);
-            await InstructorDetail.create({
-                user_id: instructorUser.id,
-                instructor_id: 'INST-DEMO-AUTO',
-                district: 'Anuradhapura',
-                zone: zone,
-                assigned_divisions: assignedDivisions,
-                average_rating: 0.0
-            });
-        } else {
-            console.log(`${demoId} not found. Creating it.`);
-            await InstructorDetail.create({
-                user_id: instructorUser.id,
-                instructor_id: demoId,
-                district: 'Anuradhapura',
-                zone: zone,
-                assigned_divisions: assignedDivisions,
-                average_rating: 0.0
-            });
-        }
-    } else {
-        console.log(`Instructor already has detail: ${instructorDetail.instructor_id}`);
+    const instructorId = 'INST-2026-0001';
+    const [instructorDetail, instrCreated] = await InstructorDetail.findOrCreate({
+      where:    { instructor_id: instructorId },
+      defaults: {
+        user_id:            instructorUser.id,
+        district:           'Anuradhapura',
+        zone,
+        assigned_divisions: assignedDivisions,
+        specialization:     'Crop Management',
+        experience:         5,
+        qualifications:     'B.Sc. Agriculture (Demo)',
+        average_rating:     0.0
+      }
+    });
+    if (!instrCreated && instructorDetail.user_id === null) {
+      await instructorDetail.update({ user_id: instructorUser.id });
     }
+    await GeneratedId.update({ status: 'used' }, { where: { code: instructorId } });
+    console.log(instrCreated
+      ? `✅ Instructor detail created (${instructorId})`
+      : `👍 Instructor detail exists: ${instructorDetail.instructor_id}`);
 
     // --- FARMER ---
     let farmerUser = await User.findOne({ where: { email: 'farmer@example.com' } });
     if (!farmerUser) {
       const hashedPassword = await bcrypt.hash('farmer123', 10);
       farmerUser = await User.create({
-        full_name: 'Farmer User',
+        full_name: 'Demo Farmer',
         email: 'farmer@example.com',
         password: hashedPassword,
         role: 'farmer',
@@ -133,31 +112,31 @@ const seedDemoAccounts = async () => {
     }
 
     // Ensure Farmer Detail
-    let farmerDetail = await FarmerDetail.findOne({ where: { user_id: farmerUser.id } });
-    if (!farmerDetail) {
-        // Try to find an available one or create one
-        let detail = await FarmerDetail.findOne({ where: { user_id: null } });
-        if (detail) {
-            await detail.update({ user_id: farmerUser.id });
-            console.log(`Assigned available farmer ID ${detail.farmer_id} to farmer.`);
-        } else {
-             // Create one if none available
-             const demoId = 'FARM-DEMO-AUTO';
-             await FarmerDetail.create({
-                 user_id: farmerUser.id,
-                 farmer_id: demoId,
-                 district: 'Anuradhapura',
-                 zone: 'Demo Area',
-                 instructor_division: 'Demo Div'
-             });
-             console.log(`Created new farmer detail ${demoId} for farmer.`);
-        }
-    } else {
-        console.log(`Farmer already has detail: ${farmerDetail.farmer_id}`);
+    const farmerId = 'FARM-2026-0001';
+    const locations = [{ zone, division: instructorDivision }];
+
+    const [, farmerCreated] = await FarmerDetail.findOrCreate({
+      where:    { farmer_id: farmerId },
+      defaults: {
+        user_id:  farmerUser.id,
+        district: 'Anuradhapura',
+        locations
+      }
+    });
+    if (!farmerCreated) {
+      // Update user_id only if the row exists but is unlinked
+      await FarmerDetail.update(
+        { user_id: farmerUser.id },
+        { where: { farmer_id: farmerId, user_id: null } }
+      );
     }
+    await GeneratedId.update({ status: 'used' }, { where: { code: farmerId } });
+    console.log(farmerCreated
+      ? `✅ Farmer detail created (${farmerId})`
+      : `👍 Farmer detail exists: ${farmerId}`);
 
   } catch (error) {
-    console.error('Error seeding demo accounts:', error);
+    console.error('❌ Error seeding demo accounts:', error);
   }
 };
 

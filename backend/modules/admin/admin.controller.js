@@ -1,4 +1,4 @@
-﻿import { GeneratedId, User, FarmerDetail, InstructorDetail, SystemSetting, Message, InstructorRating } from '../../models/index.js';
+﻿import { GeneratedId, User, FarmerDetail, InstructorDetail, SystemSetting, Message, InstructorRating, Region } from '../../models/index.js';
 import { Op } from 'sequelize';
 import sequelize from '../../config/db.js';
 import bcrypt from 'bcryptjs';
@@ -23,8 +23,7 @@ export const updateProfile = async (req, res) => {
 
         // If there's an uploaded file (from Cloudinary middleware)
         if (req.file && req.file.path) {
-            user.avatar = req.file.path.replace(/\\/g, '/');
-            user.profile_picture = user.avatar; // Sync profile_picture field
+            user.profile_picture = req.file.path.replace(/\\/g, '/');
         }
 
         await user.save();
@@ -37,7 +36,7 @@ export const updateProfile = async (req, res) => {
                 full_name: user.full_name,
                 email: user.email,
                 role: user.role,
-                avatar: user.avatar
+                profile_picture: user.profile_picture
             }
         });
     } catch (error) {
@@ -65,13 +64,12 @@ export const removeProfilePicture = async (req, res) => {
         }
 
         user.profile_picture = null;
-        user.avatar = null; // Sync avatar field
         await user.save();
 
         return res.status(200).json({
             success: true,
             message: 'Profile picture removed successfully',
-            data: { avatar: null }
+            data: { profile_picture: null }
         });
     } catch (error) {
         console.error('Error removing profile picture:', error);
@@ -137,83 +135,118 @@ export const updatePassword = async (req, res) => {
     }
 };
 
+// Build { zone: [divisions] } hierarchy from regions rows
+const buildHierarchy = (rows) => {
+    const hierarchy = {};
+    rows.forEach(r => {
+        if (!hierarchy[r.zone]) hierarchy[r.zone] = [];
+        if (r.division !== r.zone) hierarchy[r.zone].push(r.division);
+    });
+    return hierarchy;
+};
+
 /**
- * Get Region Hierarchy
+ * Get Region Hierarchy  (zone → divisions map)
  */
 export const getRegionHierarchy = async (req, res) => {
     try {
-        const setting = await SystemSetting.findOne({
-            where: { setting_key: 'region_hierarchy' }
-        });
-
-        if (!setting) {
-            return res.status(404).json({ 
-                success: false, 
-                error: { message: 'Region hierarchy not found' } 
-            });
-        }
-
-        let parsed;
-        try {
-            parsed = JSON.parse(setting.setting_value);
-        } catch {
-            return res.status(500).json({ success: false, error: { message: 'Region hierarchy data is corrupted' } });
-        }
-        return res.status(200).json({ success: true, data: parsed });
+        const rows = await Region.findAll({ order: [['zone', 'ASC'], ['division', 'ASC']], raw: true });
+        return res.status(200).json({ success: true, data: buildHierarchy(rows) });
     } catch (error) {
         console.error('Error fetching region hierarchy:', error);
-        return res.status(500).json({ 
-            success: false, 
-            error: { message: 'Failed to fetch region hierarchy' } 
-        });
+        return res.status(500).json({ success: false, error: { message: 'Failed to fetch region hierarchy' } });
     }
 };
 
 /**
- * Update Region Hierarchy
+ * Get Regions (flat list with IDs — for admin management UI)
  */
-export const updateRegionHierarchy = async (req, res) => {
+export const getRegions = async (req, res) => {
     try {
-        const { hierarchy } = req.body;
-
-        if (!hierarchy || typeof hierarchy !== 'object') {
-            return res.status(400).json({ 
-                success: false, 
-                error: { message: 'Invalid hierarchy data provided' } 
-            });
-        }
-
-        const [setting, created] = await SystemSetting.findOrCreate({
-            where: { setting_key: 'region_hierarchy' },
-            defaults: {
-                setting_value: JSON.stringify(hierarchy),
-                description: 'Region hierarchy mapping zones to divisions for instructor assignments'
-            }
-        });
-
-        if (!created) {
-            await setting.update({
-                setting_value: JSON.stringify(hierarchy)
-            });
-        }
-
-        let parsed;
-        try {
-            parsed = JSON.parse(setting.setting_value);
-        } catch {
-            parsed = hierarchy;
-        }
-        return res.status(200).json({
-            success: true,
-            message: 'Region hierarchy updated successfully',
-            data: parsed
-        });
+        const rows = await Region.findAll({ order: [['zone', 'ASC'], ['division', 'ASC']], raw: true });
+        return res.status(200).json({ success: true, data: rows });
     } catch (error) {
-        console.error('Error updating region hierarchy:', error);
-        return res.status(500).json({ 
-            success: false, 
-            error: { message: 'Failed to update region hierarchy' } 
-        });
+        console.error('Error fetching regions:', error);
+        return res.status(500).json({ success: false, error: { message: 'Failed to fetch regions' } });
+    }
+};
+
+/**
+ * Add a new Zone (POST /api/admin/regions/zone)
+ */
+export const addRegionZone = async (req, res) => {
+    try {
+        const { zone, district = 'Anuradhapura' } = req.body;
+        if (!zone || !zone.trim()) {
+            return res.status(400).json({ success: false, error: { message: 'Zone name is required' } });
+        }
+        const trimmed = zone.trim();
+        const existing = await Region.findOne({ where: { zone: trimmed, division: trimmed }, raw: true });
+        if (existing) {
+            return res.status(409).json({ success: false, error: { message: `Zone '${trimmed}' already exists` } });
+        }
+        const row = await Region.create({ district: district.trim(), zone: trimmed, division: trimmed });
+        return res.status(201).json({ success: true, message: 'Zone added successfully', data: row });
+    } catch (error) {
+        console.error('Error adding zone:', error);
+        return res.status(500).json({ success: false, error: { message: 'Failed to add zone' } });
+    }
+};
+
+/**
+ * Add a Division to an existing Zone (POST /api/admin/regions/division)
+ */
+export const addRegionDivision = async (req, res) => {
+    try {
+        const { zone, division } = req.body;
+        if (!zone || !zone.trim() || !division || !division.trim()) {
+            return res.status(400).json({ success: false, error: { message: 'Zone and division are required' } });
+        }
+        const zoneBase = await Region.findOne({ where: { zone: zone.trim(), division: zone.trim() }, raw: true });
+        if (!zoneBase) {
+            return res.status(404).json({ success: false, error: { message: `Zone '${zone.trim()}' does not exist` } });
+        }
+        if (division.trim() === zone.trim()) {
+            return res.status(400).json({ success: false, error: { message: 'Division name cannot be the same as zone name' } });
+        }
+        const existing = await Region.findOne({ where: { zone: zone.trim(), division: division.trim() }, raw: true });
+        if (existing) {
+            return res.status(409).json({ success: false, error: { message: `Division '${division.trim()}' already exists in zone '${zone.trim()}'` } });
+        }
+        const row = await Region.create({ district: zoneBase.district, zone: zone.trim(), division: division.trim() });
+        return res.status(201).json({ success: true, message: 'Division added successfully', data: row });
+    } catch (error) {
+        console.error('Error adding division:', error);
+        return res.status(500).json({ success: false, error: { message: 'Failed to add division' } });
+    }
+};
+
+/**
+ * Delete a Region row by ID (DELETE /api/admin/regions/:id)
+ * Cannot delete a zone's base row if custom divisions exist under it.
+ */
+export const deleteRegionRow = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const row = await Region.findByPk(id);
+        if (!row) {
+            return res.status(404).json({ success: false, error: { message: 'Region entry not found' } });
+        }
+        // If this is a base row (zone === division), block deletion if sub-divisions exist
+        if (row.zone === row.division) {
+            const subDivCount = await Region.count({ where: { zone: row.zone, division: { [Op.ne]: row.zone } } });
+            if (subDivCount > 0) {
+                return res.status(409).json({
+                    success: false,
+                    error: { message: `Cannot delete zone '${row.zone}' — remove its ${subDivCount} division(s) first` }
+                });
+            }
+        }
+        await row.destroy();
+        return res.status(200).json({ success: true, message: 'Region entry deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting region row:', error);
+        return res.status(500).json({ success: false, error: { message: 'Failed to delete region entry' } });
     }
 };
 
@@ -579,25 +612,32 @@ export const getUsers = async (req, res) => {
             }
         });
 
-        // 2. Fetch Farmer Counts by Division
-        const farmerCounts = await FarmerDetail.findAll({
-            attributes: ['instructor_division', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
-            group: ['instructor_division'],
+        // 2. Fetch all farmers' locations to compute per-instructor farmer counts
+        const allFarmerDetails = await FarmerDetail.findAll({
+            attributes: ['locations'],
             raw: true
         });
 
         const divisionToCount = {};
-        farmerCounts.forEach(item => {
-            if (item.instructor_division) {
-                divisionToCount[item.instructor_division] = parseInt(item.count, 10);
-            }
+        allFarmerDetails.forEach(fd => {
+            let locs = fd.locations;
+            if (typeof locs === 'string') { try { locs = JSON.parse(locs); } catch { locs = []; } }
+            if (!Array.isArray(locs)) locs = [];
+            locs.forEach(loc => {
+                if (loc && loc.division) {
+                    divisionToCount[loc.division] = (divisionToCount[loc.division] || 0) + 1;
+                }
+            });
         });
 
         // 3. Attach computed data to rows
         rows.forEach(user => {
             if (user.role === 'farmer') {
-                const division = user.farmerDetail?.instructor_division;
-                user.dataValues.instructor = division ? (divisionToInstructor[division] || 'Not Assigned') : 'Not Assigned';
+                // Find instructor from farmer's first location division
+                let primaryDivision = null;
+                const locs = user.farmerDetail?.locations;
+                if (Array.isArray(locs) && locs.length > 0) primaryDivision = locs[0].division;
+                user.dataValues.instructor = primaryDivision ? (divisionToInstructor[primaryDivision] || 'Not Assigned') : 'Not Assigned';
             } else if (user.role === 'instructor') {
                 const details = user.instructorDetail;
                 let count = 0;
@@ -798,7 +838,10 @@ export const getInstructorEngagement = async (req, res) => {
 
             const myFarmers = farmers.filter(f => {
                 const fDetails = f.farmerDetail || {};
-                return fDetails.instructor_division && divisions.includes(fDetails.instructor_division);
+                let locs = fDetails.locations;
+                if (typeof locs === 'string') { try { locs = JSON.parse(locs); } catch { locs = []; } }
+                if (!Array.isArray(locs)) locs = [];
+                return locs.some(loc => loc && loc.division && divisions.includes(loc.division));
             });
 
             return {
@@ -810,7 +853,7 @@ export const getInstructorEngagement = async (req, res) => {
                 district: details.district || 'Anuradhapura',
                 zone: details.zone || '-',
                 divisions: divisions,
-                avatar: inst.avatar ? inst.avatar.replace(/\\/g, '/') : (inst.profile_picture ? inst.profile_picture.replace(/\\/g, '/') : null),
+                avatar: inst.profile_picture || null,
                 averageRating: parseFloat(details.average_rating) || 0,
                 farmersCount: myFarmers.length,
                 farmers: myFarmers.map(f => {
@@ -821,16 +864,17 @@ export const getInstructorEngagement = async (req, res) => {
                             ? fDetails.locations
                             : (typeof fDetails.locations === 'string' ? JSON.parse(fDetails.locations || '[]') : []);
                     } catch { farmerLocations = []; }
+                    const primaryLoc = farmerLocations[0] || {};
                     return {
                         id: fDetails.farmer_id || `FARM-${f.id}`,
                         name: f.full_name,
                         nic: f.nic || '-',
                         phone: f.phone,
-                        district: fDetails.district || (farmerLocations.length > 0 ? farmerLocations[0].district : null) || 'Anuradhapura',
-                        zone: fDetails.zone || '-',
-                        instructorDivision: fDetails.instructor_division || '-',
+                        district: fDetails.district || primaryLoc.district || 'Anuradhapura',
+                        zone: primaryLoc.zone || '-',
+                        instructorDivision: primaryLoc.division || '-',
                         farmerLocations,
-                        avatar: f.avatar ? f.avatar.replace(/\\/g, '/') : (f.profile_picture ? f.profile_picture.replace(/\\/g, '/') : null)
+                        avatar: f.profile_picture || null
                     };
                 }),
                 reviews: (ratingsByInstructor[details.instructor_id] || []).map(r => ({

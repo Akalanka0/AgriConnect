@@ -4,7 +4,7 @@ import cloudinary from '../../utils/cloudinary.js'; // Import cloudinary for ima
 
 export const createCrop = async (req, res) => {
     try {
-        const { name, description } = req.body;
+        const { name } = req.body;
 
         if (!name || !name.trim()) {
             return res.status(400).json({ success: false, error: { message: 'Crop name is required' } });
@@ -20,7 +20,6 @@ export const createCrop = async (req, res) => {
 
         const crop = await Crop.create({
             name,
-            description,
             image_url: imageUrl,
             image_public_id: imagePublicId
         });
@@ -121,7 +120,7 @@ export const getCropById = async (req, res) => {
 export const updateCrop = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, description } = req.body;
+        const { name } = req.body;
         let imageUrl = req.body.image_url; // Keep existing if not updated
         let imagePublicId = req.body.image_public_id; // Keep existing if not updated
 
@@ -153,7 +152,6 @@ export const updateCrop = async (req, res) => {
 
         await crop.update({
             name,
-            description,
             image_url: imageUrl,
             image_public_id: imagePublicId
         });

@@ -22,8 +22,7 @@ const SystemSetting = sequelize.define('SystemSetting', {
     }
 }, {
     tableName: 'system_settings',
-    timestamps: false,
-    updatedAt: 'updated_at'
+    timestamps: false
 });
 
 export default SystemSetting;

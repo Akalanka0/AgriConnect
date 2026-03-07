@@ -10,6 +10,10 @@ const FarmerDetail = sequelize.define('FarmerDetail', {
     user_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
+        unique: {
+            name: 'uq_farmer_user_id',
+            msg: 'This user already has farmer details'
+        },
         references: {
             model: 'users',
             key: 'id'
@@ -32,19 +36,18 @@ const FarmerDetail = sequelize.define('FarmerDetail', {
     },
     district: {
         type: DataTypes.STRING(50),
-        allowNull: true
-    },
-    zone: {
-        type: DataTypes.STRING(100),
-        allowNull: true
-    },
-    instructor_division: {
-        type: DataTypes.STRING(100),
-        allowNull: true
+        allowNull: false,
+        defaultValue: 'Anuradhapura',
+        validate: {
+            isIn: {
+                args: [['Anuradhapura']],
+                msg: 'District must be Anuradhapura'
+            }
+        }
     },
     locations: {
         type: DataTypes.JSON,
-        allowNull: true,
+        allowNull: false,
         defaultValue: []
     }
 }, {
@@ -53,10 +56,7 @@ const FarmerDetail = sequelize.define('FarmerDetail', {
     createdAt: 'created_at',
     updatedAt: 'updated_at',
     indexes: [
-        {
-            unique: true,
-            fields: ['farmer_id']
-        }
+        { unique: true, fields: ['farmer_id'] }
     ]
 });
 

@@ -36,7 +36,7 @@ const seedAdmin = async () => {
       } else {
           // Create admin user if not found
           adminUser = await User.create({
-            full_name: 'Admin User',
+            full_name: 'AgriConnect Admin',
             email: 'admin@agriconnect.lk',
             password: hashedPassword,
             role: 'admin',

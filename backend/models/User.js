@@ -96,11 +96,6 @@ const User = sequelize.define('User', {
         defaultValue: 'active',
         allowNull: false
     },
-    avatar: {
-        type: DataTypes.STRING(255),
-        allowNull: true,
-        defaultValue: null
-    },
     profile_picture: {
         type: DataTypes.STRING(500),
         allowNull: true,

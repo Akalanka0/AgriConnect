@@ -5,9 +5,8 @@ import InstructorDetail from './InstructorDetail.js';
 import GeneratedId from './GeneratedId.js';
 import Message from './Message.js';
 import SystemSetting from './SystemSetting.js';
-import Pest from './Pest.js';
 import Crop from './Crop.js';
-import Harvest from './Harvest.js';
+import Region from './Region.js';
 import Activity from './Activity.js';
 import PestReport from './PestReport.js';
 import HarvestRecord from './HarvestRecord.js';
@@ -88,9 +87,8 @@ export {
     GeneratedId,
     Message,
     SystemSetting,
-    Pest,
     Crop,
-    Harvest,
+    Region,
     Activity,
     PestReport,
     HarvestRecord,
