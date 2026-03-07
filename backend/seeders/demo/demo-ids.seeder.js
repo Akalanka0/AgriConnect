@@ -1,4 +1,4 @@
-import GeneratedId from '../models/GeneratedId.js';
+import GeneratedId from '../../models/GeneratedId.js';
 import { fileURLToPath } from 'url';
 
 // Pre-populate the two demo codes in generated_ids so the registration

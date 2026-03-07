@@ -10,6 +10,7 @@
         "migrate": "node migrations/run-migrations.js",
         "seed": "node -r dotenv/config seeders/run-seeders.js",
         "seed:admin": "node seeders/admin.seeder.js",
+        "seed:demo": "node -r dotenv/config seeders/demo/run-demo-seeders.js",
         "db:ensure": "node scripts/ensure-database.js"
     },
     "keywords": [],

@@ -53,14 +53,17 @@ const ForgotPasswordModal = ({
                                 />
                                 {resetEmailError && <div className={styles.validationMessage}>{resetEmailError}</div>}
                             </div>
-                            <div className={styles.resetSampleData}>
-                                <div className={styles.sampleLabel}><i className="fas fa-lightbulb"></i> {t('forgotPassword.sampleLabel')}</div>
-                                <div className={styles.sampleItems}>
-                                    <div className={styles.sampleItem} onClick={() => setResetEmail('testuseragri@gmail.com')}>
-                                        <span>Email:</span> testuseragri@gmail.com
+                            {/* DEMO — remove for client delivery or set VITE_DEMO_MODE=false */}
+                            {import.meta.env.VITE_DEMO_MODE === 'true' && (
+                                <div className={styles.resetSampleData}>
+                                    <div className={styles.sampleLabel}><i className="fas fa-lightbulb"></i> {t('forgotPassword.sampleLabel')}</div>
+                                    <div className={styles.sampleItems}>
+                                        <div className={styles.sampleItem} onClick={() => setResetEmail('testuseragri@gmail.com')}>
+                                            <span>Email:</span> testuseragri@gmail.com
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
                             <div className={styles.resetModalActions}>
                                 <button
                                     className={styles.btnSecondary}

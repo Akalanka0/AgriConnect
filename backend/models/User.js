@@ -116,8 +116,7 @@ const User = sequelize.define('User', {
     },
     original_email: {
         type: DataTypes.STRING(255),
-        allowNull: true,
-        comment: 'Original email for demo accounts (stores actual email before timestamp modification)'
+        allowNull: true
     }
 }, {
     tableName: 'users',

@@ -121,8 +121,8 @@ testConnection()
         try {
             // Sync all models including GeneratedId, but handle GeneratedId errors specifically
             const models = Object.values(sequelize.models);
-            // Only use alter:true in development – in production use migrations
-            const syncOptions = isDev ? { alter: true } : {};
+            // Schema changes are managed exclusively through migrations — do not use alter/force
+            const syncOptions = {};
             for (const model of models) {
                 try {
                     await model.sync(syncOptions);
