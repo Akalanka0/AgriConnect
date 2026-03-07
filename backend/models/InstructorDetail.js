@@ -9,7 +9,7 @@ const InstructorDetail = sequelize.define('InstructorDetail', {
     },
     user_id: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,
         unique: {
             name: 'user_id',
             msg: 'This user already has instructor details'
@@ -36,7 +36,14 @@ const InstructorDetail = sequelize.define('InstructorDetail', {
     },
     district: {
         type: DataTypes.STRING(50),
-        allowNull: true
+        allowNull: false,
+        defaultValue: 'Anuradhapura',
+        validate: {
+            isIn: {
+                args: [['Anuradhapura']],
+                msg: 'District must be Anuradhapura'
+            }
+        }
     },
     zone: {
         type: DataTypes.STRING(100),
@@ -44,7 +51,7 @@ const InstructorDetail = sequelize.define('InstructorDetail', {
     },
     assigned_divisions: {
         type: DataTypes.JSON,
-        allowNull: true,
+        allowNull: false,
         defaultValue: []
     },
     specialization: {
@@ -71,14 +78,9 @@ const InstructorDetail = sequelize.define('InstructorDetail', {
     createdAt: 'created_at',
     updatedAt: 'updated_at',
     indexes: [
-        {
-            unique: true,
-            fields: ['user_id']
-        },
-        {
-            unique: true,
-            fields: ['instructor_id']
-        }
+        { unique: true, fields: ['user_id'] },
+        { unique: true, fields: ['instructor_id'] },
+        { fields: ['zone'] }
     ]
 });
 

@@ -20,7 +20,10 @@ import {
     markMessageAsRead,
     deleteMessage,
     getRegionHierarchy,
-    updateRegionHierarchy
+    getRegions,
+    addRegionZone,
+    addRegionDivision,
+    deleteRegionRow
 } from './admin.controller.js';
 import { sendMessage, uploadMessageAttachment } from '../messages/message.controller.js';
 import { upload, uploadToCloudinaryMiddleware } from '../../middleware/uploadMiddleware.js';
@@ -42,7 +45,10 @@ router.put('/settings/:key', authenticate, authorize('admin'), updateSystemSetti
 
 // Region Hierarchy Routes
 router.get('/region-hierarchy', authenticate, authorize('admin'), getRegionHierarchy);
-router.put('/region-hierarchy', authenticate, authorize('admin'), updateRegionHierarchy);
+router.get('/regions', authenticate, authorize('admin'), getRegions);
+router.post('/regions/zone', authenticate, authorize('admin'), addRegionZone);
+router.post('/regions/division', authenticate, authorize('admin'), addRegionDivision);
+router.delete('/regions/:id', authenticate, authorize('admin'), deleteRegionRow);
 
 // Profile Management Routes
 router.put('/profile', authenticate, authorize('admin'), upload.single('avatar'), uploadToCloudinaryMiddleware, updateProfile);

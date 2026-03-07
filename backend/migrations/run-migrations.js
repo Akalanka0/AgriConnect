@@ -52,7 +52,10 @@ async function runMigrations() {
                 }
             }
 
-            await sequelize.query(`INSERT INTO migrations (name) VALUES ('${file}')`, { transaction: t });
+            await sequelize.query('INSERT INTO migrations (name) VALUES (?)', {
+                replacements: [file],
+                transaction: t
+            });
             
             console.log(`✅ Completed: ${file}\n`);
         }

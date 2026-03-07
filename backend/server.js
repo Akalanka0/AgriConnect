@@ -12,9 +12,7 @@ import authRoutes from './modules/auth/auth.routes.js';
 import adminRoutes from './modules/admin/admin.routes.js';
 import farmerRoutes from './modules/farmer/farmer.routes.js';
 import instructorRoutes from './modules/instructor/instructor.routes.js';
-import pestRoutes from './modules/pests/pest.routes.js';
 import cropRoutes from './modules/crops/crop.routes.js';
-import harvestRoutes from './modules/harvests/harvest.routes.js';
 import ratingRoutes from './modules/ratings/rating.routes.js';
 import { testConnection } from './config/db.js';
 import { sequelize } from './models/index.js';
@@ -154,9 +152,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/farmer', farmerRoutes);
 app.use('/api/instructor', instructorRoutes);
-app.use('/api/admin/pests', pestRoutes);
 app.use('/api/admin/crops', cropRoutes);
-app.use('/api/admin/harvests', harvestRoutes);
 app.use('/api/ratings', ratingRoutes);
 
 app.get('/', (req, res) => {

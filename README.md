@@ -1,79 +1,137 @@
 # AgriConnect 🌾
 
-AgriConnect is a comprehensive agricultural management platform designed to bridge the gap between farmers, instructors, and administrators. It facilitates crop planning, pest management, harvest tracking, and real-time communication to enhance agricultural productivity and sustainability.
+AgriConnect is a full-stack agricultural management platform that connects farmers, instructors (agricultural officers), and administrators. It supports crop planning with file attachments, pest report management, harvest record keeping, real-time chat, scheduling/meetings, activity tracking, and multi-language support (English & Sinhala).
+
+---
 
 ## 🚀 Features
 
 ### 👨‍🌾 Farmer Portal
-- **Crop Planning:** Create and manage seasonal crop plans.
-- **Harvest Tracking:** Record harvest data and yields.
-- **Pest Management:** Report pest issues and receive expert advice.
-- **Activity Log:** Track daily farming activities.
-- **Weather Updates:** Access real-time weather information.
-- **Communication:** Chat with instructors for guidance.
+- **Crop Plans** — Create, view, and track seasonal crop plans with file attachments; receive instructor feedback.
+- **Harvest Records** — Log harvest yields per crop plan for historical analysis.
+- **Pest Reports** — Submit pest/disease reports with photo evidence; get instructor responses.
+- **Activity Log** — Record daily farming activities with instructor comments.
+- **Weather** — Real-time weather via OpenWeatherMap API.
+- **Messages** — Real-time chat with assigned instructor (Socket.IO).
+- **Meetings** — View scheduled field visits and appointments.
+- **Settings** — Update profile, profile picture, and account preferences.
 
 ### 👨‍🏫 Instructor Portal
-- **Farmer Management:** Oversee assigned farmers and their progress.
-- **Plan Review:** Review and approve crop plans submitted by farmers.
-- **Consultation:** Provide expert advice on pest reports and activities.
-- **Scheduling:** Manage appointments and field visits.
-- **Reports:** Generate and view aggregate performance reports.
+- **Farmer Management** — View and manage farmers assigned to your zone.
+- **Crop Plan Review** — Review, annotate, and approve/reject farmer crop plans with attachments.
+- **Pest Reports** — Respond to reported pest/disease issues.
+- **Schedule** — Create and manage meetings/field visits for assigned farmers.
+- **Reports** — View aggregated performance data across assigned farmers.
+- **Ratings** — Farmers can rate their instructor; average displayed on profile.
+- **Settings** — Update profile, specialization, and account preferences.
 
 ### 👮 Admin Portal
-- **User Management:** Manage all system users (Farmers, Instructors, Admins).
-- **System Monitoring:** View system-wide statistics and engagement metrics.
-- **Reports:** Generate high-level administrative reports.
-- **Settings:** Configure system-wide parameters.
+- **User Management** — Create, verify, activate/deactivate Farmers, Instructors, and Admins.
+- **User ID Management** — Generate and manage system-assigned IDs per role.
+- **Region Management** — Dynamically manage district → zone → division hierarchy.
+- **Engagement** — View system-wide activity, user engagement, and growth metrics.
+- **Reports** — High-level reports across all users.
+- **System Settings** — Configure maintenance mode and global parameters.
+
+### 🔐 Authentication & Security
+- Email + password login with **JWT** (access tokens, 7-day expiry).
+- Email verification on registration.
+- Optional `DEV_EMAIL_BYPASS` for development.
+- Rate limiting (100 req/15 min general; 20 req/15 min auth endpoints).
+- Helmet HTTP security headers with strict CSP in production.
+- CORS whitelist enforced on both REST API and WebSocket.
+- Request body capped at 2 MB (10 MB for file uploads).
+- `Math.random()` replaced with `crypto.randomInt()` everywhere.
+
+### 🌐 Internationalisation
+- Full **English** and **Sinhala (si)** support via `i18next` / `react-i18next`.
+- Translation files in `frontend/src/locales/{en,si}/`.
 
 ---
 
 ## 🏗️ Architecture
 
-AgriConnect is built using modern software architecture patterns to ensure scalability and maintainability.
+### Backend — Modular Monolith
+```
+backend/
+├── server.js          # Express + Socket.IO entry point
+├── config/db.js       # Sequelize connection
+├── middleware/        # auth, error handler, rate limiter, upload
+├── models/            # 14 Sequelize models (MySQL)
+├── modules/           # Domain modules (each has controller + routes)
+│   ├── admin/
+│   ├── auth/
+│   ├── crops/
+│   ├── farmer/
+│   ├── instructor/
+│   ├── messages/
+│   └── ratings/
+├── services/          # Shared: email, user, data, message, rating
+├── migrations/        # Numbered SQL migration files + runner
+├── seeders/           # Admin, demo accounts, crops, region IDs
+└── utils/             # cloudinary, jwtUtils
+```
 
-### Backend: Modular Monolith
-Located in `backend/`, the server is structured as a **Modular Monolith**. Instead of organizing by technical layer (controllers, routes), it is organized by **Business Domain** (Modules).
+Each module owns its own `controller.js` and `routes.js`. Cross-cutting logic lives in `services/`. The 14 Sequelize models map to 15 MySQL tables (including the `migrations` tracking table).
 
-*   **Modules:** `auth`, `farmer`, `instructor`, `crops`, `harvests`, `pests`, `admin`.
-*   **Shared Services:** `emailService`, `userService`, `dataService` handle cross-cutting concerns.
-*   **Database:** MySQL with Sequelize ORM for robust data management.
-
-### Frontend: Feature-Based Architecture
-Located in `frontend/`, the React application uses a **Feature-Based** structure.
-
-*   **Features:** `features/auth`, `features/farmer`, `features/instructor`, `features/admin`.
-*   **Co-location:** Each feature contains its own components, pages, styles, and utils, making the codebase easy to navigate and maintain.
+### Frontend — Feature-Based React
+```
+frontend/src/
+├── features/
+│   ├── auth/          # Login, Register, Verify pages
+│   ├── farmer/        # Farmer pages + components
+│   ├── instructor/    # Instructor pages + components
+│   ├── admin/         # Admin pages + components
+│   └── home/          # Landing page
+├── services/          # Axios API clients per role
+├── components/        # Shared UI components (auth guard, etc.)
+├── locales/           # i18n translation files (en, si)
+├── utils/             # Shared helpers
+└── config/            # Env / API base URL config
+```
 
 ---
 
 ## 🛠️ Tech Stack
 
-### Frontend
-*   **Framework:** [React 18](https://react.dev/)
-*   **Build Tool:** [Vite](https://vitejs.dev/)
-*   **Styling:** [Bootstrap 5](https://getbootstrap.com/) & [React-Bootstrap](https://react-bootstrap.github.io/)
-*   **Routing:** [React Router v6](https://reactrouter.com/)
-*   **Real-time:** [Socket.IO Client](https://socket.io/)
-*   **PDF Generation:** [jsPDF](https://github.com/parallax/jsPDF)
+See [PROJECT_TECH_STACK.md](PROJECT_TECH_STACK.md) for full version-pinned details.
 
-### Backend
-*   **Runtime:** [Node.js](https://nodejs.org/)
-*   **Framework:** [Express.js](https://expressjs.com/)
-*   **Database:** [MySQL](https://www.mysql.com/)
-*   **ORM:** [Sequelize](https://sequelize.org/)
-*   **Authentication:** JWT (JSON Web Tokens)
-*   **Email:** Nodemailer
-*   **File Storage:** Cloudinary
-*   **Real-time:** Socket.IO
+| Layer | Technology |
+|---|---|
+| Frontend framework | React 18 + Vite 7 |
+| Styling | Bootstrap 5.3 + React-Bootstrap 2 + SASS |
+| Routing | React Router v6 |
+| Real-time (client) | Socket.IO Client 4.8 |
+| i18n | i18next 25 + react-i18next 16 |
+| PDF generation | jsPDF 4 + jspdf-autotable |
+| Backend runtime | Node.js (ESM) |
+| HTTP framework | Express 4.18 |
+| Database | MySQL 8 |
+| ORM | Sequelize 6.37 |
+| Authentication | JWT (jsonwebtoken 9) + bcryptjs 3 |
+| File storage | Cloudinary 2 |
+| Email | Nodemailer 7 |
+| Real-time (server) | Socket.IO 4.8 |
+| Security | Helmet 8, express-rate-limit 8 |
+| Uploads | Multer 2 (memory storage → Cloudinary) |
 
 ---
 
 ## ⚙️ Installation & Setup
 
 ### Prerequisites
-*   Node.js (v16 or higher)
-*   MySQL Server
-*   Git
+
+| Requirement | Minimum Version |
+|---|---|
+| Node.js | 18 LTS or higher |
+| npm | 9+ |
+| MySQL Server | 8.0+ |
+| Git | any recent version |
+
+> **Optional:** A [Cloudinary](https://cloudinary.com/) account (free tier is fine) and a Gmail account with an [App Password](https://support.google.com/accounts/answer/185833) are required for file uploads and email features respectively.  
+> **Optional:** An [OpenWeatherMap](https://openweathermap.org/api) free API key for the weather widget.
+
+---
 
 ### 1. Clone the Repository
 ```bash
@@ -81,106 +139,329 @@ git clone https://github.com/yourusername/agriconnect.git
 cd agriconnect
 ```
 
+---
+
 ### 2. Backend Setup
-Navigate to the backend directory:
+
 ```bash
 cd backend
-```
-
-Install dependencies:
-```bash
 npm install
 ```
 
 **Environment Variables:**
-Create a `.env` file in the `backend` root by copying `.env.example`:
+
+Copy the example file and fill in your values:
 ```bash
-cp .env.example .env
+cp .env.example .env   # Linux/Mac
+copy .env.example .env  # Windows
 ```
-Update the `.env` file with your credentials:
-*   **DB_**: Your MySQL database credentials.
-*   **JWT_SECRET**: A long, random string for security.
-*   **CLOUDINARY_**: Your Cloudinary API credentials (for file uploads).
-*   **GMAIL_**: Your email credentials (for sending emails).
-*   **FRONTEND_URL**: Frontend origin allowed by CORS (use comma-separated values for multiple origins).
-*   **CORS_ORIGINS** *(optional)*: Comma-separated CORS/Socket origin allow-list; when set, it overrides `FRONTEND_URL`.
+
+`.env` reference:
+
+```env
+# ── Database ─────────────────────────────────────────────────────────────────
+DB_NAME=agriconnect
+DB_USER=root
+DB_PASSWORD=your_mysql_password
+DB_HOST=localhost
+DB_PORT=3306
+
+# ── JWT ──────────────────────────────────────────────────────────────────────
+# Generate: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+JWT_SECRET=REPLACE_WITH_STRONG_GENERATED_SECRET_128_CHARS
+JWT_EXPIRE=7d
+
+# ── App ──────────────────────────────────────────────────────────────────────
+NODE_ENV=development
+PORT=5005
+FRONTEND_URL=http://localhost:5173
+# Optional: overrides FRONTEND_URL for CORS (comma-separated)
+# CORS_ORIGINS=http://localhost:5173,https://app.example.com
+
+# ── Email (Gmail App Password) ───────────────────────────────────────────────
+GMAIL_EMAIL=your_email@gmail.com
+GMAIL_APP_PASSWORD=your_app_password
+
+# ── Cloudinary ───────────────────────────────────────────────────────────────
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+
+# ── Dev only ─────────────────────────────────────────────────────────────────
+# Set to an email address to bypass email verification in development.
+# Must be empty in production.
+DEV_EMAIL_BYPASS=
+```
 
 **Database Setup:**
-Create a MySQL database named `agriconnect` (or whatever you set in `.env`).
 
-Run Migrations (Create Tables):
+Create the database:
+```sql
+CREATE DATABASE agriconnect CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+Run migrations (creates all tables):
 ```bash
 npm run migrate
 ```
 
-Run Seeders (Populate Initial Data):
+Seed initial data:
 ```bash
-# Seeds demo data for all roles
+# Full demo seed (admin + demo farmer + demo instructor + crops + regions)
 npm run seed
 
-# OR just seed the admin account
+# OR just the admin account
 npm run seed:admin
 ```
 
-Start the Server:
+Start the development server:
 ```bash
 npm run dev
-# Server runs on http://localhost:5005 by default
-```
-
-### 3. Frontend Setup
-Open a new terminal and navigate to the frontend directory:
-```bash
-cd frontend
-```
-
-Install dependencies:
-```bash
-npm install
-```
-
-Start the Development Server:
-```bash
-npm run dev
-# App runs on http://localhost:5173 by default
+# API available at http://localhost:5005
 ```
 
 ---
 
-## 📂 Project Structure
+### 3. Frontend Setup
+
+Open a new terminal:
+```bash
+cd frontend
+npm install
+```
+
+**Environment Variables:**
+
+```bash
+cp .env.example .env   # Linux/Mac
+copy .env.example .env  # Windows
+```
+
+`.env` reference:
+
+```env
+VITE_API_URL=http://localhost:5005/api
+VITE_SOCKET_URL=http://localhost:5005
+# Optional: OpenWeatherMap API key for the weather widget
+VITE_OPENWEATHER_API_KEY=your_openweathermap_api_key
+```
+
+Start the development server:
+```bash
+npm run dev
+# App runs at http://localhost:5173
+```
+
+> The Vite dev server proxies `/api` and `/socket.io` requests to `http://localhost:5005` automatically — no CORS issues during development.
+
+---
+
+### 4. Demo Credentials (after seeding)
+
+| Role | Email | Password |
+|---|---|---|
+| Admin | admin@agriconnect.lk | Admin@123 |
+| Instructor | instructor.demo@agriconnect.lk | Demo@123 |
+| Farmer | farmer.demo@agriconnect.lk | Demo@123 |
+
+---
+
+## 📂 Full Project Structure
 
 ```
 Agri/
+├── README.md
+├── PROJECT_TECH_STACK.md
+├── package.json               # Root scripts (check_translations)
+│
 ├── backend/
-│   ├── config/         # Database configuration
-│   ├── middleware/     # Auth, Error handling, Uploads
-│   ├── migrations/     # Database schema changes
-│   ├── models/         # Sequelize models
-│   ├── modules/        # Domain-specific modules (Auth, Farmer, etc.)
-│   ├── seeders/        # Initial data population
-│   ├── services/       # Shared business logic
-│   └── server.js       # Entry point
+│   ├── server.js              # Entry point — Express + Socket.IO
+│   ├── package.json
+│   ├── .env.example
+│   ├── config/
+│   │   └── db.js              # Sequelize connection + testConnection()
+│   ├── middleware/
+│   │   ├── authMiddleware.js  # JWT verify + role authorize
+│   │   ├── errorHandler.js    # Global error + 404 handlers
+│   │   ├── rateLimiter.js     # Auth & general rate limiters
+│   │   └── uploadMiddleware.js# Multer memory storage + MIME filter
+│   ├── migrations/
+│   │   ├── 001-init.sql       # Complete schema (authoritative single-file)
+│   │   ├── 002-*.sql … 028-*.sql  # Incremental migrations
+│   │   └── run-migrations.js  # Migration runner (tracks applied migrations)
+│   ├── models/                # 14 Sequelize models
+│   │   ├── Activity.js        # farming activity logs
+│   │   ├── Crop.js            # crop catalogue
+│   │   ├── CropPlan.js        # farmer crop plans + attachments
+│   │   ├── FarmerDetail.js    # farmer profile (extends User)
+│   │   ├── GeneratedId.js     # pre-generated role IDs
+│   │   ├── HarvestRecord.js   # harvest yield logs
+│   │   ├── InstructorDetail.js# instructor profile (extends User)
+│   │   ├── InstructorRating.js# farmer-to-instructor ratings
+│   │   ├── Meeting.js         # scheduled meetings/visits
+│   │   ├── Message.js         # chat messages
+│   │   ├── PestReport.js      # pest/disease reports + attachments
+│   │   ├── Region.js          # district/zone/division hierarchy
+│   │   ├── SystemSetting.js   # key-value system settings
+│   │   └── User.js            # core user account
+│   ├── modules/
+│   │   ├── admin/             # user mgmt, region CRUD, system settings
+│   │   ├── auth/              # register, login, verify, profile
+│   │   ├── crops/             # crop catalogue management
+│   │   ├── farmer/            # farmer-specific operations
+│   │   ├── instructor/        # instructor-specific operations
+│   │   ├── messages/          # REST message history
+│   │   └── ratings/           # instructor rating submit/read
+│   ├── scripts/
+│   │   └── ensure-database.js # creates DB if it doesn't exist
+│   ├── seeders/
+│   │   ├── admin.seeder.js
+│   │   ├── crops.seeder.js
+│   │   ├── demo-accounts.seeder.js
+│   │   ├── demo-ids.seeder.js
+│   │   └── run-seeders.js
+│   ├── services/
+│   │   ├── dataService.js     # aggregate stats queries
+│   │   ├── emailService.js    # Nodemailer wrappers
+│   │   ├── messageService.js  # Socket.IO message broadcasting
+│   │   ├── ratingService.js   # rating compute helpers
+│   │   └── userService.js     # shared user queries
+│   └── utils/
+│       ├── cloudinary.js      # upload/delete helpers
+│       └── jwtUtils.js        # sign/verify + secret validation
 │
 └── frontend/
-    ├── src/
-    │   ├── assets/     # Static assets
-    │   ├── features/   # Feature-based modules
-    │   │   ├── admin/
-    │   │   ├── auth/
-    │   │   ├── farmer/
-    │   │   ├── home/
-    │   │   └── instructor/
-    │   ├── services/   # API clients
-    │   └── utils/      # Shared helpers
-    └── package.json
+    ├── index.html
+    ├── package.json
+    ├── vite.config.js
+    ├── .env.example
+    └── src/
+        ├── App.jsx            # Routes + role guards
+        ├── main.jsx           # React entry + i18n init
+        ├── i18n.js            # i18next configuration
+        ├── assets/            # Images, icons, fonts
+        ├── components/
+        │   ├── auth/          # ProtectedRoute, RoleGuard
+        │   └── common/        # Shared UI components
+        ├── config/            # API base URL, env validation
+        ├── features/
+        │   ├── auth/          # Login, Register, Verify pages
+        │   ├── farmer/        # Farmer pages, components, styles
+        │   ├── instructor/    # Instructor pages, components, styles
+        │   ├── admin/         # Admin pages, components, styles
+        │   └── home/          # Public landing page
+        ├── locales/
+        │   ├── en/            # English translations (6 namespaces)
+        │   └── si/            # Sinhala translations (6 namespaces)
+        ├── services/          # Axios API clients per role
+        │   ├── authService.js
+        │   ├── farmerService.js
+        │   ├── instructorService.js
+        │   ├── adminService.js
+        │   └── enhancedApiService.js
+        └── utils/             # Shared helpers
 ```
 
+---
+
+## 🗄️ Database Schema
+
+15 tables in MySQL database `agriconnect`:
+
+| Table | Description |
+|---|---|
+| `users` | Core accounts (farmer / instructor / admin) |
+| `farmer_details` | Extended farmer profile (zone, division, NIC, etc.) |
+| `instructor_details` | Extended instructor profile (specialization, zone, rating) |
+| `generated_ids` | Pre-generated display IDs per role |
+| `regions` | district → zone → division hierarchy (admin-managed) |
+| `crops` | Crop catalogue (admin-managed) |
+| `crop_plans` | Farmer crop plans with file attachments |
+| `harvest_records` | Yield records linked to crop plans |
+| `pest_reports` | Pest/disease reports with photo evidence |
+| `activities` | Daily farming activity logs |
+| `meetings` | Scheduled visits / appointments |
+| `messages` | Real-time chat history (farmer ↔ instructor) |
+| `instructor_ratings` | Ratings given by farmers to instructors |
+| `system_settings` | Key-value application settings |
+| `migrations` | Applied migration tracking |
+
+The complete schema is in [`backend/migrations/001-init.sql`](backend/migrations/001-init.sql).
+
+---
+
+## 🔌 API Overview
+
+All routes are prefixed with `/api`. Protected routes require `Authorization: Bearer <token>`.
+
+| Prefix | Module | Roles |
+|---|---|---|
+| `/api/auth` | Authentication | Public |
+| `/api/farmer` | Farmer operations | Farmer |
+| `/api/instructor` | Instructor operations | Instructor |
+| `/api/admin` | Admin operations | Admin |
+| `/api/crops` | Crop catalogue | All authenticated |
+| `/api/messages` | Message history | Farmer, Instructor |
+| `/api/ratings` | Instructor ratings | Farmer, Instructor |
+
+### WebSocket Events (Socket.IO)
+Authenticated via JWT passed as `auth.token`. All events are namespaced under the default `/` namespace.
+
+| Event | Direction | Description |
+|---|---|---|
+| `join_room` | Client → Server | Join user's personal room |
+| `send_message` | Client → Server | Send a chat message |
+| `receive_message` | Server → Client | Deliver incoming message |
+| `message_read` | Client → Server | Mark messages as read |
+
+---
+
+## 🏭 Production Deployment
+
+### Backend
+```bash
+# Set in production .env:
+NODE_ENV=production
+JWT_SECRET=<128-char hex string>
+CORS_ORIGINS=https://your-domain.com
+DEV_EMAIL_BYPASS=   # must be empty
+
+npm start           # runs: node server.js
+```
+
+Use a process manager such as [PM2](https://pm2.keymetrics.io/):
+```bash
+pm2 start server.js --name agri-backend
+pm2 save
+pm2 startup
+```
+
+### Frontend
+```bash
+npm run build       # outputs to frontend/dist/
+```
+Serve `dist/` with Nginx, Caddy, or any static host. Point your web server's `/api` proxy to the backend.
+
+### First-Run Checklist
+- [ ] MySQL 8 database created (`agriconnect`)
+- [ ] `backend/.env` fully populated (no placeholder values)
+- [ ] `frontend/.env` pointing to production API/Socket URLs
+- [ ] `npm run migrate` executed on the server
+- [ ] `npm run seed:admin` executed (creates the first admin account)
+- [ ] `NODE_ENV=production` set
+- [ ] `JWT_SECRET` is a strong random value (≥ 128 chars)
+- [ ] `DEV_EMAIL_BYPASS` is empty
+
+---
+
 ## 🤝 Contributing
-1.  Fork the project
-2.  Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3.  Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4.  Push to the branch (`git push origin feature/AmazingFeature`)
-5.  Open a Pull Request
+1. Fork the project
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
 
 ## 📄 License
 This project is licensed under the ISC License.

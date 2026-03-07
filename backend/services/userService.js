@@ -135,7 +135,7 @@ export class UserService {
             throw new Error('User not found');
         }
 
-        user.is_active = !user.is_active;
+        user.status = user.status === 'active' ? 'blocked' : 'active';
         await user.save();
 
         return user;
@@ -151,7 +151,7 @@ export class UserService {
         };
 
         if (filters.region) {
-            whereClause['$instructorDetail.region$'] = filters.region;
+            whereClause['$instructorDetail.zone$'] = filters.region;
         }
 
         const instructors = await User.findAll({
@@ -180,14 +180,14 @@ export class UserService {
             average_rating: instructor.instructorDetail.average_rating,
             email: instructor.email,
             phone: instructor.phone,
-            profilePicture: instructor.avatar || instructor.profile_picture || null
+            profilePicture: instructor.profile_picture || null
         }));
     }
 
     /**
-     * Get farmers by region
+     * Get farmers by division (queried via locations JSON)
      */
-    static async getFarmersByRegion(region) {
+    static async getFarmersByRegion(division) {
         return await User.findAll({
             where: {
                 role: 'farmer',
@@ -198,9 +198,9 @@ export class UserService {
                     model: FarmerDetail,
                     as: 'farmerDetail',
                     required: true,
-                    where: {
-                        region: region
-                    }
+                    where: sequelize.literal(
+                        `JSON_SEARCH(farmerDetail.locations, 'one', ${sequelize.escape(division)}, NULL, '$[*].division') IS NOT NULL`
+                    )
                 }
             ],
             order: [['full_name', 'ASC']]

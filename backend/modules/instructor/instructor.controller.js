@@ -1,4 +1,5 @@
-﻿import { sequelize, User, InstructorDetail, FarmerDetail, CropPlan, PestReport, HarvestRecord, Activity, Meeting, Message, SystemSetting, Crop } from '../../models/index.js';
+﻿import { sequelize, User, InstructorDetail, FarmerDetail, CropPlan, PestReport, HarvestRecord, Activity, Meeting, Message, Crop, Region } from '../../models/index.js';
+import crypto from 'crypto';
 import { Op } from 'sequelize';
 import { upload, uploadToCloudinaryMiddleware } from '../../middleware/uploadMiddleware.js';
 
@@ -35,13 +36,14 @@ export const getDashboardStats = async (req, res) => {
 
         // Assigned Farmers Count
         const assignedFarmersCount = await FarmerDetail.count({
-            where: {
-                [Op.or]: divisions.map(div => ({
-                    instructor_division: {
-                        [Op.like]: `%${div}%`
-                    }
-                }))
-            }
+            where: divisions.length > 0 ? {
+                [Op.or]: divisions.map(div =>
+                    sequelize.where(
+                        sequelize.fn('JSON_SEARCH', sequelize.col('locations'), 'one', div, sequelize.literal('NULL'), '$[*].division'),
+                        { [Op.ne]: null }
+                    )
+                )
+            } : { id: -1 }
         });
 
         // Pending Crop Plans
@@ -571,57 +573,29 @@ export const getAssignedFarmers = async (req, res) => {
             include: [{
                 model: FarmerDetail,
                 as: 'farmerDetail',
-                where: {
-                    [Op.or]: [
-                        // Match primary division
-                        ...divisions.map(div => ({
-                            instructor_division: {
-                                [Op.like]: `%${div}%`
-                            }
-                        })),
-                        // Match inside locations JSON
-                        ...divisions.map(div => (
-                            sequelize.where(
-                                sequelize.literal(`CAST(JSON_UNQUOTE(farmerDetail.locations) AS CHAR)`),
-                                { [Op.like]: `%${div}%` }
-                            )
-                        ))
-                    ]
-                }
+                where: divisions.length > 0 ? {
+                    [Op.or]: divisions.map(div =>
+                        sequelize.where(
+                            sequelize.literal(`JSON_SEARCH(\`farmerDetail\`.\`locations\`, 'one', ${sequelize.escape(div)}, NULL, '$[*].division')`),
+                            { [Op.ne]: null }
+                        )
+                    )
+                } : { id: -1 }
             }],
             attributes: ['id', 'full_name', 'email', 'phone', 'nic', 'created_at']
         });
 
         const formattedFarmers = farmers.map(f => {
-            // Find the matching division for display
-            let displayDivision = f.farmerDetail?.instructor_division;
-            
-            // If primary division doesn't match or is missing, check locations
-            // We check if the current displayDivision is one of the assigned divisions
-            // If not, we try to find a matching one from locations
-            const isPrimaryMatch = displayDivision && divisions.some(d => displayDivision.includes(d));
-            
-            if (!isPrimaryMatch && f.farmerDetail?.locations) {
-                let locations = [];
-                try {
-                    locations = Array.isArray(f.farmerDetail.locations) 
-                        ? f.farmerDetail.locations 
-                        : JSON.parse(f.farmerDetail.locations || '[]');
-                } catch (e) {
-                    locations = [];
-                }
+            let locs = [];
+            try {
+                locs = Array.isArray(f.farmerDetail?.locations)
+                    ? f.farmerDetail.locations
+                    : JSON.parse(f.farmerDetail?.locations || '[]');
+            } catch (e) { locs = []; }
 
-                const matchingLoc = locations.find(loc => 
-                    divisions.some(div => {
-                        const locDiv = loc.instructorDivision || loc.division;
-                        return locDiv && locDiv.includes(div);
-                    })
-                );
-                
-                if (matchingLoc) {
-                    displayDivision = matchingLoc.instructorDivision || matchingLoc.division;
-                }
-            }
+            const matchingLoc  = locs.find(loc => divisions.some(d => loc.division === d));
+            const displayZone     = matchingLoc?.zone     || locs[0]?.zone     || 'N/A';
+            const displayDivision = matchingLoc?.division || locs[0]?.division || 'N/A';
 
             return {
                 id: f.id,
@@ -631,8 +605,8 @@ export const getAssignedFarmers = async (req, res) => {
                 phone: f.phone,
                 nic: f.nic,
                 district: f.farmerDetail?.district || 'N/A',
-                zone: f.farmerDetail?.zone || 'N/A',
-                division: displayDivision || 'N/A',
+                zone: displayZone,
+                division: displayDivision,
                 joined: f.created_at ? f.created_at.toISOString().split('T')[0] : 'N/A'
             };
         });
@@ -698,8 +672,8 @@ export const getFarmerDetails = async (req, res) => {
             phone: farmer.phone,
             nic: farmer.nic,
             district: farmer.farmerDetail?.district || 'N/A',
-            zone: farmer.farmerDetail?.zone || 'N/A',
-            primaryDivision: farmer.farmerDetail?.instructor_division || 'N/A',
+            zone: locations[0]?.zone || 'N/A',
+            primaryDivision: locations[0]?.division || 'N/A',
             locations: locations,
             joined: farmer.created_at,
             profilePicture: farmer.avatar || farmer.profile_picture
@@ -759,7 +733,7 @@ export const getPestReports = async (req, res) => {
                 include: [{
                     model: FarmerDetail,
                     as: 'farmerDetail',
-                    attributes: ['farmer_id', 'district', 'zone']
+                    attributes: ['farmer_id', 'district']
                 }]
             }],
             order: [['created_at', 'DESC']]
@@ -793,7 +767,7 @@ export const getPestReports = async (req, res) => {
                 id: r.id,
                 farmerName: r.user?.full_name || 'N/A',
                 farmerId: r.user?.farmerDetail?.farmer_id || 'N/A',
-                location: `${r.user?.farmerDetail?.district || ''} - ${r.user?.farmerDetail?.zone || ''}`,
+                location: r.user?.farmerDetail?.district || 'N/A',
                 reportedDate: r.created_at.toISOString().split('T')[0],
                 updatedAt: r.updated_at,
                 pestName: r.name,
@@ -1069,30 +1043,9 @@ export const getProfile = async (req, res) => {
             userData.profile_picture = userData.profile_picture.replace(/\\/g, '/');
         }
 
-        // Fetch valid zones from SystemSetting
-        const setting = await SystemSetting.findOne({
-            where: { setting_key: 'region_hierarchy' }
-        });
-        
-        if (!setting) {
-            console.error('Region hierarchy not found in database');
-            return res.status(500).json({ 
-                success: false, 
-                error: { message: 'Region hierarchy not configured. Please contact administrator.' } 
-            });
-        }
-
-        let validZones = [];
-        try {
-            const hierarchy = JSON.parse(setting.setting_value);
-            validZones = Object.keys(hierarchy);
-        } catch (e) {
-            console.error('Error parsing hierarchy for valid zones:', e);
-            return res.status(500).json({ 
-                success: false, 
-                error: { message: 'Invalid region hierarchy format in database.' } 
-            });
-        }
+        // Fetch valid zones from regions table
+        const regionRows = await Region.findAll({ order: [['zone', 'ASC']], raw: true });
+        const validZones = [...new Set(regionRows.map(r => r.zone))];
 
         if (!userData.instructorDetail) {
             // Create a default instructorDetail object if it's missing
@@ -1209,21 +1162,13 @@ export const getTakenDivisions = async (req, res) => {
  */
 export const getRegionHierarchy = async (req, res) => {
     try {
-        const setting = await SystemSetting.findOne({
-            where: { setting_key: 'region_hierarchy' }
+        const rows = await Region.findAll({ order: [['zone', 'ASC'], ['division', 'ASC']], raw: true });
+        const hierarchy = {};
+        rows.forEach(r => {
+            if (!hierarchy[r.zone]) hierarchy[r.zone] = [];
+            if (r.division !== r.zone) hierarchy[r.zone].push(r.division);
         });
-
-        if (!setting) {
-            return res.status(404).json({ 
-                success: false, 
-                error: { message: 'Region hierarchy not found in database. Please run migrations.' } 
-            });
-        }
-
-        return res.status(200).json({ 
-            success: true, 
-            data: JSON.parse(setting.setting_value) 
-        });
+        return res.status(200).json({ success: true, data: hierarchy });
     } catch (error) {
         console.error('Error fetching region hierarchy:', error);
         return res.status(500).json({ success: false, error: { message: 'Failed to fetch region hierarchy' } });
@@ -1338,7 +1283,7 @@ export const updateProfile = async (req, res) => {
             await detail.save();
         } else {
             // Generate an instructor ID if it doesn't exist
-            const instructorId = `INST-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+            const instructorId = `INST-${new Date().getFullYear()}-${crypto.randomInt(1000, 9999)}`;
             await InstructorDetail.create({
                 user_id: userId,
                 instructor_id: instructorId,
@@ -1460,7 +1405,6 @@ export const updateProfilePicture = async (req, res) => {
         }
         
         user.profile_picture = req.file.path.replace(/\\/g, '/');
-        user.avatar = user.profile_picture;
         await user.save();
 
         // Emit real-time update to all connected clients
@@ -1601,8 +1545,7 @@ export const getCropCalendars = async (req, res) => {
         const formattedCrops = (crops || []).map(crop => ({
             id: crop.id,
             name: crop.name,
-            image: crop.image_url,
-            description: crop.description
+            image: crop.image_url
         }));
 
         return res.status(200).json({ success: true, data: formattedCrops });

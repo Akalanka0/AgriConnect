@@ -84,14 +84,12 @@ export class DataService {
             PestReport.count({ where: { instructor_id: instructorId } }),
             sequelize.query(`
                 SELECT COUNT(DISTINCT u.id) as count
-                FROM Users u
-                JOIN FarmerDetails fd ON u.id = fd.user_id
-                WHERE u.is_active = true
-                AND fd.region IN (
-                    SELECT DISTINCT region 
-                    FROM InstructorDetails 
-                    WHERE user_id = ?
-                )
+                FROM users u
+                JOIN farmer_details fd ON u.id = fd.user_id
+                JOIN instructor_details id2 ON u.id != id2.user_id
+                WHERE u.status = 'active'
+                AND id2.user_id = ?
+                AND JSON_SEARCH(fd.locations, 'one', id2.zone, NULL, '$[*].zone') IS NOT NULL
             `, {
                 replacements: [instructorId],
                 type: sequelize.QueryTypes.SELECT
@@ -116,34 +114,32 @@ export class DataService {
         ] = await Promise.all([
             sequelize.query(`
                 SELECT COUNT(*) as count
-                FROM Users u
-                JOIN FarmerDetails fd ON u.id = fd.user_id
-                WHERE u.is_active = true 
-                AND fd.region = ?
+                FROM users u
+                JOIN farmer_details fd ON u.id = fd.user_id
+                WHERE u.status = 'active'
+                AND JSON_SEARCH(fd.locations, 'one', ?, NULL, '$[*].zone') IS NOT NULL
             `, {
                 replacements: [region],
                 type: sequelize.QueryTypes.SELECT
             }),
             CropPlan.count({
                 include: [{
-                    model: sequelize.models.User,
-                    as: 'user',
-                    include: [{
-                        model: sequelize.models.FarmerDetail,
-                        as: 'farmerDetail',
-                        where: { region }
-                    }]
+                    model: FarmerDetail,
+                    as: 'farmerDetail',
+                    required: true,
+                    where: sequelize.literal(
+                        `JSON_SEARCH(farmerDetail.locations, 'one', ${sequelize.escape(region)}, NULL, '$[*].zone') IS NOT NULL`
+                    )
                 }]
             }),
             PestReport.count({
                 include: [{
-                    model: sequelize.models.User,
-                    as: 'user',
-                    include: [{
-                        model: sequelize.models.FarmerDetail,
-                        as: 'farmerDetail',
-                        where: { region }
-                    }]
+                    model: FarmerDetail,
+                    as: 'farmerDetail',
+                    required: true,
+                    where: sequelize.literal(
+                        `JSON_SEARCH(farmerDetail.locations, 'one', ${sequelize.escape(region)}, NULL, '$[*].zone') IS NOT NULL`
+                    )
                 }]
             })
         ]);

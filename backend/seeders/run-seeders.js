@@ -9,10 +9,10 @@ const runSeeders = async () => {
         await sequelize.authenticate();
         console.log('✅ Database connection verified');
 
-        await seedAdmin();
-        await seedDemoIds();
-        await seedDemoAccounts();
-        await seedCrops();
+        await seedAdmin();        // 1. admin user
+        await seedDemoIds();      // 2. pre-populate generated_ids codes
+        await seedDemoAccounts(); // 3. demo users + details + system_settings
+        await seedCrops();        // 4. crop reference data
         console.log('🎉 All seeders ran successfully');
         process.exit(0);
     } catch (error) {

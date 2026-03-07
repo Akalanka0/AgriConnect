@@ -10,6 +10,7 @@
     Activity, 
     Meeting 
 } from '../../models/index.js';
+import crypto from 'crypto';
 import { Op } from 'sequelize';
 import { upload, uploadToCloudinaryMiddleware } from '../../middleware/uploadMiddleware.js';
 import { DataService } from '../../services/dataService.js';
@@ -787,7 +788,7 @@ export const getProfile = async (req, res) => {
 export const updateProfile = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { full_name, email, phone, district, zone, instructor_division, locations } = req.body;
+        const { full_name, email, phone, district, locations } = req.body;
 
         const user = await User.findByPk(userId);
         if (!user) {
@@ -804,19 +805,15 @@ export const updateProfile = async (req, res) => {
         let detail = await FarmerDetail.findOne({ where: { user_id: userId } });
         if (detail) {
             detail.district = district !== undefined ? district : detail.district;
-            detail.zone = zone !== undefined ? zone : detail.zone;
-            detail.instructor_division = instructor_division !== undefined ? instructor_division : detail.instructor_division;
             detail.locations = locations !== undefined ? locations : detail.locations;
             await detail.save();
         } else {
             // Generate a farmer ID if it doesn't exist
-            const farmerId = `FARM-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+            const farmerId = `FARM-${new Date().getFullYear()}-${crypto.randomInt(1000, 9999)}`;
             await FarmerDetail.create({
                 user_id: userId,
                 farmer_id: farmerId,
                 district,
-                zone,
-                instructor_division,
                 locations: locations || []
             });
         }
@@ -861,7 +858,6 @@ export const updateProfilePicture = async (req, res) => {
         }
 
         user.profile_picture = profilePictureUrl;
-        user.avatar = user.profile_picture; // Sync avatar field
         await user.save();
 
         return res.status(200).json({
@@ -891,7 +887,6 @@ export const removeProfilePicture = async (req, res) => {
         }
 
         user.profile_picture = null;
-        user.avatar = null; // Sync avatar field
         await user.save();
 
         return res.status(200).json({

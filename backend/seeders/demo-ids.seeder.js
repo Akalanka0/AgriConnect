@@ -1,44 +1,33 @@
-import { FarmerDetail, InstructorDetail } from '../models/index.js';
+import GeneratedId from '../models/GeneratedId.js';
+import { fileURLToPath } from 'url';
 
+// Pre-populate the two demo codes in generated_ids so the registration
+// flow can find and claim them. demo-accounts.seeder.js will mark them 'used'.
 const seedDemoIds = async () => {
     try {
-        const demoFarmerId = 'FARM-2025-0001';
-        
-        const [farmer, createdFarmer] = await FarmerDetail.findOrCreate({
-            where: { farmer_id: demoFarmerId },
-            defaults: {
-                farmer_id: demoFarmerId,
-                user_id: null // Ensure it is unassigned on creation
-            }
-        });
+        const ids = [
+            { code: 'FARM-2026-0001', type: 'farmer',     year: 2026 },
+            { code: 'INST-2026-0001', type: 'instructor', year: 2026 },
+        ];
 
-        if (createdFarmer) {
-            console.log(`🌱 Seeded Demo Farmer ID: ${demoFarmerId}`);
-        } else {
-            console.log(`👍 Demo Farmer ID ${demoFarmerId} exists.`);
+        for (const entry of ids) {
+            const [, created] = await GeneratedId.findOrCreate({
+                where:    { code: entry.code },
+                defaults: { ...entry, status: 'active' }
+            });
+            console.log(
+                created
+                    ? `🌱 Seeded ID: ${entry.code}`
+                    : `👍 ID already exists: ${entry.code}`
+            );
         }
-
-        const demoInstructorId = 'INST-2026-0001';
-        
-        const [instructor, createdInstructor] = await InstructorDetail.findOrCreate({
-            where: { instructor_id: demoInstructorId },
-            defaults: {
-                instructor_id: demoInstructorId,
-                user_id: null, // Ensure it is unassigned on creation
-                district: 'Anuradhapura',
-                zone: 'Demo Zone'
-            }
-        });
-
-        if (createdInstructor) {
-            console.log(`🌱 Seeded Demo Instructor ID: ${demoInstructorId}`);
-        } else {
-            console.log(`👍 Demo Instructor ID ${demoInstructorId} exists.`);
-        }
-
     } catch (error) {
         console.error('❌ Error seeding demo IDs:', error);
     }
 };
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+    seedDemoIds().then(() => process.exit(0));
+}
 
 export default seedDemoIds;

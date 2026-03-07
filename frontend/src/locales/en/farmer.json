@@ -509,6 +509,8 @@
   },
   "common": {
     "fillRequired": "Please fill in all required fields",
-    "loadError": "Failed to load data"
+    "loadError": "Failed to load data",
+    "close": "Close",
+    "delete": "Delete"
   }
 }

@@ -203,6 +203,10 @@ export const registerUser = async (userData) => {
         await transaction.commit();
         committed = true;
 
+        // Bypass email verification only when DEV_EMAIL_BYPASS matches AND we are NOT in production
+        const shouldBypassVerification = userData.email === process.env.DEV_EMAIL_BYPASS
+            && process.env.NODE_ENV !== 'production';
+
         if (!shouldBypassVerification && verificationToken) {
             try {
                 await sendVerificationEmail(user.email, verificationToken, user.full_name);
@@ -325,8 +329,7 @@ export const loginUser = async (email, password) => {
             nic: user.nic,
             phone: user.phone,
             status: user.status,
-            profile_picture: user.profile_picture,
-            avatar: user.avatar
+            profile_picture: user.profile_picture
         };
 
         // Add role-specific data
