@@ -4,10 +4,14 @@ import jwt from 'jsonwebtoken';
 import { sequelize, User, FarmerDetail, InstructorDetail, SystemSetting, GeneratedId } from '../../models/index.js';
 import { sendVerificationEmail } from '../../services/emailService.js';
 
-// Demo account identifiers — allows re-registration without corrupting production data
-const DEMO_NICS = ['123456789V', '987654321V'];
-const DEMO_FARMER_IDS = ['FARM-2026-DEMO', 'FARM-2025-0001', 'F-TEST-001'];
-const DEMO_INSTRUCTOR_IDS = ['INST-2026-0001', 'INST-2025-0001', 'I-TEST-001'];
+// Demo account identifiers — allows re-registration without corrupting demo data.
+// These are automatically empty in production (NODE_ENV=production), so demo bypass
+// logic never fires for real deployments. To remove for client delivery, delete these
+// four lines and remove every isDemoNIC / isDemoFarmerId / isDemoInstructorId block.
+const _isDemoEnv = process.env.NODE_ENV !== 'production';
+const DEMO_NICS             = _isDemoEnv ? ['123456789V', '987654321V'] : [];
+const DEMO_FARMER_IDS       = _isDemoEnv ? ['FARM-2026-DEMO', 'FARM-2025-0001', 'F-TEST-001'] : [];
+const DEMO_INSTRUCTOR_IDS   = _isDemoEnv ? ['INST-2026-0001', 'INST-2025-0001', 'I-TEST-001'] : [];
 
 /**
  * Register a new user (farmer or instructor only)

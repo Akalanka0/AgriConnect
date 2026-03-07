@@ -1,11 +1,10 @@
-import { User } from '../models/index.js';
+import { User, SystemSetting } from '../models/index.js';
 import bcrypt from 'bcryptjs';
 import { fileURLToPath } from 'url';
 
 const seedAdmin = async () => {
   try {
     const hashedPassword = await bcrypt.hash('admin123', 10);
-    console.log('Admin seeder generated hash for "admin123":', hashedPassword);
 
     // Check if admin user already exists by email
     let adminUser = await User.findOne({ where: { email: 'admin@agriconnect.lk' } });
@@ -48,6 +47,14 @@ const seedAdmin = async () => {
           console.log('Admin user created successfully!');
       }
     }
+
+    // --- SYSTEM SETTINGS ---
+    await SystemSetting.findOrCreate({
+      where:    { setting_key: 'maintenance_mode' },
+      defaults: { setting_value: 'false', description: 'Set to true to enable maintenance mode.' }
+    });
+    console.log('✅ System settings ensured');
+
   } catch (error) {
     console.error('Error seeding admin user:', error);
   }

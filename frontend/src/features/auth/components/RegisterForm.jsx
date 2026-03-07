@@ -18,29 +18,23 @@ const RegisterForm = ({
     setIsLogin
 }) => {
     const { t } = useTranslation('auth');
-    // Demo data autofill function
-    const fillDemoData = () => {
-        const demoData = {
-            fullName: role === 'farmer' ? 'Demo Farmer' : 'Demo Instructor',
-            email: 'testuseragri@gmail.com',
-            password: 'demo12345',
-            confirmPassword: 'demo12345',
-            nic: role === 'farmer' ? '123456789V' : '987654321V',
-            phone: role === 'farmer' ? '0712345678' : '0718765432',
-        };
-
-        const farmerIds = ['FARM-2025-0001'];
-        const instructorIds = ['INST-2026-0001'];
-
-        if (role === 'farmer') {
-            demoData.farmerId = farmerIds[0];
-        } else if (role === 'instructor') {
-            demoData.instructorId = instructorIds[0];
+    // DEMO — remove for client delivery or set VITE_DEMO_MODE=false
+    const fillDemoData = import.meta.env.VITE_DEMO_MODE === 'true'
+        ? () => {
+            const demoData = {
+                fullName: role === 'farmer' ? 'Demo Farmer' : 'Demo Instructor',
+                email: 'testuseragri@gmail.com',
+                password: 'demo12345',
+                confirmPassword: 'demo12345',
+                nic: role === 'farmer' ? '123456789V' : '987654321V',
+                phone: role === 'farmer' ? '0712345678' : '0718765432',
+            };
+            if (role === 'farmer') demoData.farmerId = 'FARM-2025-0001';
+            else if (role === 'instructor') demoData.instructorId = 'INST-2026-0001';
+            setRegisterData(demoData);
+            setPasswordStrength(checkPasswordStrength('demo12345'));
         }
-
-        setRegisterData(demoData);
-        setPasswordStrength(checkPasswordStrength('demo12345'));
-    };
+        : null;
 
     return (
         <div>
@@ -180,16 +174,18 @@ const RegisterForm = ({
                     {loading && <div className={styles.loading}></div>}
                 </button>
 
-                {/* Quick Demo Button */}
-                <button
-                    type="button"
-                    className={styles.demoBtn}
-                    onClick={fillDemoData}
-                    disabled={loading}
-                >
-                    <i className="fas fa-wand-magic-sparkles"></i>
-                    {role === 'farmer' ? t('register.quickDemoFarmer') : t('register.quickDemoInstructor')}
-                </button>
+                {/* DEMO — remove for client delivery or set VITE_DEMO_MODE=false */}
+                {import.meta.env.VITE_DEMO_MODE === 'true' && (
+                    <button
+                        type="button"
+                        className={styles.demoBtn}
+                        onClick={fillDemoData}
+                        disabled={loading}
+                    >
+                        <i className="fas fa-wand-magic-sparkles"></i>
+                        {role === 'farmer' ? t('register.quickDemoFarmer') : t('register.quickDemoInstructor')}
+                    </button>
+                )}
 
                 <div className={styles.switchForm}>
                     <p>{t('register.haveAccount')} <a onClick={() => setIsLogin(true)}>{t('register.signIn')}</a></p>

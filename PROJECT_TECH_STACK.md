@@ -89,7 +89,8 @@ Complete inventory of every technology, library, and tool used in this project, 
 | `npm start` | `node server.js` | **Production** start |
 | `npm run dev` | `nodemon server.js` | Development with auto-restart |
 | `npm run migrate` | `node migrations/run-migrations.js` | Apply pending SQL migrations |
-| `npm run seed` | `node -r dotenv/config seeders/run-seeders.js` | Seed all demo data |
+| `npm run seed` | `node -r dotenv/config seeders/run-seeders.js` | **Production** seed: admin + crops + system settings |
+| `npm run seed:demo` | `node -r dotenv/config seeders/demo/run-demo-seeders.js` | **Demo** seed: demo instructor + farmer (skip for client delivery) |
 | `npm run seed:admin` | `node seeders/admin.seeder.js` | Seed admin account only |
 | `npm run db:ensure` | `node scripts/ensure-database.js` | Create DB if it doesn't exist |
 

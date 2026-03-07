@@ -207,8 +207,12 @@ npm run migrate
 
 Seed initial data:
 ```bash
-# Full demo seed (admin + demo farmer + demo instructor + crops + regions)
+# Production seed: admin user + crop catalogue + system settings
 npm run seed
+
+# Demo seed: demo instructor + demo farmer (development / client demos only)
+# Skip this for real client deployments
+npm run seed:demo
 
 # OR just the admin account
 npm run seed:admin
@@ -256,13 +260,13 @@ npm run dev
 
 ---
 
-### 4. Demo Credentials (after seeding)
+### 4. Demo Credentials (after `npm run seed:demo`)
 
 | Role | Email | Password |
 |---|---|---|
-| Admin | admin@agriconnect.lk | Admin@123 |
-| Instructor | instructor.demo@agriconnect.lk | Demo@123 |
-| Farmer | farmer.demo@agriconnect.lk | Demo@123 |
+| Admin | admin@agriconnect.lk | admin123 |
+| Instructor | instructor@example.com | instructor123 |
+| Farmer | farmer@example.com | farmer123 |
 
 ---
 
@@ -446,9 +450,10 @@ Serve `dist/` with Nginx, Caddy, or any static host. Point your web server's `/a
 - [ ] MySQL 8 database created (`agriconnect`)
 - [ ] `backend/.env` fully populated (no placeholder values)
 - [ ] `frontend/.env` pointing to production API/Socket URLs
+- [ ] `frontend/.env` has `VITE_DEMO_MODE=false` (hides demo panel on login page)
 - [ ] `npm run migrate` executed on the server
 - [ ] `npm run seed:admin` executed (creates the first admin account)
-- [ ] `NODE_ENV=production` set
+- [ ] `NODE_ENV=production` set (also disables all backend demo bypasses automatically)
 - [ ] `JWT_SECRET` is a strong random value (≥ 128 chars)
 - [ ] `DEV_EMAIL_BYPASS` is empty
 

@@ -67,27 +67,30 @@ const LoginForm = ({
                     <p>{t('login.noAccount')} <a onClick={() => setIsLogin(false)}>{t('login.registerNow')}</a></p>
                 </div>
             </form>
-            <div className={styles.demoAccounts}>
-                <h3><i className="fas fa-lightbulb"></i> {t('demo.title')}</h3>
-                <div className={styles.demoAccount}>
-                    <div><span>{t('demo.farmer')}</span> farmer@example.com / farmer123</div>
-                    <button className={styles.copyBtn} onClick={() => fillCredentials('farmer@example.com', 'farmer123')} title="Auto-fill credentials">
-                        <i className="fas fa-user-check"></i>
-                    </button>
+            {/* DEMO PANEL — remove for client delivery or set VITE_DEMO_MODE=false */}
+            {import.meta.env.VITE_DEMO_MODE === 'true' && (
+                <div className={styles.demoAccounts}>
+                    <h3><i className="fas fa-lightbulb"></i> {t('demo.title')}</h3>
+                    <div className={styles.demoAccount}>
+                        <div><span>{t('demo.farmer')}</span> farmer@example.com / farmer123</div>
+                        <button className={styles.copyBtn} onClick={() => fillCredentials('farmer@example.com', 'farmer123')} title="Auto-fill credentials">
+                            <i className="fas fa-user-check"></i>
+                        </button>
+                    </div>
+                    <div className={styles.demoAccount}>
+                        <div><span>{t('demo.instructor')}</span> instructor@example.com / instructor123</div>
+                        <button className={styles.copyBtn} onClick={() => fillCredentials('instructor@example.com', 'instructor123')} title="Auto-fill credentials">
+                            <i className="fas fa-user-check"></i>
+                        </button>
+                    </div>
+                    <div className={styles.demoAccount}>
+                        <div><span>{t('demo.admin')}</span> admin@agriconnect.lk / admin123</div>
+                        <button className={styles.copyBtn} onClick={() => fillCredentials('admin@agriconnect.lk', 'admin123')} title="Auto-fill credentials">
+                            <i className="fas fa-user-check"></i>
+                        </button>
+                    </div>
                 </div>
-                <div className={styles.demoAccount}>
-                    <div><span>{t('demo.instructor')}</span> instructor@example.com / instructor123</div>
-                    <button className={styles.copyBtn} onClick={() => fillCredentials('instructor@example.com', 'instructor123')} title="Auto-fill credentials">
-                        <i className="fas fa-user-check"></i>
-                    </button>
-                </div>
-                <div className={styles.demoAccount}>
-                    <div><span>{t('demo.admin')}</span> admin@agriconnect.lk / admin123</div>
-                    <button className={styles.copyBtn} onClick={() => fillCredentials('admin@agriconnect.lk', 'admin123')} title="Auto-fill credentials">
-                        <i className="fas fa-user-check"></i>
-                    </button>
-                </div>
-            </div>
+            )}
         </div>
     );
 };
