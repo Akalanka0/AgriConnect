@@ -469,4 +469,4 @@ Serve `dist/` with Nginx, Caddy, or any static host. Point your web server's `/a
 ---
 
 ## 📄 License
-This project is licensed under the ISC License.
+This project is licensed under the MIT License.
