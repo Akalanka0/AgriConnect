@@ -11,7 +11,7 @@ config({ path: path.join(process.cwd(), '.env') });
     DB_USER = 'root',
     DB_PASSWORD = '',
     DB_PORT = '3306',
-    DB_NAME = 'agriconnect0'
+    DB_NAME = 'agriconnect'
   } = process.env;
 
   try {

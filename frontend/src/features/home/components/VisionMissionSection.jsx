@@ -15,7 +15,7 @@ const VisionMissionSection = React.memo(() => {
             <p>{t('visionMission.subtitle')}</p>
             <div className={styles.vmGrid}>
                 {visionMission.map((item, idx) => (
-                    <div key={idx} className={styles.vmCard}>
+                    <div key={item.title} className={styles.vmCard}>
                         <h3>
                             <i className={`fas ${item.icon}`} aria-hidden="true"></i>
                             {item.title}
