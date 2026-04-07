@@ -114,39 +114,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// Database Connection
-testConnection()
-    .then(async () => {
-        // Sync models - using a safer approach
-        try {
-            // Sync all models including GeneratedId, but handle GeneratedId errors specifically
-            const models = Object.values(sequelize.models);
-            // Schema changes are managed exclusively through migrations — do not use alter/force
-            const syncOptions = {};
-            for (const model of models) {
-                try {
-                    await model.sync(syncOptions);
-                } catch (modelError) {
-                    if (modelError.code === 'ER_TOO_MANY_KEYS') {
-                        console.warn(`⚠️ Skipping sync for ${model.name} due to MySQL key limits (ER_TOO_MANY_KEYS)`);
-                    } else {
-                        console.error(`Error syncing ${model.name}:`, modelError.message);
-                    }
-                }
-            }
-            console.log('✅ Model sync process completed.');
-        } catch (syncError) {
-            console.error('Unexpected sync error:', syncError.message);
-        }
-    })
-    .then(() => {
-        console.log('✅ Database connection established.');
-    })
-    .catch(err => {
-        console.error('Failed to connect to database:', err);
-        process.exit(1);
-    });
-
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
@@ -203,9 +170,38 @@ io.on('connection', (socket) => {
 // Make io instance available to routes
 app.set('io', io);
 
-// Start Server
-server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`WebSocket server enabled`);
-});
-// Port change restart
+const bootstrap = async () => {
+    try {
+        const databaseReady = await testConnection();
+        if (!databaseReady) {
+            throw new Error('Database connection test failed');
+        }
+
+        // Schema changes are managed exclusively through migrations — do not use alter/force.
+        const models = Object.values(sequelize.models);
+        for (const model of models) {
+            try {
+                await model.sync({});
+            } catch (modelError) {
+                if (modelError.code === 'ER_TOO_MANY_KEYS') {
+                    console.warn(`⚠️ Skipping sync for ${model.name} due to MySQL key limits (ER_TOO_MANY_KEYS)`);
+                } else {
+                    console.error(`Error syncing ${model.name}:`, modelError.message);
+                }
+            }
+        }
+
+        console.log('✅ Model sync process completed.');
+
+        server.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
+            console.log('✅ Database connection established.');
+            console.log(`WebSocket server enabled`);
+        });
+    } catch (err) {
+        console.error('Failed to start server:', err);
+        process.exit(1);
+    }
+};
+
+bootstrap();

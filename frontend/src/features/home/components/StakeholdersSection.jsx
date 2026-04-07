@@ -16,7 +16,7 @@ const StakeholdersSection = React.memo(() => {
             <p>{t('stakeholders.subtitle')}</p>
             <div className={styles.stakeholdersGrid}>
                 {stakeholders.map((stakeholder, idx) => (
-                    <div key={idx} className={styles.stakeholderCard}>
+                    <div key={stakeholder.title} className={styles.stakeholderCard}>
                         <i className={`fas ${stakeholder.icon}`} aria-hidden="true"></i>
                         <h3>{stakeholder.title}</h3>
                         <p>{stakeholder.desc}</p>

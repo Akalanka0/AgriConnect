@@ -16,7 +16,7 @@ const FeaturesSection = React.memo(() => {
             <p>{t('features.subtitle')}</p>
             <div className={styles.featuresGrid}>
                 {features.map((feature, idx) => (
-                    <div key={idx} className={styles.featureCard}>
+                    <div key={feature.title} className={styles.featureCard}>
                         <i className={`fas ${feature.icon}`} aria-hidden="true"></i>
                         <h3>{feature.title}</h3>
                         <p>{feature.desc}</p>

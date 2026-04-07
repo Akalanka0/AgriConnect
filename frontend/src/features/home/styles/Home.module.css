@@ -17,6 +17,8 @@
   width: 100%;
   overflow-x: hidden;
   min-height: 100vh;
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--header-height) + var(--space-lg));
 }
 
 /* ===== NAVBAR ===== */
@@ -31,6 +33,7 @@
     z-index: 1000;
     box-shadow: var(--shadow-sm);
     transition: var(--transition-normal);
+  min-height: var(--header-height);
 }
 
 .navContainer {
@@ -289,6 +292,7 @@
 .features {
   padding: var(--space-2xl) var(--space-lg);
   background: var(--home-surface);
+  scroll-margin-top: calc(var(--header-height) + var(--space-lg));
 }
 
 .features h2 {
@@ -369,6 +373,7 @@
 .stakeholders {
   padding: var(--space-2xl) var(--space-lg);
   background: var(--neutral-white);
+  scroll-margin-top: calc(var(--header-height) + var(--space-lg));
 }
 
 .stakeholders h2 {
@@ -463,6 +468,7 @@
 .visionMission {
   padding: var(--space-2xl) var(--space-lg);
   background: var(--home-surface);
+  scroll-margin-top: calc(var(--header-height) + var(--space-lg));
 }
 
 .visionMission h2 {
@@ -560,6 +566,7 @@
   text-align: center;
   position: relative;
   overflow: hidden;
+  scroll-margin-top: calc(var(--header-height) + var(--space-lg));
 }
 
 .cta::before {
