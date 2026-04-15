@@ -13,6 +13,16 @@ Complete inventory of every technology, library, and tool used in this project, 
 | **MySQL** | 8.0+ | utf8mb4 charset required for Sinhala text support |
 | **Git** | any recent | — |
 
+### Operations & Infrastructure (CI/CD)
+
+| Tool / Technology | Version | Purpose |
+|---|---|---|
+| **Docker** | 20.x Alpine | Containerizes Backend (Node.js) and Frontend (Nginx) |
+| **Docker Compose** | 3.x | Orchestrates entire local/production environment |
+| **Nginx** | 1.alpine | Serves compiled React app and acts as a **Reverse Proxy** to backend |
+| **GitHub Actions** | v4 | Continuous Integration (CI) pipeline (Builds & Tests on every push) |
+| **Microsoft Azure** | — | Target Cloud Deployment (App Service, ACR, Flexible MySQL Server) |
+
 ---
 
 ## Backend

@@ -51,6 +51,12 @@ AgriConnect is a full-stack agricultural management platform that connects farme
 
 ## 🏗️ Architecture
 
+### Infrastructure-as-Code & DevOps
+- **Docker Compose:** Orchestrates raw MySQL, the Node Backend API, and the React Nginx Frontend together via a single `docker-compose.yml`.
+- **Nginx Reverse Proxy:** Routes `/api` and `/socket.io` internally to the backend container to ensure perfect relative paths, averting CORS and localhost binding errors in production.
+- **CI/CD Pipeline (GitHub Actions):** Located in `.github/workflows/ci-cd.yml`, it tests and builds both Docker container images on every push to `develop` and `main`.
+- **Azure Target Platform:** Architecture ready for Microsoft Azure App Service, Container Registry (ACR), and MySQL Flexible Server using `Bicep`.
+
 ### Backend — Modular Monolith
 ```
 backend/
@@ -133,15 +139,32 @@ See [PROJECT_TECH_STACK.md](PROJECT_TECH_STACK.md) for full version-pinned detai
 
 ---
 
-### 1. Clone the Repository
+### 2. Quick Start (Using Docker - Recommended) 🐳
+
+The easiest way to run the entire stack (MySQL Database, Node Backend, and React Frontend) perfectly configured for your local machine is using Docker.
+
 ```bash
-git clone https://github.com/yourusername/agriconnect.git
-cd agriconnect
+# 1. Provide an empty .env file in the backend (it will use default secure docker variables)
+touch backend/.env
+
+# 2. Build and start the entire cluster in the background
+docker-compose up --build -d
 ```
+
+That's it! 
+- The **Frontend** is now live at `http://localhost`
+- The **Backend** is running on internally-proxied port `5005`
+- The **Database** is fully migrated and seeded with Demo Accounts automatically.
+
+*(To stop the server, run `docker-compose down`)*
 
 ---
 
-### 2. Backend Setup
+### 3. Manual Setup (Without Docker)
+
+If you prefer to run the Node and React servers manually on your host machine:
+
+#### Backend Setup
 
 ```bash
 cd backend
