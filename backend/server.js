@@ -178,20 +178,21 @@ const bootstrap = async () => {
         }
 
         // Schema changes are managed exclusively through migrations — do not use alter/force.
-        const models = Object.values(sequelize.models);
-        for (const model of models) {
-            try {
-                await model.sync({});
-            } catch (modelError) {
-                if (modelError.code === 'ER_TOO_MANY_KEYS') {
-                    console.warn(`⚠️ Skipping sync for ${model.name} due to MySQL key limits (ER_TOO_MANY_KEYS)`);
-                } else {
-                    console.error(`Error syncing ${model.name}:`, modelError.message);
+        if (process.env.NODE_ENV !== 'production') {
+            const models = Object.values(sequelize.models);
+            for (const model of models) {
+                try {
+                    await model.sync({});
+                } catch (modelError) {
+                    if (modelError.code === 'ER_TOO_MANY_KEYS') {
+                        console.warn(`⚠️ Skipping sync for ${model.name} due to MySQL key limits (ER_TOO_MANY_KEYS)`);
+                    } else {
+                        console.error(`Error syncing ${model.name}:`, modelError.message);
+                    }
                 }
             }
+            console.log('✅ Model sync process completed.');
         }
-
-        console.log('✅ Model sync process completed.');
 
         server.listen(PORT, () => {
             console.log(`Server running on port ${PORT}`);

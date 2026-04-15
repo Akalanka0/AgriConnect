@@ -18,7 +18,6 @@ CREATE TABLE `users` (
     `email_verified`             TINYINT(1)      NOT NULL DEFAULT 0,
     `verification_token`         VARCHAR(255)    DEFAULT NULL,
     `verification_token_expires` DATETIME        DEFAULT NULL,
-    `original_email`             VARCHAR(255)    DEFAULT NULL,
     `created_at`                 TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
     `updated_at`                 TIMESTAMP       DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
@@ -97,12 +96,10 @@ CREATE TABLE `crops` (
     `name`            VARCHAR(255) NOT NULL,
     `image_url`       VARCHAR(500) DEFAULT NULL,
     `image_public_id` VARCHAR(255) DEFAULT NULL,
-    `is_active`       TINYINT(1)   DEFAULT 1,
     `created_at`      TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     `updated_at`      TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uq_crop_name` (`name`),
-    INDEX `idx_crops_is_active` (`is_active`)
+    UNIQUE KEY `uq_crop_name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 9. activities
@@ -242,11 +239,9 @@ CREATE TABLE `messages` (
     `created_at`           TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     `updated_at`           TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
-    INDEX `idx_messages_recipient_type` (`recipient_type`),
-    INDEX `idx_messages_recipient_id`   (`recipient_id`),
+    INDEX `idx_messages_composite`      (`recipient_id`, `recipient_type`, `is_read`),
     INDEX `idx_messages_sender_id`      (`sender_id`),
     INDEX `idx_messages_created_at`     (`created_at`),
-    INDEX `idx_messages_is_read`        (`is_read`),
     CONSTRAINT `fk_messages_recipient` FOREIGN KEY (`recipient_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
     CONSTRAINT `fk_messages_sender`    FOREIGN KEY (`sender_id`)    REFERENCES `users`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -259,14 +254,12 @@ CREATE TABLE `instructor_ratings` (
     `farmer_name`   VARCHAR(255)         DEFAULT NULL,
     `rating`        INT         NOT NULL,
     `comments`      TEXT        DEFAULT NULL,
-    `status`        ENUM('pending','approved','rejected') DEFAULT 'approved',
     `created_at`    TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
     `updated_at`    TIMESTAMP   DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     UNIQUE KEY `uq_farmer_instructor`  (`farmer_id`, `instructor_id`),
     INDEX `idx_ratings_instructor`     (`instructor_id`),
     INDEX `idx_ratings_farmer`         (`farmer_id`),
-    INDEX `idx_ratings_status`         (`status`),
     CONSTRAINT `chk_rating_range`      CHECK (`rating` >= 1 AND `rating` <= 5),
     CONSTRAINT `fk_ratings_instructor` FOREIGN KEY (`instructor_id`) REFERENCES `instructor_details`(`instructor_id`) ON DELETE CASCADE,
     CONSTRAINT `fk_ratings_farmer`     FOREIGN KEY (`farmer_id`)     REFERENCES `farmer_details`(`farmer_id`)     ON DELETE CASCADE

@@ -179,7 +179,10 @@ const Settings = () => {
             formData.append('avatar', selectedFile);
 
             const data = await adminAPI.updateProfile(formData);
-            const avatarUrl = data?.data?.avatar || data?.avatar;
+            
+            // Map the avatar URL from the response (Admin response uses profile_picture)
+            const responseData = data?.data || data;
+            const avatarUrl = responseData?.profile_picture || responseData?.avatar;
 
             showToast(t('settings.toastPhotoUpdated'), 'success');
 
@@ -187,6 +190,7 @@ const Settings = () => {
             const userData = getStoredUser();
             if (userData) {
                 userData.avatar = avatarUrl;
+                userData.profile_picture = avatarUrl;
                 setStoredUser(userData);
             }
 

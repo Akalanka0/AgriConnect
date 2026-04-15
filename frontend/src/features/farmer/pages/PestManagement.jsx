@@ -239,8 +239,8 @@ const PestManagement = () => {
                                 onChange={handleInstructorDivisionChange}
                             >
                                 <option value="">{t('pest.selectField')}</option>
-                                {locations.map(loc => (
-                                    <option key={loc.id} value={`${loc.zone} - ${loc.instructorDivision}`}>
+                                {locations.map((loc, idx) => (
+                                    <option key={idx} value={`${loc.zone} - ${loc.instructorDivision}`}>
                                         {loc.instructorDivision}
                                     </option>
                                 ))}

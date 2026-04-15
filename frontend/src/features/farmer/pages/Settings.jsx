@@ -531,7 +531,7 @@ const Settings = () => {
                         <label>{t('settings.farmingLocations')}</label>
                         <div className={styles.locationsList}>
                             {settings.locations.map((location, index) => (
-                                <div key={location.id} className={`${commonCardStyles.card} ${styles.locationCard}`}>
+                                <div key={index} className={`${commonCardStyles.card} ${styles.locationCard}`}>
                                     <div className={styles.locationHeader}>
                                         <h4 className={styles.locationTitle}>{t('settings.locationNum')} {index + 1}</h4>
                                         {settings.locations.length > 1 && (

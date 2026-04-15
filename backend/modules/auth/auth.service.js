@@ -113,7 +113,8 @@ export const registerUser = async (userData) => {
             // Check if farmer_id exists and is unassigned
             let farmerDetail = await FarmerDetail.findOne({
                 where: { farmer_id: userData.farmer_id },
-                transaction
+                transaction,
+                lock: true
             });
 
             // If not found, check in GeneratedId table
@@ -124,7 +125,8 @@ export const registerUser = async (userData) => {
                         type: 'farmer',
                         status: 'active'
                     },
-                    transaction
+                    transaction,
+                    lock: true
                 });
 
                 if (generatedId) {
@@ -163,7 +165,8 @@ export const registerUser = async (userData) => {
             // Check if instructor_id already exists
             let instructorDetail = await InstructorDetail.findOne({
                 where: { instructor_id: userData.instructor_id },
-                transaction
+                transaction,
+                lock: true
             });
 
             if (instructorDetail && instructorDetail.user_id) {
@@ -184,7 +187,8 @@ export const registerUser = async (userData) => {
                         type: 'instructor',
                         status: 'active'
                     },
-                    transaction
+                    transaction,
+                    lock: true
                 });
 
                 if (generatedId) {

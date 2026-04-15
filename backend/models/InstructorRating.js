@@ -39,10 +39,6 @@ const InstructorRating = sequelize.define('InstructorRating', {
         type: DataTypes.TEXT,
         allowNull: true
     },
-    status: {
-        type: DataTypes.ENUM('pending', 'approved', 'rejected'),
-        defaultValue: 'approved'
-    },
     created_at: {
         type: DataTypes.DATE,
         allowNull: false,
@@ -64,9 +60,6 @@ const InstructorRating = sequelize.define('InstructorRating', {
         },
         {
             fields: ['farmer_id']
-        },
-        {
-            fields: ['status']
         }
     ]
 });
