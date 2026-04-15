@@ -340,6 +340,7 @@
   border-radius: var(--radius-lg);
   transition: var(--transition-normal);
   border: 1px solid var(--home-border);
+  border-top: 4px solid var(--home-primary);
   text-align: center;
 }
 
@@ -422,6 +423,7 @@
   text-align: center;
   box-shadow: var(--shadow-sm);
   transition: var(--transition-normal);
+  border: 1px solid var(--home-border);
   border-top: var(--space-xs) solid var(--home-primary);
 }
 
@@ -518,6 +520,8 @@
   transition: var(--transition-normal);
   position: relative;
   overflow: hidden;
+  border: 1px solid var(--home-border);
+  border-top: 4px solid var(--home-primary);
 }
 
 .vmCard:first-child::before,

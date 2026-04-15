@@ -49,7 +49,6 @@ export const submitInstructorRating = async (req, res) => {
             ratingRecord = await existingRating.update({
                 rating,
                 comments,
-                status: 'approved',
                 updated_at: new Date()
             });
         } else {
@@ -59,8 +58,7 @@ export const submitInstructorRating = async (req, res) => {
                 farmer_id: farmerId,
                 farmer_name: farmerName,
                 rating,
-                comments,
-                status: 'approved'
+                comments
             });
         }
 
@@ -99,17 +97,16 @@ export const getInstructorRatings = async (req, res) => {
             });
         }
 
-        // Get all approved ratings for this instructor
+        // Get all ratings for this instructor
         const ratings = await InstructorRating.findAll({
             where: { 
-                instructor_id,
-                status: 'approved'
+                instructor_id
             },
             include: [
                 {
                     model: FarmerDetail,
                     as: 'farmer',
-                    attributes: ['farmer_id', 'district', 'zone']
+                    attributes: ['farmer_id', 'district', 'locations'] // Fixed: FarmerDetail uses locations JSON array
                 },
                 {
                     model: User,
@@ -266,14 +263,13 @@ export const getInstructorRatingSummary = async (req, res) => {
 
         const { count, rows: ratings } = await InstructorRating.findAndCountAll({
             where: { 
-                instructor_id: instructorId,
-                status: 'approved'
+                instructor_id: instructorId
             },
             include: [
                 {
                     model: FarmerDetail,
                     as: 'farmer',
-                    attributes: ['farmer_id', 'district', 'zone']
+                    attributes: ['farmer_id', 'district', 'locations'] // FarmerDetail uses locations JSON array
                 }
             ],
             order: [['created_at', 'DESC']],

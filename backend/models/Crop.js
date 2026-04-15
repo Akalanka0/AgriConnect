@@ -28,10 +28,6 @@ const Crop = sequelize.define('Crop', {
     image_public_id: {
         type: DataTypes.STRING(255),
         allowNull: true
-    },
-    is_active: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: true
     }
 }, {
     tableName: 'crops',

@@ -196,9 +196,12 @@ class EnhancedApiService {
     }
 
     async upload(url, formData, config = {}) {
+        const method = typeof config === 'string' ? config : (config.method || 'POST');
+        const options = typeof config === 'string' ? {} : config;
+
         const builtConfig = this.buildConfig({
-            ...config,
-            method: 'POST',
+            ...options,
+            method,
             body: formData,
         });
         // Remove Content-Type so the browser auto-sets multipart/form-data with the correct boundary

@@ -39,7 +39,7 @@ export const getDashboardStats = async (req, res) => {
             where: divisions.length > 0 ? {
                 [Op.or]: divisions.map(div =>
                     sequelize.where(
-                        sequelize.fn('JSON_SEARCH', sequelize.col('locations'), 'one', div, sequelize.literal('NULL'), '$[*].division'),
+                        sequelize.fn('JSON_SEARCH', sequelize.col('locations'), 'one', div, sequelize.literal('NULL'), sequelize.literal("'$[*].division'")),
                         { [Op.ne]: null }
                     )
                 )
@@ -47,35 +47,39 @@ export const getDashboardStats = async (req, res) => {
         });
 
         // Pending Crop Plans
+        const cropPlanOrConditions = [{ instructor_id: userId }];
+        if (divisions.length > 0) {
+            cropPlanOrConditions.push({
+                [Op.or]: divisions.map(div => ({
+                    instructor_division: {
+                        [Op.like]: `%${div}%`
+                    }
+                }))
+            });
+        }
+
         const pendingCropPlansCount = await CropPlan.count({
             where: {
-                [Op.or]: [
-                    { instructor_id: userId },
-                    { 
-                        [Op.or]: divisions.map(div => ({
-                            instructor_division: {
-                                [Op.like]: `%${div}%`
-                            }
-                        }))
-                    }
-                ],
+                [Op.or]: cropPlanOrConditions,
                 status: { [Op.in]: ['pending', 'correction'] }
             }
         });
 
         // Pending Pest Reports
+        const pestReportOrConditions = [{ instructor_id: userId }];
+        if (divisions.length > 0) {
+            pestReportOrConditions.push({
+                [Op.or]: divisions.map(div => ({
+                    instructor_division: {
+                        [Op.like]: `%${div}%`
+                    }
+                }))
+            });
+        }
+
         const pendingPestReportsCount = await PestReport.count({
             where: {
-                [Op.or]: [
-                    { instructor_id: userId },
-                    { 
-                        [Op.or]: divisions.map(div => ({
-                            instructor_division: {
-                                [Op.like]: `%${div}%`
-                            }
-                        }))
-                    }
-                ],
+                [Op.or]: pestReportOrConditions,
                 status: { [Op.in]: ['pending', 'in_progress'] }
             }
         });
@@ -909,11 +913,16 @@ export const getCropPlans = async (req, res) => {
                     }
                 ]
             },
-            include: [{ model: User, as: 'user', attributes: ['full_name'], include: [{ model: FarmerDetail, as: 'farmerDetail', attributes: ['farmer_id', 'district', 'zone'] }] }],
+            include: [{ model: User, as: 'user', attributes: ['full_name'], include: [{ model: FarmerDetail, as: 'farmerDetail', attributes: ['farmer_id', 'district', 'locations'] }] }],
             order: [['created_at', 'DESC']]
         });
 
         const formattedPlans = plans.map(p => {
+            let farmerLocations = p.user?.farmerDetail?.locations;
+            if (typeof farmerLocations === 'string') { try { farmerLocations = JSON.parse(farmerLocations); } catch (e) { farmerLocations = []; } }
+            if (!Array.isArray(farmerLocations)) farmerLocations = [];
+            const primaryLocation = farmerLocations[0] || {};
+
             let farmerFileNames = p.farmer_attachment_names;
             if (typeof farmerFileNames === 'string') { try { farmerFileNames = JSON.parse(farmerFileNames); } catch (e) { farmerFileNames = []; } }
             if (!Array.isArray(farmerFileNames)) farmerFileNames = [];
@@ -926,7 +935,7 @@ export const getCropPlans = async (req, res) => {
                 id: p.id,
                 farmerName: p.user?.full_name || 'N/A',
                 farmerId: p.user?.farmerDetail?.farmer_id || 'N/A',
-                location: `${p.user?.farmerDetail?.district || ''} - ${p.user?.farmerDetail?.zone || ''}`,
+                location: `${p.user?.farmerDetail?.district || ''} - ${primaryLocation.zone || ''}`,
                 submittedDate: p.created_at.toISOString().split('T')[0],
                 cropName: p.crop_name,
                 plantDate: p.plant_date,
