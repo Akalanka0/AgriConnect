@@ -1,0 +1,88 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+
+jobs:
+  # ---------------------------------------------
+  # Back-end API - Lints / Tests / Docker Build
+  # ---------------------------------------------
+  build-and-test-backend:
+    name: Backend CI
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./backend
+
+    strategy:
+      matrix:
+        node-version: [ 20.x ]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: './backend/package-lock.json'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      # Uncomment if you add tests later:
+      # - name: Run Backend Tests
+      #   run: npm test
+
+      - name: Build and Test Docker Container
+        run: docker build -t agriconnect-api:${{ github.sha }} .
+        # In the future, you push the tag to Azure Container Registry or GitHub Packages here.
+
+  # ---------------------------------------------
+  # Front-end UI - Lints / Tests / Docker Build
+  # ---------------------------------------------
+  build-and-test-frontend:
+    name: Frontend CI
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    strategy:
+      matrix:
+        node-version: [ 20.x ]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: './frontend/package-lock.json'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Source (Dry Run)
+        run: npm run build
+        env:
+          VITE_API_URL: https://api.yourdomain.com/api # Placeholder for CI build validation
+          VITE_SOCKET_URL: https://api.yourdomain.com
+
+      - name: Build and Test Docker Container
+        run: |
+          docker build \
+          --build-arg VITE_API_URL="https://api.test.com/api" \
+          --build-arg VITE_SOCKET_URL="https://api.test.com" \
+          -t agriconnect-web:${{ github.sha }} .
+        # Push to Azure Container Registry (ACR) when doing CD

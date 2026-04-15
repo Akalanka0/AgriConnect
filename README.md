@@ -468,5 +468,5 @@ Serve `dist/` with Nginx, Caddy, or any static host. Point your web server's `/a
 
 ---
 
-## 📄 License
+## 📄  License
 This project is licensed under the MIT License.
