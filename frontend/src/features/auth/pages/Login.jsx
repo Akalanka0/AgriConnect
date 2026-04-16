@@ -40,7 +40,7 @@ const Login = () => {
   const [maintenanceBanner, setMaintenanceBanner] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   const [resetStep, setResetStep] = useState('email');
-  const [otp, setOtp] = useState(['', '', '', '']);
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const otpRefs = useRef([]);
   const [showResetPassword, setShowResetPassword] = useState({ new: false, confirm: false });
   const [newPasswordData, setNewPasswordData] = useState({ password: '', confirmPassword: '' });
@@ -160,7 +160,7 @@ const Login = () => {
       } else {
         if (data.error?.code === 'MAINTENANCE_MODE' || (data.error?.message || data.message || '').includes('maintenance')) {
           setMaintenanceBanner(true);
-        } else if (data.message && data.message.includes('ACCOUNT_NOT_VERIFIED')) {
+        } else if (data.error?.code === 'ACCOUNT_NOT_VERIFIED' || (data.message && data.message.includes('ACCOUNT_NOT_VERIFIED'))) {
           showToast(t('toast.notVerified'), 'error');
           setTimeout(() => {
             navigate(`/verify?email=${encodeURIComponent(loginData.username)}`);
@@ -300,8 +300,8 @@ const Login = () => {
     e.preventDefault();
     const enteredOtp = otp.join('');
 
-    if (enteredOtp.length < 4) {
-      setResetEmailError('Please enter the 4-digit code');
+    if (enteredOtp.length < 6) {
+      setResetEmailError('Please enter the 6-digit code');
       return;
     }
 
@@ -382,7 +382,7 @@ const Login = () => {
     newOtp[index] = value.substring(value.length - 1);
     setOtp(newOtp);
 
-    if (value && index < 3) {
+    if (value && index < 5) {
       otpRefs.current[index + 1]?.focus();
     }
   };

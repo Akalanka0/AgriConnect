@@ -19,7 +19,8 @@ const VerificationModal = ({
     useEffect(() => {
         if (verificationEmail) {
             setEmail(verificationEmail);
-            sendOtp(verificationEmail);
+            // We intentionally do NOT call sendOtp here anymore, 
+            // because the backend registration API already sends the first email instantly.
         }
     }, [verificationEmail, showVerificationModal]);
 

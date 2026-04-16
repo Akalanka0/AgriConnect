@@ -19,22 +19,24 @@ const RegisterForm = ({
 }) => {
     const { t } = useTranslation('auth');
     // DEMO — remove for client delivery or set VITE_DEMO_MODE=false
-    const fillDemoData = import.meta.env.VITE_DEMO_MODE === 'true'
-        ? () => {
-            const demoData = {
-                fullName: role === 'farmer' ? 'Demo Farmer' : 'Demo Instructor',
-                email: 'testuseragri@gmail.com',
-                password: 'demo12345',
-                confirmPassword: 'demo12345',
-                nic: role === 'farmer' ? '123456789V' : '987654321V',
-                phone: role === 'farmer' ? '0712345678' : '0718765432',
-            };
-            if (role === 'farmer') demoData.farmerId = 'FARM-2025-0001';
-            else if (role === 'instructor') demoData.instructorId = 'INST-2026-0001';
-            setRegisterData(demoData);
-            setPasswordStrength(checkPasswordStrength('demo12345'));
-        }
-        : null;
+    const isDemoModeEnabled = import.meta.env.VITE_DEMO_MODE === 'true';
+    const fillDemoData = () => {
+        if (!isDemoModeEnabled) return;
+        const randomExt = Math.floor(Math.random() * 100);
+        const demoData = {
+            fullName: role === 'farmer' ? 'Demo Farmer' : 'Demo Instructor',
+            email: 'testuseragri@gmail.com',
+            password: 'demo12345',
+            confirmPassword: 'demo12345',
+            nic: role === 'farmer' ? `1234567${randomExt.toString().padStart(2, '0')}V` : `9876543${randomExt.toString().padStart(2, '0')}V`,
+            phone: role === 'farmer' ? '0712345678' : '0718765432',
+            farmerId: '',
+            instructorId: ''
+        };
+        
+        setRegisterData(demoData);
+        setPasswordStrength(checkPasswordStrength('demo12345'));
+    };
 
     return (
         <div>
@@ -64,7 +66,7 @@ const RegisterForm = ({
                 <div className={`${styles.formGroup} ${errors.fullName ? styles.error : ''}`}>
                     <input
                         type="text"
-                        value={registerData.fullName}
+                        value={registerData.fullName ?? ''}
                         onChange={(e) => setRegisterData({ ...registerData, fullName: e.target.value })}
                         placeholder={t('register.fullName')}
                     />
@@ -74,7 +76,7 @@ const RegisterForm = ({
                 <div className={`${styles.formGroup} ${errors.email ? styles.error : ''}`}>
                     <input
                         type="email"
-                        value={registerData.email}
+                        value={registerData.email ?? ''}
                         onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
                         placeholder={t('register.email')}
                     />
@@ -84,7 +86,7 @@ const RegisterForm = ({
                 <div className={`${styles.formGroup} ${errors.nic ? styles.error : ''}`}>
                     <input
                         type="text"
-                        value={registerData.nic}
+                        value={registerData.nic ?? ''}
                         onChange={(e) => setRegisterData({ ...registerData, nic: e.target.value })}
                         placeholder={t('register.nic')}
                     />
@@ -94,7 +96,7 @@ const RegisterForm = ({
                 <div className={`${styles.formGroup} ${errors.phone ? styles.error : ''}`}>
                     <input
                         type="tel"
-                        value={registerData.phone}
+                        value={registerData.phone ?? ''}
                         onChange={(e) => setRegisterData({ ...registerData, phone: e.target.value })}
                         placeholder={t('register.phone')}
                     />
@@ -106,7 +108,7 @@ const RegisterForm = ({
                         <div className={`${styles.formGroup} ${errors.farmerId ? styles.error : ''}`}>
                             <input
                                 type="text"
-                                value={registerData.farmerId}
+                                value={registerData.farmerId ?? ''}
                                 onChange={(e) => setRegisterData({ ...registerData, farmerId: e.target.value })}
                                 placeholder={t('register.farmerId')}
                             />
@@ -120,7 +122,7 @@ const RegisterForm = ({
                     <div className={`${styles.formGroup} ${errors.instructorId ? styles.error : ''}`}>
                         <input
                             type="text"
-                            value={registerData.instructorId}
+                            value={registerData.instructorId ?? ''}
                             onChange={(e) => setRegisterData({ ...registerData, instructorId: e.target.value })}
                             placeholder={t('register.instructorId')}
                         />
@@ -132,7 +134,7 @@ const RegisterForm = ({
                 <div className={`${styles.formGroup} ${errors.password ? styles.error : ''}`}>
                     <input
                         type={showPassword.register ? 'text' : 'password'}
-                        value={registerData.password}
+                        value={registerData.password ?? ''}
                         onChange={(e) => {
                             setRegisterData({ ...registerData, password: e.target.value });
                             setPasswordStrength(checkPasswordStrength(e.target.value));
@@ -155,7 +157,7 @@ const RegisterForm = ({
                 <div className={`${styles.formGroup} ${errors.confirmPassword ? styles.error : ''}`}>
                     <input
                         type={showPassword.confirm ? 'text' : 'password'}
-                        value={registerData.confirmPassword}
+                        value={registerData.confirmPassword ?? ''}
                         onChange={(e) => setRegisterData({ ...registerData, confirmPassword: e.target.value })}
                         placeholder={t('register.confirmPassword')}
                     />
@@ -175,7 +177,7 @@ const RegisterForm = ({
                 </button>
 
                 {/* DEMO — remove for client delivery or set VITE_DEMO_MODE=false */}
-                {import.meta.env.VITE_DEMO_MODE === 'true' && (
+                {isDemoModeEnabled && (
                     <button
                         type="button"
                         className={styles.demoBtn}
