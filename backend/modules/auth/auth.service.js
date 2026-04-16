@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
+import { Op } from 'sequelize';
 import { sequelize, User, FarmerDetail, InstructorDetail, SystemSetting, GeneratedId } from '../../models/index.js';
 import { sendVerificationEmail } from '../../services/emailService.js';
 
@@ -12,6 +13,55 @@ const _isDemoEnv = process.env.NODE_ENV !== 'production';
 const DEMO_NICS             = _isDemoEnv ? ['123456789V', '987654321V'] : [];
 const DEMO_FARMER_IDS       = _isDemoEnv ? ['FARM-2026-DEMO', 'FARM-2025-0001', 'F-TEST-001'] : [];
 const DEMO_INSTRUCTOR_IDS   = _isDemoEnv ? ['INST-2026-0001', 'INST-2025-0001', 'I-TEST-001'] : [];
+
+// Mark generated IDs as used only after email verification succeeds.
+export const markGeneratedIdUsedForVerifiedUser = async (userId) => {
+    const user = await User.findByPk(userId, {
+        attributes: ['id', 'role']
+    });
+
+    if (!user) return;
+
+    if (user.role === 'farmer') {
+        const farmerDetail = await FarmerDetail.findOne({
+            where: { user_id: user.id },
+            attributes: ['farmer_id']
+        });
+
+        if (farmerDetail?.farmer_id) {
+            await GeneratedId.update(
+                { status: 'used' },
+                {
+                    where: {
+                        code: farmerDetail.farmer_id,
+                        type: 'farmer',
+                        status: 'active'
+                    }
+                }
+            );
+        }
+    }
+
+    if (user.role === 'instructor') {
+        const instructorDetail = await InstructorDetail.findOne({
+            where: { user_id: user.id },
+            attributes: ['instructor_id']
+        });
+
+        if (instructorDetail?.instructor_id) {
+            await GeneratedId.update(
+                { status: 'used' },
+                {
+                    where: {
+                        code: instructorDetail.instructor_id,
+                        type: 'instructor',
+                        status: 'active'
+                    }
+                }
+            );
+        }
+    }
+};
 
 /**
  * Register a new user (farmer or instructor only)
@@ -120,10 +170,10 @@ export const registerUser = async (userData) => {
             // If not found, check in GeneratedId table
             if (!farmerDetail) {
                 const generatedId = await GeneratedId.findOne({
-                    where: { 
+                    where: {
                         code: userData.farmer_id,
                         type: 'farmer',
-                        status: 'active'
+                        status: ['active', 'used'] // Allow ID to be used if pre-allocated by admin
                     },
                     transaction,
                     lock: true
@@ -135,9 +185,6 @@ export const registerUser = async (userData) => {
                         farmer_id: userData.farmer_id,
                         user_id: user.id
                     }, { transaction });
-
-                    // Mark generated ID as used
-                    await generatedId.update({ status: 'used' }, { transaction });
                 } else {
                     throw new Error('INVALID_FARMER_ID: Farmer ID not available or not found');
                 }
@@ -145,11 +192,17 @@ export const registerUser = async (userData) => {
                 // Check if assigned (but allow demo IDs to be reassigned)
                 if (farmerDetail.user_id) {
                     const isDemoFarmerId = DEMO_FARMER_IDS.includes(userData.farmer_id.trim());
-                    
-                    if (isDemoFarmerId) {
-                        // It's fine, we will overwrite the user_id below.
-                    } else {
-                        throw new Error(`FARMER_ID_ASSIGNED: Farmer ID ${userData.farmer_id} is already assigned to a user`);
+
+                    const previousUser = await User.findByPk(farmerDetail.user_id, { transaction });
+
+                    if (previousUser && previousUser.email_verified && !isDemoFarmerId) {
+                        throw new Error(`FARMER_ID_ASSIGNED: Farmer ID ${userData.farmer_id} is already assigned to a verified user`);
+                    }
+
+                    // If the previous user didn't verify their email, they abandoned the registration.
+                    // We destroy their abandoned account so the ID can be correctly claimed.
+                    if (previousUser && !previousUser.email_verified && !isDemoFarmerId) {
+                        await previousUser.destroy({ transaction });
                     }
                 }
 
@@ -170,22 +223,28 @@ export const registerUser = async (userData) => {
             });
 
             if (instructorDetail && instructorDetail.user_id) {
-                // If it's the specific demo ID, we allow reassignment
                 const isDemoInstructorId = DEMO_INSTRUCTOR_IDS.includes(userData.instructor_id.trim());
-                
-                if (isDemoInstructorId) {
-                    // Update the existing record to point to the new user
-                    await instructorDetail.update({ user_id: user.id }, { transaction });
-                } else {
-                    throw new Error(`INSTRUCTOR_ID_EXISTS: Instructor ID ${userData.instructor_id} already exists`);
+
+                const previousUser = await User.findByPk(instructorDetail.user_id, { transaction });
+
+                if (previousUser && previousUser.email_verified && !isDemoInstructorId) {
+                    throw new Error(`INSTRUCTOR_ID_EXISTS: Instructor ID ${userData.instructor_id} is already assigned to a verified user`);
                 }
+
+                // Handle unverified user abandoning their registration
+                if (previousUser && !previousUser.email_verified && !isDemoInstructorId) {
+                    await previousUser.destroy({ transaction });
+                }
+
+                // Update the existing record to point to the new user
+                await instructorDetail.update({ user_id: user.id }, { transaction });
             } else {
                 // Check in GeneratedId table
                 const generatedId = await GeneratedId.findOne({
                     where: { 
                         code: userData.instructor_id,
                         type: 'instructor',
-                        status: 'active'
+                        status: ['active', 'used'] // Allow ID to be used if pre-allocated by admin
                     },
                     transaction,
                     lock: true
@@ -197,9 +256,6 @@ export const registerUser = async (userData) => {
                         user_id: user.id,
                         instructor_id: userData.instructor_id
                     }, { transaction });
-
-                    // Mark generated ID as used
-                    await generatedId.update({ status: 'used' }, { transaction });
                 } else {
                     // Do not allow custom IDs; must be generated by admin and active
                     throw new Error('INVALID_INSTRUCTOR_ID: Instructor ID not available or not found');
@@ -215,7 +271,8 @@ export const registerUser = async (userData) => {
         const shouldBypassVerification = userData.email === process.env.DEV_EMAIL_BYPASS
             && process.env.NODE_ENV !== 'production';
 
-        if (!shouldBypassVerification && verificationToken) {
+        // Even if it's the bypass email, we should still send the email so the tester can see the OTP.
+        if (verificationToken) {
             try {
                 await sendVerificationEmail(user.email, verificationToken, user.full_name);
             } catch (emailError) {
@@ -263,9 +320,14 @@ export const registerUser = async (userData) => {
  */
 export const loginUser = async (email, password) => {
     try {
-        // Find user by email
+        // Find user by email or phone
         const user = await User.findOne({
-            where: { email: email.toLowerCase().trim() },
+            where: { 
+                [Op.or]: [
+                    { email: email.toLowerCase().trim() },
+                    { phone: email.trim() }
+                ]
+            },
             include: [
                 {
                     model: FarmerDetail,

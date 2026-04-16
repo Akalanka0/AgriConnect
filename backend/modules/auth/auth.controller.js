@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { registerUser, loginUser } from './auth.service.js';
+import { registerUser, loginUser, markGeneratedIdUsedForVerifiedUser } from './auth.service.js';
 import { sendVerificationEmail } from '../../services/emailService.js';
 import { User } from '../../models/index.js';
 
@@ -320,6 +320,7 @@ export const verifyEmailOTPController = async (req, res) => {
         }
 
         if (user.email_verified) {
+            await markGeneratedIdUsedForVerifiedUser(user.id);
             return res.status(200).json({
                 success: true,
                 message: 'Email already verified'
@@ -361,6 +362,8 @@ export const verifyEmailOTPController = async (req, res) => {
             verification_token: null,
             verification_token_expires: null
         });
+
+        await markGeneratedIdUsedForVerifiedUser(user.id);
 
         return res.status(200).json({
             success: true,
@@ -423,6 +426,8 @@ export const verifyEmailController = async (req, res) => {
             verification_token: null,
             verification_token_expires: null
         });
+
+        await markGeneratedIdUsedForVerifiedUser(user.id);
 
         return res.status(200).json({
             success: true,
