@@ -440,6 +440,7 @@
     "toastFillAllPasswords": "කරුණාකර සියලු මුරපද ඇතුළත් කරන්න",
     "toastPasswordMismatch": "මුරපද එකිනෙකට නොගැලපේ",
     "toastPasswordTooShort": "නව මුරපදය අවම වශයෙන් අක්ෂර 8ක් විය යුතුය",
+    "toastPasswordUpdated": "මුරපදය සාර්ථකව යාවත්කාලීන කරන ලදි!",
     "toastPasswordNotAvailable": "මුරපදය වෙනස් කිරීම දැනට අක්‍රියයි.",
     "selectDivisionFirst": "පළමුව කොට්ඨාශය තෝරන්න",
     "noInstructorAssigned": "උපදේශකයෙකු පවරා නැත"

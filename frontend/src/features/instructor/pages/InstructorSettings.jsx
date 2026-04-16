@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import styles from '../styles/InstructorSettings.module.css';
 import commonBtnStyles from '@/components/common/styles/Button.module.css';
 import ConfirmModal from '@/components/common/feedback/ConfirmModal';
-import { getAccessToken } from '@/utils/authStorage';
-import { getStoredUser, setStoredUser } from '@/utils/userStorage';
-
+import { getAccessToken, clearAccessToken } from '@/utils/authStorage';
+import { getStoredUser, setStoredUser, clearStoredUser } from '@/utils/userStorage';
 const InstructorSettings = () => {
     const { openModal, showToast } = useOutletContext();
     const { t } = useTranslation('instructor');
+    const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(true);
     const [isUpdatingPicture, setIsUpdatingPicture] = useState(false);
     const [isSavingProfessional, setIsSavingProfessional] = useState(false);
@@ -431,7 +431,27 @@ const InstructorSettings = () => {
             message: t('settings.deleteAccountMsg'),
             confirmText: t('settings.deleteAccountConfirm'),
             type: 'danger',
-            action: async () => showToast(t('settings.toastAccountDeletion'))
+            action: async () => {
+                try {
+                    const token = getAccessToken();
+                    const res = await fetch('/api/instructor/profile', {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        clearAccessToken();
+                        clearStoredUser();
+                        showToast(t('settings.toastAccountDeletion'), 'success');
+                        setTimeout(() => navigate('/login'), 1000);
+                    } else {
+                        showToast(data.error?.message || 'Failed to delete account', 'error');
+                    }
+                } catch (error) {
+                    console.error('Delete account error:', error);
+                    showToast('Failed to delete account', 'error');
+                }
+            }
         });
     };
 

@@ -26,6 +26,7 @@ import {
     getMyMessages,
     markMessageAsRead,
     deleteMessage,
+    deleteAccount,
     submitInstructorRating,
     uploadMessageAttachment,
     sendMessage
@@ -35,6 +36,7 @@ import {
     deleteInstructorRating,
     getMyRatings
 } from '../ratings/rating.controller.js';
+import { updatePassword } from '../admin/admin.controller.js';
 
 const router = express.Router();
 
@@ -78,6 +80,8 @@ router.patch('/meetings/:id/accept-reschedule', acceptReschedule);
 // Profile & Settings
 router.get('/profile', getProfile);
 router.put('/profile', updateProfile);
+router.delete('/profile', deleteAccount);
+router.put('/password', updatePassword);
 router.post('/profile/picture', upload.single('profile_picture'), uploadToCloudinaryMiddleware, updateProfilePicture);
 router.delete('/profile/picture', removeProfilePicture);
 router.get('/region-hierarchy', getRegionHierarchy);

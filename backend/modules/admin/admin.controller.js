@@ -140,7 +140,10 @@ const buildHierarchy = (rows) => {
     const hierarchy = {};
     rows.forEach(r => {
         if (!hierarchy[r.zone]) hierarchy[r.zone] = [];
-        if (r.division !== r.zone) hierarchy[r.zone].push(r.division);
+        // Only push if it's not already in the array, allowing division === zone
+        if (!hierarchy[r.zone].includes(r.division)) {
+            hierarchy[r.zone].push(r.division);
+        }
     });
     return hierarchy;
 };

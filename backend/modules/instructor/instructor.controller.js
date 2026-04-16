@@ -1175,7 +1175,9 @@ export const getRegionHierarchy = async (req, res) => {
         const hierarchy = {};
         rows.forEach(r => {
             if (!hierarchy[r.zone]) hierarchy[r.zone] = [];
-            if (r.division !== r.zone) hierarchy[r.zone].push(r.division);
+            if (!hierarchy[r.zone].includes(r.division)) {
+                hierarchy[r.zone].push(r.division);
+            }
         });
         return res.status(200).json({ success: true, data: hierarchy });
     } catch (error) {
@@ -1254,7 +1256,7 @@ export const updateProfile = async (req, res) => {
                 if (removedDivisions.length > 0) {
                     const instructorRefId = detail.instructor_id;
                     const allFarmers = await FarmerDetail.findAll({
-                        attributes: ['id', 'locations', 'instructor_division']
+                        attributes: ['id', 'locations']
                     });
 
                     for (const farmer of allFarmers) {
@@ -1307,7 +1309,7 @@ export const updateProfile = async (req, res) => {
         return res.status(200).json({ success: true, message: 'Profile updated successfully' });
     } catch (error) {
         console.error('Error updating profile:', error);
-        return res.status(500).json({ success: false, error: { message: 'Failed to update profile' } });
+        return res.status(500).json({ success: false, error: { message: error.message || 'Failed to update profile' } });
     }
 };
 
@@ -1831,6 +1833,29 @@ export const updateMeetingStatus = async (req, res) => {
     } catch (error) {
         console.error('Error updating meeting status:', error);
         return res.status(500).json({ success: false, error: { message: 'Failed to update meeting status' } });
+    }
+};
+
+/**
+ * Delete Instructor Account
+ */
+export const deleteAccount = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const user = await User.findByPk(userId);
+        
+        if (!user) {
+            return res.status(404).json({ success: false, error: { message: 'User not found' } });
+        }
+
+        // Cascade delete details to be safe
+        await InstructorDetail.destroy({ where: { user_id: userId } });
+        await user.destroy();
+
+        return res.status(200).json({ success: true, message: 'Account deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting account:', error);
+        return res.status(500).json({ success: false, error: { message: 'Failed to delete account' } });
     }
 };
 

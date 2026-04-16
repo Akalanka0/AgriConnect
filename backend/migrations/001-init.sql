@@ -280,14 +280,19 @@ CREATE TABLE `regions` (
 
 -- 10 DS Divisions of Anuradhapura district
 INSERT INTO `regions` (`district`, `zone`, `division`) VALUES
-  ('Anuradhapura', 'Anuradhapura town',  'Anuradhapura town'),
+  ('Anuradhapura', 'Anuradhapura town',  'Anuradhapura town1'),
+  ('Anuradhapura', 'Anuradhapura town',  'Anuradhapura town2'),
   ('Anuradhapura', 'Thalawa',            'Thalawa'),
   ('Anuradhapura', 'Tambuttegama',       'Tambuttegama'),
   ('Anuradhapura', 'Medawachchiya',      'Medawachchiya'),
-  ('Anuradhapura', 'Eppawala',           'Eppawala'),
+  ('Anuradhapura', 'Eppawala',           'Eppawala1'),
+  ('Anuradhapura', 'Eppawala',           'Eppawala2'),
+  ('Anuradhapura', 'Eppawala',           'Eppawala3'),
   ('Anuradhapura', 'Kekirawa',           'Kekirawa'),
   ('Anuradhapura', 'Mihintale',          'Mihintale'),
-  ('Anuradhapura', 'Galenbindunuwewa',   'Galenbindunuwewa'),
+  ('Anuradhapura', 'Galenbindunuwewa',   'Galenbindunuwewa1'),
+  ('Anuradhapura', 'Galenbindunuwewa',   'Galenbindunuwewa2'),
+  ('Anuradhapura', 'Galenbindunuwewa',   'Galenbindunuwewa3'),
   ('Anuradhapura', 'Padaviya',           'Padaviya'),
   ('Anuradhapura', 'Nochchiyagama',      'Nochchiyagama');
 

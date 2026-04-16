@@ -27,7 +27,8 @@ import {
     updateCropCalendar,
     removeCropCalendarImage,
     uploadMessageAttachment,
-    sendMessage
+    sendMessage,
+    deleteAccount
 } from './instructor.controller.js';
 import { updatePassword } from '../admin/admin.controller.js';
 
@@ -67,6 +68,7 @@ router.get('/profile', getProfile);
 router.get('/taken-divisions', getTakenDivisions);
 router.get('/region-hierarchy', getRegionHierarchy);
 router.put('/profile', updateProfile);
+router.delete('/profile', deleteAccount);
 router.put('/password', updatePassword);
 router.post('/profile/picture', upload.single('profile_picture'), uploadToCloudinaryMiddleware, updateProfilePicture);
 router.delete('/profile/picture', removeProfilePicture);

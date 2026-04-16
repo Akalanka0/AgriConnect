@@ -442,6 +442,7 @@
     "toastFillAllPasswords": "Please fill in all password fields",
     "toastPasswordMismatch": "New password and confirmation do not match",
     "toastPasswordTooShort": "New password must be at least 8 characters",
+    "toastPasswordUpdated": "Password updated successfully!",
     "toastPasswordNotAvailable": "Password change is not yet available. Please contact support.",
     "selectDivisionFirst": "Select Division First",
     "noInstructorAssigned": "No Instructor Assigned"
