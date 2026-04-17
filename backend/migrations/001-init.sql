@@ -280,14 +280,19 @@ CREATE TABLE `regions` (
 
 -- 10 DS Divisions of Anuradhapura district
 INSERT INTO `regions` (`district`, `zone`, `division`) VALUES
-  ('Anuradhapura', 'Anuradhapura town',  'Anuradhapura town'),
+  ('Anuradhapura', 'Anuradhapura town',  'Anuradhapura town1'),
+  ('Anuradhapura', 'Anuradhapura town',  'Anuradhapura town2'),
   ('Anuradhapura', 'Thalawa',            'Thalawa'),
   ('Anuradhapura', 'Tambuttegama',       'Tambuttegama'),
   ('Anuradhapura', 'Medawachchiya',      'Medawachchiya'),
-  ('Anuradhapura', 'Eppawala',           'Eppawala'),
+  ('Anuradhapura', 'Eppawala',           'Eppawala1'),
+  ('Anuradhapura', 'Eppawala',           'Eppawala2'),
+  ('Anuradhapura', 'Eppawala',           'Eppawala3'),
   ('Anuradhapura', 'Kekirawa',           'Kekirawa'),
   ('Anuradhapura', 'Mihintale',          'Mihintale'),
-  ('Anuradhapura', 'Galenbindunuwewa',   'Galenbindunuwewa'),
+  ('Anuradhapura', 'Galenbindunuwewa',   'Galenbindunuwewa1'),
+  ('Anuradhapura', 'Galenbindunuwewa',   'Galenbindunuwewa2'),
+  ('Anuradhapura', 'Galenbindunuwewa',   'Galenbindunuwewa3'),
   ('Anuradhapura', 'Padaviya',           'Padaviya'),
   ('Anuradhapura', 'Nochchiyagama',      'Nochchiyagama');
 
@@ -297,4 +302,17 @@ CREATE TABLE IF NOT EXISTS `migrations` (
     `name`       VARCHAR(255) NOT NULL,
     `created_at` TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 18. report_history (Stores previously generated reports for instructors and admins)
+CREATE TABLE IF NOT EXISTS `report_history` (
+    `id`          INT          NOT NULL AUTO_INCREMENT,
+    `user_id`     INT          NOT NULL,
+    `role`        ENUM('admin', 'instructor') NOT NULL,
+    `category`    VARCHAR(255) NOT NULL,
+    `report_name` VARCHAR(255) NOT NULL,
+    `status`      VARCHAR(255) DEFAULT 'Success',
+    `created_at`  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

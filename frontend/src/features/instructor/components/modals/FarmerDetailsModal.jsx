@@ -122,10 +122,8 @@ const FarmerDetailsModal = ({ isOpen, onClose, farmerId }) => {
 
                             <div className={styles.farmerLocationRow}>
                                 <div>
-                                    <span className={styles.farmerLocationLabel}>{t('farmerDetails.zone')}</span> <strong>{farmer.zone}</strong>
-                                </div>
-                            </div>
-
+                                      <span className={styles.farmerLocationLabel}>{t('farmerDetails.zone')}</span> <strong>{farmer.locations?.length > 0 ? Array.from(new Set(farmer.locations.map(loc => loc.zone).filter(Boolean))).join(', ') || 'N/A' : farmer.zone}</strong>                                  </div>
+                              </div>
                             {farmer.locations && farmer.locations.length > 0 && (
                                 <div className="land-locations">
                                     <label className={styles.farmerRegisteredLandsLabel}>{t('farmerDetails.registeredLands')}</label>

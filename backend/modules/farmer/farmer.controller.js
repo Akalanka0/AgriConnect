@@ -821,7 +821,7 @@ export const updateProfile = async (req, res) => {
         return res.status(200).json({ success: true, message: 'Profile updated successfully' });
     } catch (error) {
         console.error('Error updating profile:', error);
-        return res.status(500).json({ success: false, error: { message: 'Failed to update profile' } });
+        return res.status(500).json({ success: false, error: { message: error.message || 'Failed to update profile' } });
     }
 };
 
@@ -1244,7 +1244,6 @@ export const submitInstructorRating = async (req, res) => {
             ratingRecord = await existingRating.update({
                 rating,
                 comments,
-                status: 'approved',
                 updated_at: new Date()
             });
         } else {
@@ -1254,8 +1253,7 @@ export const submitInstructorRating = async (req, res) => {
                 farmer_id: farmerId,
                 farmer_name: farmerName,
                 rating,
-                comments,
-                status: 'approved'
+                comments
             });
         }
 
@@ -1274,5 +1272,27 @@ export const submitInstructorRating = async (req, res) => {
             success: false, 
             error: { message: 'Failed to submit rating' } 
         });
+    }
+};
+/**
+ * Delete Farmer Account
+ */
+export const deleteAccount = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const user = await User.findByPk(userId);
+        
+        if (!user) {
+            return res.status(404).json({ success: false, error: { message: 'User not found' } });
+        }
+
+        // Cascade delete details to be safe
+        await FarmerDetail.destroy({ where: { user_id: userId } });
+        await user.destroy();
+
+        return res.status(200).json({ success: true, message: 'Account deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting account:', error);
+        return res.status(500).json({ success: false, error: { message: 'Failed to delete account' } });
     }
 };

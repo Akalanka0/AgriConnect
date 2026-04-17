@@ -50,7 +50,18 @@ const UserDetailsDrawer = ({ isOpen, onClose, user, activeTab }) => {
                                 </div>
                                 <div className={styles.infoGroup}>
                                     <div className={styles.infoLabel}>{t('users.drawerZone')}</div>
-                                    <div className={styles.infoValue}>{user.location}</div>
+                                    <div className={styles.infoValue}>
+                                        {user.farmerLocations && user.farmerLocations.length > 0 ? (
+                                            Array.from(new Set(
+                                                user.farmerLocations
+                                                    .map(loc => loc.zone || loc.location)
+                                                    .filter(Boolean)
+                                                    .map(z => z.toString().replace(/\s+Zone\s*$/i, '').trim())
+                                            )).join(', ') || user.location || '-'
+                                        ) : (
+                                            user.location || '-'
+                                        )}
+                                    </div>
                                 </div>
                                 <div className={styles.infoGroup}>
                                     <div className={styles.infoLabel}>{t('users.drawerInstructorDivisions')}</div>

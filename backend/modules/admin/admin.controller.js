@@ -1,4 +1,4 @@
-﻿import { GeneratedId, User, FarmerDetail, InstructorDetail, SystemSetting, Message, InstructorRating, Region } from '../../models/index.js';
+import { GeneratedId, User, FarmerDetail, InstructorDetail, SystemSetting, Message, InstructorRating, Region, ReportHistory } from '../../models/index.js';
 import { Op } from 'sequelize';
 import sequelize from '../../config/db.js';
 import bcrypt from 'bcryptjs';
@@ -140,13 +140,16 @@ const buildHierarchy = (rows) => {
     const hierarchy = {};
     rows.forEach(r => {
         if (!hierarchy[r.zone]) hierarchy[r.zone] = [];
-        if (r.division !== r.zone) hierarchy[r.zone].push(r.division);
+        // Only push if it's not already in the array, allowing division === zone
+        if (!hierarchy[r.zone].includes(r.division)) {
+            hierarchy[r.zone].push(r.division);
+        }
     });
     return hierarchy;
 };
 
 /**
- * Get Region Hierarchy  (zone → divisions map)
+ * Get Region Hierarchy  (zone ? divisions map)
  */
 export const getRegionHierarchy = async (req, res) => {
     try {
@@ -159,7 +162,7 @@ export const getRegionHierarchy = async (req, res) => {
 };
 
 /**
- * Get Regions (flat list with IDs — for admin management UI)
+ * Get Regions (flat list with IDs � for admin management UI)
  */
 export const getRegions = async (req, res) => {
     try {
@@ -238,7 +241,7 @@ export const deleteRegionRow = async (req, res) => {
             if (subDivCount > 0) {
                 return res.status(409).json({
                     success: false,
-                    error: { message: `Cannot delete zone '${row.zone}' — remove its ${subDivCount} division(s) first` }
+                    error: { message: `Cannot delete zone '${row.zone}' � remove its ${subDivCount} division(s) first` }
                 });
             }
         }
@@ -624,8 +627,9 @@ export const getUsers = async (req, res) => {
             if (typeof locs === 'string') { try { locs = JSON.parse(locs); } catch { locs = []; } }
             if (!Array.isArray(locs)) locs = [];
             locs.forEach(loc => {
-                if (loc && loc.division) {
-                    divisionToCount[loc.division] = (divisionToCount[loc.division] || 0) + 1;
+                const div = loc?.instructorDivision || loc?.instructor_division || loc?.division;
+                if (div) {
+                    divisionToCount[div] = (divisionToCount[div] || 0) + 1;
                 }
             });
         });
@@ -636,7 +640,10 @@ export const getUsers = async (req, res) => {
                 // Find instructor from farmer's first location division
                 let primaryDivision = null;
                 const locs = user.farmerDetail?.locations;
-                if (Array.isArray(locs) && locs.length > 0) primaryDivision = locs[0].division;
+                if (Array.isArray(locs) && locs.length > 0) {
+                    const firstLoc = locs[0] || {};
+                    primaryDivision = firstLoc.instructorDivision || firstLoc.instructor_division || firstLoc.division;
+                }
                 user.dataValues.instructor = primaryDivision ? (divisionToInstructor[primaryDivision] || 'Not Assigned') : 'Not Assigned';
             } else if (user.role === 'instructor') {
                 const details = user.instructorDetail;
@@ -841,7 +848,10 @@ export const getInstructorEngagement = async (req, res) => {
                 let locs = fDetails.locations;
                 if (typeof locs === 'string') { try { locs = JSON.parse(locs); } catch { locs = []; } }
                 if (!Array.isArray(locs)) locs = [];
-                return locs.some(loc => loc && loc.division && divisions.includes(loc.division));
+                return locs.some(loc => {
+                    const div = loc?.instructorDivision || loc?.instructor_division || loc?.division;
+                    return div && divisions.includes(div);
+                });
             });
 
             return {
@@ -872,7 +882,7 @@ export const getInstructorEngagement = async (req, res) => {
                         phone: f.phone,
                         district: fDetails.district || primaryLoc.district || 'Anuradhapura',
                         zone: primaryLoc.zone || '-',
-                        instructorDivision: primaryLoc.division || '-',
+                        instructorDivision: primaryLoc.instructorDivision || primaryLoc.instructor_division || primaryLoc.division || '-',
                         farmerLocations,
                         avatar: f.profile_picture || null
                     };
@@ -1266,3 +1276,5 @@ export const deleteMessage = async (req, res) => {
         return res.status(500).json({ success: false, error: { message: 'Failed to delete message' } });
     }
 };
+export const getAdminReportHistory = async (req, res) => { try { const history = await ReportHistory.findAll({ where: { user_id: req.user.id, role: 'admin' }, order: [['created_at', 'DESC']] }); res.json({ success: true, data: history }); } catch (error) { res.status(500).json({ success: false, error: { message: error.message } }); } };
+export const addAdminReportHistory = async (req, res) => { try { const { category, report_name, status } = req.body; const newHistory = await ReportHistory.create({ user_id: req.user.id, role: 'admin', category, report_name, status: status || 'Success' }); res.status(201).json({ success: true, data: newHistory }); } catch (error) { res.status(500).json({ success: false, error: { message: error.message } }); } };

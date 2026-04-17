@@ -80,6 +80,10 @@ const UserManagement = () => {
                     const district = details.district
                         || (farmerLocations.length > 0 ? farmerLocations[0].district : null)
                         || 'Anuradhapura';
+                        
+                    // Derive zone: prefer details.zone, then first farmer location entry
+                    const derivedZone = details.zone || (farmerLocations.length > 0 ? farmerLocations[0].zone : null);
+
                     return {
                         id: user.id, // Keep integer ID for API calls
                         displayId: details.farmer_id || details.instructor_id || `USER-${user.id}`, // Display ID
@@ -88,13 +92,13 @@ const UserManagement = () => {
                         phone: user.phone,
                         nic: user.nic || '-',
                         district,
-                        location: formatZoneName(details.zone), // Map zone to project
+                        location: formatZoneName(derivedZone), // Map zone to project
                         instructorDivision: details.instructor_division || '-',
                         farmerLocations, // All farmer location entries
                         instructor: user.instructor, // Assigned Instructor Name
                         farmersCount: user.farmersCount, // Calculated Farmers Count
                         // For instructors
-                        zone: formatZoneName(details.zone),
+                        zone: formatZoneName(derivedZone),
                         divisions: typeof details.assigned_divisions === 'string'
                             ? JSON.parse(details.assigned_divisions || '[]')
                             : (details.assigned_divisions || []),

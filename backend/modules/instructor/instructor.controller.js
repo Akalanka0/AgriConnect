@@ -1,4 +1,4 @@
-﻿import { sequelize, User, InstructorDetail, FarmerDetail, CropPlan, PestReport, HarvestRecord, Activity, Meeting, Message, Crop, Region } from '../../models/index.js';
+﻿import { sequelize, User, InstructorDetail, FarmerDetail, CropPlan, PestReport, HarvestRecord, Activity, Meeting, Message, Crop, Region, ReportHistory } from '../../models/index.js';
 import crypto from 'crypto';
 import { Op } from 'sequelize';
 import { upload, uploadToCloudinaryMiddleware } from '../../middleware/uploadMiddleware.js';
@@ -37,12 +37,20 @@ export const getDashboardStats = async (req, res) => {
         // Assigned Farmers Count
         const assignedFarmersCount = await FarmerDetail.count({
             where: divisions.length > 0 ? {
-                [Op.or]: divisions.map(div =>
+                [Op.or]: divisions.flatMap(div => [
+                    sequelize.where(
+                        sequelize.fn('JSON_SEARCH', sequelize.col('locations'), 'one', div, sequelize.literal('NULL'), sequelize.literal("'$[*].instructorDivision'")),
+                        { [Op.ne]: null }
+                    ),
+                    sequelize.where(
+                        sequelize.fn('JSON_SEARCH', sequelize.col('locations'), 'one', div, sequelize.literal('NULL'), sequelize.literal("'$[*].instructor_division'")),
+                        { [Op.ne]: null }
+                    ),
                     sequelize.where(
                         sequelize.fn('JSON_SEARCH', sequelize.col('locations'), 'one', div, sequelize.literal('NULL'), sequelize.literal("'$[*].division'")),
                         { [Op.ne]: null }
                     )
-                )
+                ])
             } : { id: -1 }
         });
 
@@ -578,12 +586,20 @@ export const getAssignedFarmers = async (req, res) => {
                 model: FarmerDetail,
                 as: 'farmerDetail',
                 where: divisions.length > 0 ? {
-                    [Op.or]: divisions.map(div =>
+                    [Op.or]: divisions.flatMap(div => [
+                        sequelize.where(
+                            sequelize.literal(`JSON_SEARCH(\`farmerDetail\`.\`locations\`, 'one', ${sequelize.escape(div)}, NULL, '$[*].instructorDivision')`),
+                            { [Op.ne]: null }
+                        ),
+                        sequelize.where(
+                            sequelize.literal(`JSON_SEARCH(\`farmerDetail\`.\`locations\`, 'one', ${sequelize.escape(div)}, NULL, '$[*].instructor_division')`),
+                            { [Op.ne]: null }
+                        ),
                         sequelize.where(
                             sequelize.literal(`JSON_SEARCH(\`farmerDetail\`.\`locations\`, 'one', ${sequelize.escape(div)}, NULL, '$[*].division')`),
                             { [Op.ne]: null }
                         )
-                    )
+                    ])
                 } : { id: -1 }
             }],
             attributes: ['id', 'full_name', 'email', 'phone', 'nic', 'created_at']
@@ -597,9 +613,10 @@ export const getAssignedFarmers = async (req, res) => {
                     : JSON.parse(f.farmerDetail?.locations || '[]');
             } catch (e) { locs = []; }
 
-            const matchingLoc  = locs.find(loc => divisions.some(d => loc.division === d));
+            const matchingLoc  = locs.find(loc => divisions.some(d => (loc.instructorDivision || loc.instructor_division || loc.division) === d));
             const displayZone     = matchingLoc?.zone     || locs[0]?.zone     || 'N/A';
-            const displayDivision = matchingLoc?.division || locs[0]?.division || 'N/A';
+            const displayDivision = (matchingLoc?.instructorDivision || matchingLoc?.instructor_division || matchingLoc?.division) || 
+                                    (locs[0]?.instructorDivision || locs[0]?.instructor_division || locs[0]?.division) || 'N/A';
 
             return {
                 id: f.id,
@@ -645,7 +662,7 @@ export const getFarmerDetails = async (req, res) => {
                     model: FarmerDetail,
                     as: 'farmerDetail'
                 }],
-                attributes: ['id', 'full_name', 'email', 'phone', 'nic', 'created_at', 'avatar', 'profile_picture']
+                attributes: ['id', 'full_name', 'email', 'phone', 'nic', 'created_at', 'profile_picture']
             });
         } catch (dbError) {
             console.error('Database query error:', dbError);
@@ -680,7 +697,7 @@ export const getFarmerDetails = async (req, res) => {
             primaryDivision: locations[0]?.division || 'N/A',
             locations: locations,
             joined: farmer.created_at,
-            profilePicture: farmer.avatar || farmer.profile_picture
+            profilePicture: farmer.profile_picture
         };
 
         return res.status(200).json({
@@ -1175,7 +1192,9 @@ export const getRegionHierarchy = async (req, res) => {
         const hierarchy = {};
         rows.forEach(r => {
             if (!hierarchy[r.zone]) hierarchy[r.zone] = [];
-            if (r.division !== r.zone) hierarchy[r.zone].push(r.division);
+            if (!hierarchy[r.zone].includes(r.division)) {
+                hierarchy[r.zone].push(r.division);
+            }
         });
         return res.status(200).json({ success: true, data: hierarchy });
     } catch (error) {
@@ -1254,7 +1273,7 @@ export const updateProfile = async (req, res) => {
                 if (removedDivisions.length > 0) {
                     const instructorRefId = detail.instructor_id;
                     const allFarmers = await FarmerDetail.findAll({
-                        attributes: ['id', 'locations', 'instructor_division']
+                        attributes: ['id', 'locations']
                     });
 
                     for (const farmer of allFarmers) {
@@ -1307,7 +1326,7 @@ export const updateProfile = async (req, res) => {
         return res.status(200).json({ success: true, message: 'Profile updated successfully' });
     } catch (error) {
         console.error('Error updating profile:', error);
-        return res.status(500).json({ success: false, error: { message: 'Failed to update profile' } });
+        return res.status(500).json({ success: false, error: { message: error.message || 'Failed to update profile' } });
     }
 };
 
@@ -1334,15 +1353,14 @@ export const getInstructorRatings = async (req, res) => {
         const offset = (page - 1) * limit;
 
         const { count, rows: ratings } = await InstructorRating.findAndCountAll({
-            where: { 
-                instructor_id: instructorId,
-                status: 'approved'
+            where: {
+                instructor_id: instructorId
             },
             include: [
                 {
                     model: FarmerDetail,
                     as: 'farmer',
-                    attributes: ['farmer_id', 'district', 'zone'],
+                    attributes: ['farmer_id', 'district', 'locations'],
                     required: false
                 }
             ],
@@ -1681,14 +1699,23 @@ export const getReportsData = async (req, res) => {
 
             const reports = await PestReport.findAll({
                 where,
-                include: [{ model: User, as: 'user', attributes: ['full_name'] }],
+                include: [{
+                    model: User,
+                    as: 'user',
+                    attributes: ['full_name'],
+                    include: [{
+                        model: FarmerDetail,
+                        as: 'farmerDetail',
+                        attributes: ['farmer_id']
+                    }]
+                }],
                 order: [['created_at', 'DESC']]
             });
 
             columns = ['Date', 'Farmer', 'Pest/Disease', 'Type', 'Crop', 'Severity', 'Status', 'Division'];
             reportData = reports.map(r => [
                 r.created_at.toISOString().split('T')[0],
-                r.user?.full_name || 'N/A',
+                r.user ? `${r.user.full_name} (${r.user.farmerDetail?.farmer_id || 'ID N/A'})` : 'N/A',
                 r.name,
                 r.type,
                 r.crop,
@@ -1710,14 +1737,23 @@ export const getReportsData = async (req, res) => {
 
             const plans = await CropPlan.findAll({
                 where,
-                include: [{ model: User, as: 'user', attributes: ['full_name'] }],
+                include: [{
+                    model: User,
+                    as: 'user',
+                    attributes: ['full_name'],
+                    include: [{
+                        model: FarmerDetail,
+                        as: 'farmerDetail',
+                        attributes: ['farmer_id']
+                    }]
+                }],
                 order: [['created_at', 'DESC']]
             });
 
-            columns = ['Date', 'Farmer', 'Crop', 'Planting Date', 'Harvest Date', 'Status', 'Division'];
+            columns = ['Date', 'Farmer (ID)', 'Crop', 'Planting Date', 'Harvest Date', 'Status', 'Division'];
             reportData = plans.map(p => [
                 p.created_at.toISOString().split('T')[0],
-                p.user?.full_name || 'N/A',
+                p.user ? `${p.user.full_name} (${p.user.farmerDetail?.farmer_id || 'ID N/A'})` : 'N/A',
                 p.crop_name,
                 p.plant_date,
                 p.harvest_date,
@@ -1834,3 +1870,28 @@ export const updateMeetingStatus = async (req, res) => {
     }
 };
 
+/**
+ * Delete Instructor Account
+ */
+export const deleteAccount = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const user = await User.findByPk(userId);
+        
+        if (!user) {
+            return res.status(404).json({ success: false, error: { message: 'User not found' } });
+        }
+
+        // Cascade delete details to be safe
+        await InstructorDetail.destroy({ where: { user_id: userId } });
+        await user.destroy();
+
+        return res.status(200).json({ success: true, message: 'Account deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting account:', error);
+        return res.status(500).json({ success: false, error: { message: 'Failed to delete account' } });
+    }
+};
+
+export const getInstructorReportHistory = async (req, res) => { try { const history = await ReportHistory.findAll({ where: { user_id: req.user.id, role: 'instructor' }, order: [['created_at', 'DESC']] }); res.json({ success: true, data: history }); } catch (error) { res.status(500).json({ success: false, error: { message: error.message } }); } };
+export const addInstructorReportHistory = async (req, res) => { try { const { category, report_name, status } = req.body; const newHistory = await ReportHistory.create({ user_id: req.user.id, role: 'instructor', category, report_name, status: status || 'Success' }); res.status(201).json({ success: true, data: newHistory }); } catch (error) { res.status(500).json({ success: false, error: { message: error.message } }); } };

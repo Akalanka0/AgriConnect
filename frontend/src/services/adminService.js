@@ -9,6 +9,9 @@ export const adminAPI = {
      */
     getDashboardStats: () => apiService.get('/admin/stats'),
 
+    getReportHistory: () => apiService.get('/admin/report-history'),
+    addReportHistory: (data) => apiService.post('/admin/report-history', data),
+
     /**
      * User Management
      */

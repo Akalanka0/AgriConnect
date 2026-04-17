@@ -190,11 +190,6 @@ const RatingsModal = ({ isOpen, onClose }) => {
                                                 <div className={styles.ratingHeader}>
                                                     <div className={styles.ratingFarmer}>
                                                         <strong>{rating.farmer_name}</strong>
-                                                        {rating.farmer_district && (
-                                                            <span className={styles.ratingLocation}>
-                                                                <i className="fas fa-location-dot"></i> {rating.farmer_district}
-                                                            </span>
-                                                        )}
                                                     </div>
                                                     <div className={styles.ratingDate}>
                                                         {formatDate(rating.created_at)}

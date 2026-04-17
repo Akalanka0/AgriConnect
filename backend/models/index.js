@@ -13,6 +13,7 @@ import HarvestRecord from './HarvestRecord.js';
 import CropPlan from './CropPlan.js';
 import Meeting from './Meeting.js';
 import InstructorRating from './InstructorRating.js';
+import ReportHistory from './ReportHistory.js';
 
 // Define associations (after all models are imported)
 FarmerDetail.belongsTo(User, {
@@ -94,6 +95,7 @@ export {
     HarvestRecord,
     CropPlan,
     Meeting,
-    InstructorRating
+    InstructorRating,
+    ReportHistory
 };
 

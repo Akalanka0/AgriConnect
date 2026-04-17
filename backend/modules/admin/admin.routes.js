@@ -5,6 +5,8 @@ import {
     updateIdStatus,
     deleteIdsByStatus,
     getDashboardStats,
+    getAdminReportHistory,
+    addAdminReportHistory,
     getUsers,
     updateUserStatus,
     deleteUser,
@@ -39,6 +41,10 @@ router.delete('/messages/:id', authenticate, authorize('admin'), deleteMessage);
 
 // Dashboard & User Management Routes
 router.get('/stats', authenticate, authorize('admin'), getDashboardStats);
+// Report History
+router.get('/report-history', authenticate, authorize('admin'), getAdminReportHistory);
+router.post('/report-history', authenticate, authorize('admin'), addAdminReportHistory);
+
 router.post('/invite', authenticate, authorize('admin'), inviteAdmin);
 router.get('/settings', authenticate, authorize('admin'), getSystemSettings);
 router.put('/settings/:key', authenticate, authorize('admin'), updateSystemSetting);

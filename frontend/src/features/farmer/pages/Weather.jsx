@@ -286,11 +286,6 @@ const Weather = () => {
                                     <div className={styles.forecastDayContainer}>
                                         <div className={styles.forecastIconContainer}>
                                             <i className={`fas ${getWeatherIcon(day.weather[0].icon)} ${styles.forecastIcon}`}></i>
-                                            {day.pop > 0 && (
-                                                <span className={styles.forecastPop}>
-                                                    {Math.round(day.pop * 100)}%
-                                                </span>
-                                            )}
                                         </div>
                                         <span className={styles.forecastTemp}>{Math.round(day.main.temp)}°C</span>
                                     </div>

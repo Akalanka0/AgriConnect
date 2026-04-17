@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import styles from '../styles/Settings.module.css';
 import commonBtnStyles from '@/components/common/styles/Button.module.css';
 import commonCardStyles from '@/components/common/styles/Card.module.css';
 import ConfirmModal from '@/components/common/feedback/ConfirmModal';
-import { getAccessToken } from '@/utils/authStorage';
-import { getStoredUser, setStoredUser } from '@/utils/userStorage';
+import { getAccessToken, clearAccessToken } from '@/utils/authStorage';
+import { getStoredUser, setStoredUser, clearStoredUser } from '@/utils/userStorage';
 
 const ALLOWED_PICTURE_TYPES = ['image/jpeg', 'image/png'];
 const MAX_PICTURE_SIZE = 2 * 1024 * 1024; // 2 MB
@@ -14,6 +14,7 @@ const MAX_PICTURE_SIZE = 2 * 1024 * 1024; // 2 MB
 const Settings = () => {
     const { showToast } = useOutletContext();
     const { t } = useTranslation('farmer');
+    const navigate = useNavigate();
 
     const [settings, setSettings] = useState({
         farmerId: '',
@@ -256,7 +257,27 @@ const Settings = () => {
             message: t('settings.deleteAccountConfirmMsg'),
             confirmText: t('settings.deleteAccountConfirmBtn'),
             type: 'danger',
-            action: async () => showToast(t('settings.toastAccountDeletion'))
+            action: async () => {
+                try {
+                    const token = getAccessToken();
+                    const res = await fetch('/api/farmer/profile', {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        clearAccessToken();
+                        clearStoredUser();
+                        showToast(t('settings.toastAccountDeletion'), 'success');
+                        setTimeout(() => navigate('/login'), 1000);
+                    } else {
+                        showToast(data.error?.message || 'Failed to delete account', 'error');
+                    }
+                } catch (error) {
+                    console.error('Delete account error:', error);
+                    showToast('Failed to delete account', 'error');
+                }
+            }
         });
     };
 
@@ -266,8 +287,8 @@ const Settings = () => {
 
         if (field === 'zone') {
             // Reset division when zone changes
-            const divisions = hierarchyData[value] || [];
-            const defaultDivision = divisions.length > 0 ? divisions[0] : '';
+            const availableDivisions = getAvailableDivisions(value, index);
+            const defaultDivision = availableDivisions.length > 0 ? availableDivisions[0] : '';
 
             location.zone = value;
             location.instructorDivision = defaultDivision;
@@ -313,6 +334,14 @@ const Settings = () => {
                 newLocation
             ]
         });
+    };
+
+    const getAvailableDivisions = (zone, currentIndex) => {
+        const allDivisions = hierarchyData[zone] || [];
+        const usedDivisions = settings.locations
+            .filter((loc, i) => i !== currentIndex && loc.zone === zone && loc.instructorDivision)
+            .map(loc => loc.instructorDivision);
+        return allDivisions.filter(div => !usedDivisions.includes(div));
     };
 
     const removeLocation = (index) => {
@@ -386,7 +415,7 @@ const Settings = () => {
         }
     };
 
-    const changePassword = () => {
+    const changePassword = async () => {
         if (!passwordForm.current || !passwordForm.next || !passwordForm.confirm) {
             showToast(t('settings.toastFillAllPasswords'), 'error');
             return;
@@ -399,7 +428,32 @@ const Settings = () => {
             showToast(t('settings.toastPasswordTooShort'), 'error');
             return;
         }
-        showToast(t('settings.toastPasswordNotAvailable'), 'error');
+
+        try {
+            const token = getAccessToken();
+            const res = await fetch('/api/farmer/password', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    currentPassword: passwordForm.current,
+                    newPassword: passwordForm.next
+                })
+            });
+
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast(t('settings.toastPasswordUpdated'));
+                setPasswordForm({ current: '', next: '', confirm: '' });
+            } else {
+                showToast(data.error?.message || t('settings.toastProfileFailed'), 'error');
+            }
+        } catch (error) {
+            console.error('Error updating password:', error);
+            showToast(t('settings.toastProfileFailed'), 'error');
+        }
     };
 
     return (
@@ -490,7 +544,7 @@ const Settings = () => {
                             id="email"
                             className="form-control"
                             value={settings.email}
-                            onChange={(e) => setSettings({ ...settings, email: e.target.value })}
+                            disabled
                         />
                     </div>
                     <div className="form-group">
@@ -548,7 +602,7 @@ const Settings = () => {
                                         <label className={styles.smallLabel}>{t('settings.zone')}</label>
                                         <select
                                             className="form-control"
-                                            value={location.zone}
+                                            value={location.zone || ''}
                                             onChange={(e) => handleLocationChange(index, 'zone', e.target.value)}
                                         >
                                             <option value="">{t('settings.selectZone')}</option>
@@ -564,12 +618,12 @@ const Settings = () => {
                                         <label className={styles.smallLabel}>{t('settings.instructorDiv')}</label>
                                         <select
                                             className="form-control"
-                                            value={location.instructorDivision}
+                                            value={location.instructorDivision || ''}
                                             onChange={(e) => handleLocationChange(index, 'instructorDivision', e.target.value)}
                                             disabled={!location.zone}
                                         >
                                             <option value="">{t('settings.selectDiv')}</option>
-                                            {(hierarchyData[location.zone] || []).map(division => (
+                                            {getAvailableDivisions(location.zone, index).map(division => (
                                                 <option key={division} value={division}>
                                                     {division}
                                                 </option>
@@ -582,7 +636,7 @@ const Settings = () => {
                                         <input
                                             type="text"
                                             className={`form-control ${styles.disabledInput}`}
-                                            value={location.assignedInstructorRefId ? `${location.assignedInstructorName} (${location.assignedInstructorRefId})` : location.assignedInstructorName}
+                                            value={(location.assignedInstructorRefId ? `${location.assignedInstructorName || ''} (${location.assignedInstructorRefId})` : location.assignedInstructorName) || ''}
                                             disabled
                                         />
                                     </div>
