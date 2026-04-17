@@ -5,6 +5,18 @@ import { registerRateLimiter, loginRateLimiter, passwordResetRateLimiter } from 
 
 const router = express.Router();
 
+/**
+ * @openapi
+ * /api/auth/test:
+ *   get:
+ *     summary: Test backend connection
+ *     description: Returns a success message if the backend is reachable (Disabled in production).
+ *     tags:
+ *       - Authentication
+ *     responses:
+ *       200:
+ *         description: Connection successful
+ */
 // Test endpoint — disabled in production
 if (process.env.NODE_ENV !== 'production') {
     router.get('/test', (req, res) => {

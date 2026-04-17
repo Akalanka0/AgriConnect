@@ -1,4 +1,4 @@
-# Logs
+﻿# Logs
 *.log
 npm-debug.log*
 yarn-error.log*
@@ -122,5 +122,10 @@ storage/
 tmp/
 temp/
 
-presentation
+
+# Playwright test output
+playwright-report/
+test-results/
+blob-report/
+
 

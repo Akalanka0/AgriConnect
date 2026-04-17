@@ -6,7 +6,11 @@
         "start": "concurrently \"npm run server\" \"npm run client\"",
         "server": "cd backend && npm start",
         "client": "cd frontend && npm run dev",
-        "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install"
+        "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+        "test": "npm --prefix backend run test && npm --prefix frontend run test",
+        "test:backend": "npm --prefix backend run test",
+        "test:frontend": "npm --prefix frontend run test",
+        "test:e2e": "npm --prefix frontend run test:e2e"
     },
     "keywords": [],
     "author": "",
