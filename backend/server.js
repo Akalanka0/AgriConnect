@@ -16,6 +16,8 @@ import cropRoutes from './modules/crops/crop.routes.js';
 import ratingRoutes from './modules/ratings/rating.routes.js';
 import { testConnection } from './config/db.js';
 import { sequelize } from './models/index.js';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -114,6 +116,9 @@ app.use((req, res, next) => {
     next();
 });
 
+// Swagger API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
@@ -194,15 +199,22 @@ const bootstrap = async () => {
             console.log('✅ Model sync process completed.');
         }
 
-        server.listen(PORT, () => {
-            console.log(`Server running on port ${PORT}`);
-            console.log('✅ Database connection established.');
-            console.log(`WebSocket server enabled`);
-        });
+        if (process.env.NODE_ENV !== 'test') {
+            server.listen(PORT, () => {
+                console.log(`Server running on port ${PORT}`);
+                console.log('✅ Database connection established.');
+                console.log(`WebSocket server enabled`);
+            });
+        }
     } catch (err) {
         console.error('Failed to start server:', err);
         process.exit(1);
     }
 };
 
-bootstrap();
+if (process.env.NODE_ENV !== 'test') {
+    bootstrap();
+}
+
+export { app, server };
+
