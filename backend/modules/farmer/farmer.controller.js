@@ -1244,7 +1244,6 @@ export const submitInstructorRating = async (req, res) => {
             ratingRecord = await existingRating.update({
                 rating,
                 comments,
-                status: 'approved',
                 updated_at: new Date()
             });
         } else {
@@ -1254,8 +1253,7 @@ export const submitInstructorRating = async (req, res) => {
                 farmer_id: farmerId,
                 farmer_name: farmerName,
                 rating,
-                comments,
-                status: 'approved'
+                comments
             });
         }
 

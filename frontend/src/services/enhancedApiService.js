@@ -164,7 +164,7 @@ class EnhancedApiService {
     }
 
     async get(url, config = {}) {
-        return this.request(url, { ...config, method: 'GET' });
+        return this.request(url, { cache: 'no-store', ...config, method: 'GET' });
     }
 
     async post(url, data, config = {}) {

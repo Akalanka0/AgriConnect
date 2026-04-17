@@ -287,8 +287,8 @@ const Settings = () => {
 
         if (field === 'zone') {
             // Reset division when zone changes
-            const divisions = hierarchyData[value] || [];
-            const defaultDivision = divisions.length > 0 ? divisions[0] : '';
+            const availableDivisions = getAvailableDivisions(value, index);
+            const defaultDivision = availableDivisions.length > 0 ? availableDivisions[0] : '';
 
             location.zone = value;
             location.instructorDivision = defaultDivision;
@@ -334,6 +334,14 @@ const Settings = () => {
                 newLocation
             ]
         });
+    };
+
+    const getAvailableDivisions = (zone, currentIndex) => {
+        const allDivisions = hierarchyData[zone] || [];
+        const usedDivisions = settings.locations
+            .filter((loc, i) => i !== currentIndex && loc.zone === zone && loc.instructorDivision)
+            .map(loc => loc.instructorDivision);
+        return allDivisions.filter(div => !usedDivisions.includes(div));
     };
 
     const removeLocation = (index) => {
@@ -615,7 +623,7 @@ const Settings = () => {
                                             disabled={!location.zone}
                                         >
                                             <option value="">{t('settings.selectDiv')}</option>
-                                            {(hierarchyData[location.zone] || []).map(division => (
+                                            {getAvailableDivisions(location.zone, index).map(division => (
                                                 <option key={division} value={division}>
                                                     {division}
                                                 </option>

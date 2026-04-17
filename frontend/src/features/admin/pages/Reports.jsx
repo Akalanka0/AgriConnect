@@ -35,7 +35,6 @@ const Reports = () => {
         instructor: 'All',
         division: 'All',
         status: 'All',
-        format: 'PDF',
         reportName: ''
     });
 
@@ -45,16 +44,22 @@ const Reports = () => {
     const [instructorsList, setInstructorsList] = useState([]);
     const [regionHierarchy, setRegionHierarchy] = useState({});
 
-    // Load report history from localStorage on mount
     useEffect(() => {
-        const savedHistory = localStorage.getItem('agriconnect_report_history');
-        if (savedHistory) {
+        const fetchHistory = async () => {
             try {
-                setReportHistory(JSON.parse(savedHistory));
+                const res = await adminAPI.getReportHistory();
+                let historyArray = [];
+                if (res) {
+                    if (Array.isArray(res)) historyArray = res;
+                    else if (Array.isArray(res.data)) historyArray = res.data;
+                    else if (res.data && Array.isArray(res.data.data)) historyArray = res.data.data;
+                }
+                setReportHistory(historyArray);
             } catch (err) {
                 console.error('Error loading report history:', err);
             }
-        }
+        };
+        fetchHistory();
     }, []);
 
     // Load real zone / division / instructor data for filter dropdowns
@@ -183,58 +188,45 @@ const Reports = () => {
         doc.save(`${filename}.pdf`);
 
         // Add to history
-        addToReportHistory(filename, 'PDF', data.length);
-    };
-
-    const generateCSV = (columns, data, filename) => {
-        // Sanitize a cell value to prevent CSV injection (OWASP)
-        const safeCsvCell = (val) => {
-            const str = String(val ?? '');
-            // Prefix with tab if value starts with a formula-triggering character
-            const sanitized = /^[=+\-@|]/.test(str) ? `\t${str}` : str;
-            // Wrap in quotes and escape any internal double-quotes
-            return `"${sanitized.replace(/"/g, '""')}"`;
-        };
-
-        const csvContent = [
-            columns.map(safeCsvCell).join(','),
-            ...data.map(row => row.map(safeCsvCell).join(','))
-        ].join('\n');
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', `${filename}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // Add to history
-        addToReportHistory(filename, 'CSV', data.length);
+        addToReportHistory(filename, data.length);
     };
 
     // Add report to generation history
-    const addToReportHistory = (filename, format, recordCount) => {
-        const newReport = {
-            id: Date.now(),
-            name: filters.reportName || filename,
-            type: currentReportType.charAt(0).toUpperCase() + currentReportType.slice(1),
-            format: format,
-            records: recordCount,
-            generatedAt: new Date().toLocaleString(),
-            filters: {
-                method: filters.method,
-                zone: filters.zone,
-                status: filters.status,
-                division: filters.division
+    const addToReportHistory = async (filename, recordCount) => {
+        const reportName = filters.reportName || filename;
+        const typeStr = currentReportType.charAt(0).toUpperCase() + currentReportType.slice(1);
+        
+        try {
+            const res = await adminAPI.addReportHistory({
+                category: typeStr,
+                report_name: reportName,
+                status: 'Success'
+            });
+            if (res) {
+                let newRecord = res;
+                if (res && res.data) newRecord = res.data;
+                if (res && res.data && res.data.data) newRecord = res.data.data;
+                setReportHistory(prev => [newRecord, ...prev].slice(0, 50));
             }
-        };
-
-        const updatedHistory = [newReport, ...reportHistory].slice(0, 50); // Keep last 50 reports
-        setReportHistory(updatedHistory);
-        localStorage.setItem('agriconnect_report_history', JSON.stringify(updatedHistory));
+        } catch (error) {
+            console.error('Error saving report history', error);
+            // Fallback UI
+            const newReport = {
+                id: Date.now(),
+                report_name: reportName,
+                category: typeStr,
+                format: 'PDF',
+                records: recordCount,
+                created_at: new Date().toLocaleString(),
+                filters: {
+                    method: filters.method,
+                    zone: filters.zone,
+                    status: filters.status,
+                    division: filters.division
+                }
+            };
+            setReportHistory(prev => [newReport, ...prev].slice(0, 50));
+        }
     };
 
     // Report Handlers
@@ -286,11 +278,7 @@ const Reports = () => {
             ]);
             const filename = filters.reportName ? filters.reportName.replace(/\s+/g, '_').toLowerCase() : 'agriconnect_farmers_report';
 
-            if (filters.format === 'CSV') {
-                generateCSV(columns, data, filename);
-            } else {
-                generatePDF('User Management Report', 'Registered Farmers List', columns, data, filename);
-            }
+            generatePDF('User Management Report', 'Registered Farmers List', columns, data, filename);
         } catch (error) {
             console.error('Error generating farmers report:', error);
             showToast('Error generating report', 'error');
@@ -330,11 +318,7 @@ const Reports = () => {
             ]);
             const filename = filters.reportName ? filters.reportName.replace(/\s+/g, '_').toLowerCase() : 'agriconnect_instructors_report';
 
-            if (filters.format === 'CSV') {
-                generateCSV(columns, data, filename);
-            } else {
-                generatePDF('User Management Report', 'Registered Instructors List', columns, data, filename);
-            }
+            generatePDF('User Management Report', 'Registered Instructors List', columns, data, filename);
         } catch (error) {
             console.error('Error generating instructors report:', error);
             showToast('Error generating report', 'error');
@@ -363,11 +347,7 @@ const Reports = () => {
             ]);
             const filename = filters.reportName ? filters.reportName.replace(/\s+/g, '_').toLowerCase() : 'agriconnect_engagement_report';
 
-            if (filters.format === 'CSV') {
-                generateCSV(columns, data, filename);
-            } else {
-                generatePDF('Engagement Report', 'Instructor-Farmer Engagement Analysis', columns, data, filename);
-            }
+            generatePDF('Engagement Report', 'Instructor-Farmer Engagement Analysis', columns, data, filename);
         } catch (error) {
             console.error('Error generating engagement report:', error);
             showToast('Error generating report', 'error');
@@ -465,11 +445,11 @@ const Reports = () => {
                                 <tbody>
                                     {reportHistory.map(report => (
                                         <tr key={report.id}>
-                                            <td>{report.name}</td>
-                                            <td><span className={styles.typeBadge}>{report.type}</span></td>
-                                            <td><span className={styles.formatBadge}>{report.format}</span></td>
-                                            <td>{report.records}</td>
-                                            <td>{report.generatedAt}</td>
+                                            <td>{report.report_name || report.name || report.category}</td>
+                                            <td><span className={styles.typeBadge}>{report.category || report.type}</span></td>
+                                            <td><span className={styles.formatBadge}>{report.format === 'CSV' ? 'PDF' : (report.format || 'PDF')}</span></td>
+                                            <td>{report.records || 'N/A'}</td>
+                                            <td>{report.created_at ? new Date(report.created_at).toLocaleString() : report.generatedAt}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -613,32 +593,6 @@ const Reports = () => {
                                     </div>
                                 )}
 
-                                <div className={styles.formGroup}>
-                                    <label>{t('reports.exportFormat')}</label>
-                                    <div className={styles.exportFormatGroup}>
-                                        <label className={styles.formatRadioLabel}>
-                                            <input
-                                                type="radio"
-                                                name="format"
-                                                value="PDF"
-                                                checked={filters.format === 'PDF'}
-                                                onChange={handleFilterChange}
-                                            />
-                                            <i className={`fas fa-file-pdf ${styles.iconPdf}`}></i> {t('reports.pdfDocument')}
-                                        </label>
-                                        <label className={styles.formatRadioLabel}>
-                                            <input
-                                                type="radio"
-                                                name="format"
-                                                value="CSV"
-                                                checked={filters.format === 'CSV'}
-                                                onChange={handleFilterChange}
-                                            />
-                                            <i className={`fas fa-file-excel ${styles.iconExcel}`}></i> {t('reports.csvSpreadsheet')}
-                                        </label>
-                                    </div>
-                                </div>
-
                                 <div className={styles.adminModalFooter}>
                                     <button
                                         className={`${commonBtnStyles.btn} ${isGenerating ? commonBtnStyles.btnDanger : commonBtnStyles.btnSecondary}`}
@@ -650,7 +604,7 @@ const Reports = () => {
                                         {isGenerating ? (
                                             <><i className="fas fa-spinner fa-spin"></i> {t('reports.generatingLabel')}</>
                                         ) : (
-                                            <><i className={filters.format === 'PDF' ? "fas fa-file-pdf" : "fas fa-file-excel"}></i> {t('reports.generateDownload')}</>
+                                            <><i className="fas fa-file-pdf"></i> {t('reports.generateDownload')}</>
                                         )}
                                     </button>
                                 </div>

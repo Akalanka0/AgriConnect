@@ -303,3 +303,16 @@ CREATE TABLE IF NOT EXISTS `migrations` (
     `created_at` TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 18. report_history (Stores previously generated reports for instructors and admins)
+CREATE TABLE IF NOT EXISTS `report_history` (
+    `id`          INT          NOT NULL AUTO_INCREMENT,
+    `user_id`     INT          NOT NULL,
+    `role`        ENUM('admin', 'instructor') NOT NULL,
+    `category`    VARCHAR(255) NOT NULL,
+    `report_name` VARCHAR(255) NOT NULL,
+    `status`      VARCHAR(255) DEFAULT 'Success',
+    `created_at`  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

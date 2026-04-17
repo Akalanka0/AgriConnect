@@ -46,6 +46,8 @@ export const instructorAPI = {
      */
     getReports: (params) => apiService.get('/instructor/reports', params),
     getFarmerReports: (farmerId) => apiService.get(`/instructor/reports/farmers/${farmerId}`),
+    getReportHistory: () => apiService.get('/instructor/report-history'),
+    addReportHistory: (data) => apiService.post('/instructor/report-history', data),
 
     /**
      * Profile & Settings

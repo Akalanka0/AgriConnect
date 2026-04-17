@@ -7,14 +7,12 @@ import { InstructorRating, InstructorDetail } from '../models/index.js';
 export const updateInstructorAverageRating = async (instructorId) => {
     try {
         const ratings = await InstructorRating.findAll({
-            where: { 
-                instructor_id: instructorId,
-                status: 'approved'
+            where: {
+                instructor_id: instructorId
             }
         });
 
         if (ratings.length === 0) {
-            // Update instructor detail with 0 rating
             await InstructorDetail.update(
                 { average_rating: 0 },
                 { where: { instructor_id: instructorId } }
@@ -45,17 +43,16 @@ export const updateInstructorAverageRating = async (instructorId) => {
 export const getInstructorRatingStats = async (instructorId) => {
     try {
         const ratings = await InstructorRating.findAll({
-            where: { 
-                instructor_id: instructorId,
-                status: 'approved'
+            where: {
+                instructor_id: instructorId
             }
         });
 
         const totalRatings = ratings.length;
-        const averageRating = totalRatings > 0 
-            ? ratings.reduce((sum, r) => sum + r.rating, 0) / totalRatings 
-            : 0;
 
+        const averageRating = totalRatings > 0
+            ? ratings.reduce((sum, r) => sum + r.rating, 0) / totalRatings      
+            : 0;
         // Group ratings by star count
         const ratingDistribution = {
             5: ratings.filter(r => r.rating === 5).length,

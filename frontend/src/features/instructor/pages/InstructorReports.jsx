@@ -8,6 +8,7 @@ import modalStyles from '../styles/InstructorModals.module.css';
 import commonCardStyles from '@/components/common/styles/Card.module.css';
 import commonBtnStyles from '@/components/common/styles/Button.module.css';
 import { getAccessToken } from '@/utils/authStorage';
+import { instructorAPI } from '@/services/instructorService';
 
 const InstructorReports = () => {
     const { showToast } = useOutletContext();
@@ -22,9 +23,16 @@ const InstructorReports = () => {
         startDate: '',
         endDate: '',
         status: 'All',
-        division: 'All',
-        format: 'PDF'
+        division: 'All'
     });
+
+    const formatReportName = (name) => {
+        if (!name) return '';
+        return name
+            .replace(/\s*-\s*\d{1,2}\/\d{1,2}\/\d{4}\s*$/u, '')
+            .replace(/\s*\(CSV\)\s*/u, '(CSV)')
+            .trim();
+    };
 
     // Fetch instructor profile to get actual divisions
     useEffect(() => {
@@ -35,8 +43,14 @@ const InstructorReports = () => {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const result = await response.json();
-                if (result.success && result.data.assigned_divisions) {
-                    setDivisions(result.data.assigned_divisions);
+                if (result.success) {
+                    const assigned = result.data?.instructorDetail?.assigned_divisions ?? result.data?.assigned_divisions;
+                    const parsed = Array.isArray(assigned)
+                        ? assigned
+                        : (typeof assigned === 'string' && assigned.trim()
+                            ? JSON.parse(assigned)
+                            : []);
+                    setDivisions(parsed);
                 }
             } catch (error) {
                 console.error('Error fetching instructor profile:', error);
@@ -48,22 +62,35 @@ const InstructorReports = () => {
         fetchInstructorProfile();
     }, []);
 
-    const [reportHistory, setReportHistory] = useState(() => {
-        try {
-            const saved = localStorage.getItem('instructor_report_history');
-            return saved ? JSON.parse(saved) : [];
-        } catch {
-            return [];
-        }
-    });
+    const [reportHistory, setReportHistory] = useState([]);
+    const [historyLoading, setHistoryLoading] = useState(true);
 
     useEffect(() => {
-        try {
-            localStorage.setItem('instructor_report_history', JSON.stringify(reportHistory));
-        } catch {
-            // ignore storage errors
-        }
-    }, [reportHistory]);
+        const fetchHistory = async () => {
+            setHistoryLoading(true);
+            try {
+                const res = await instructorAPI.getReportHistory();
+                console.log('Fetch History Response:', res);
+                let historyArray = [];
+                if (res) {
+                    if (Array.isArray(res)) historyArray = res;
+                    else if (Array.isArray(res.data)) historyArray = res.data;
+                    else if (res.data && Array.isArray(res.data.data)) historyArray = res.data.data;
+                    else if (res.data && res.data.data && Array.isArray(res.data.data.data)) historyArray = res.data.data.data;
+                    else if (res && typeof res === 'object' && !Array.isArray(res) && Object.keys(res).length > 0 && Array.isArray(res[Object.keys(res)[0]])) historyArray = res[Object.keys(res)[0]]; // Catch any dynamic key
+                    else if (res.data && Array.isArray(res.data.history)) historyArray = res.data.history;
+                    else if (res.data && res.data.data && Array.isArray(res.data.data.history)) historyArray = res.data.data.history;
+                    else if (Array.isArray(res.history)) historyArray = res.history;
+                }
+                setReportHistory(historyArray);
+            } catch (error) {
+                console.error("Failed to fetch report history", error);
+            } finally {
+                setHistoryLoading(false);
+            }
+        };
+        fetchHistory();
+    }, []);
 
     const openFilterModal = (type) => {
         setCurrentReportType(type);
@@ -80,7 +107,7 @@ const InstructorReports = () => {
         setFilters(prev => ({ ...prev, [name]: value }));
     };
 
-    const generatePDF = (title, subtitle, columns, data, filename) => {
+    const generatePDF = async (title, subtitle, columns, data, filename) => {
         const doc = new jsPDF();
 
         // Header
@@ -129,42 +156,32 @@ const InstructorReports = () => {
 
         doc.save(`${filename}.pdf`);
 
-        // Add to history
-        const newEntry = {
-            id: Date.now(),
-            category: currentReportType,
-            name: `${currentReportType} Report - ${new Date().toLocaleDateString()}`,
-            date: new Date().toISOString().split('T')[0],
-            status: 'Success'
-        };
-        setReportHistory(prev => [newEntry, ...prev]);
-    };
-
-    const generateCSV = (columns, data, filename) => {
-        const csvContent = [
-            columns.join(','),
-            ...data.map(row => row.map(cell => `"${cell}"`).join(','))
-        ].join('\n');
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', `${filename}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // Add to history
-        const newEntry = {
-            id: Date.now(),
-            category: currentReportType,
-            name: `${currentReportType} Report (CSV) - ${new Date().toLocaleDateString()}`,
-            date: new Date().toISOString().split('T')[0],
-            status: 'Success'
-        };
-        setReportHistory(prev => [newEntry, ...prev]);
+        try {
+            const reportName = `${currentReportType} Report`;
+            const res = await instructorAPI.addReportHistory({
+                category: currentReportType,
+                report_name: reportName,
+                status: 'Success'
+            });
+            if (res) {
+                let newRecord = res;
+                if (res && res.data) newRecord = res.data;
+                if (res && res.data && res.data.data) newRecord = res.data.data;
+                if (newRecord && Array.isArray(newRecord)) newRecord = newRecord[0]; // safety for add
+                setReportHistory(prev => [newRecord, ...prev]);
+            }
+        } catch (error) {
+            console.error("Failed to save report history", error);
+            // Fallback for UI if network fails
+            const newEntry = {
+                id: Date.now(),
+                category: currentReportType,
+                report_name: `${currentReportType} Report`,
+                created_at: new Date().toISOString(),
+                status: 'Success'
+            };
+            setReportHistory(prev => [newEntry, ...prev]);
+        }
     };
 
     const handleGenerateReport = async () => {
@@ -215,17 +232,13 @@ const InstructorReports = () => {
                 const { columns, rows } = result.data;
                 const filename = `${currentReportType.toLowerCase().replace(' ', '_')}_report_${new Date().toISOString().split('T')[0]}`;
 
-                if (filters.format === 'CSV') {
-                    generateCSV(columns, rows, filename);
-                } else {
-                    generatePDF(
-                        `${currentReportType} Report`,
-                        `Detailed analysis for selected duration and filters`,
-                        columns,
-                        rows,
-                        filename
-                    );
-                }
+                await generatePDF(
+                    `${currentReportType} Report`,
+                    `Detailed analysis for selected duration and filters`,
+                    columns,
+                    rows,
+                    filename
+                );
                 showToast(t('reports.reportSuccess'), 'success');
                 closeFilterModal();
             } else {
@@ -321,8 +334,8 @@ const InstructorReports = () => {
                                 {reportHistory.map(report => (
                                     <tr key={report.id}>
                                         <td>{report.category}</td>
-                                        <td>{report.name}</td>
-                                        <td>{report.date}</td>
+                                        <td>{formatReportName(report.report_name || report.name)}</td>
+                                        <td>{report.created_at ? new Date(report.created_at).toLocaleDateString() : report.date}</td>
                                         <td>
                                             <span className={`${styles.statusBadge} status-completed`}>
                                                 {report.status}
@@ -431,31 +444,6 @@ const InstructorReports = () => {
                                         </select>
                                     </div>
 
-                                    <div className={styles.formGroup}>
-                                        <label>{t('reports.exportFormat')}</label>
-                                        <div className={styles.formatOptionsContainer}>
-                                            <label className={styles.formatRadioLabel}>
-                                                <input
-                                                    type="radio"
-                                                    name="format"
-                                                    value="PDF"
-                                                    checked={filters.format === 'PDF'}
-                                                    onChange={handleFilterChange}
-                                                />
-                                                <i className={`fas fa-file-pdf ${styles.pdfIcon}`}></i> PDF
-                                            </label>
-                                            <label className={styles.formatRadioLabel}>
-                                                <input
-                                                    type="radio"
-                                                    name="format"
-                                                    value="CSV"
-                                                    checked={filters.format === 'CSV'}
-                                                    onChange={handleFilterChange}
-                                                />
-                                                <i className={`fas fa-file-csv ${styles.csvIcon}`}></i> CSV
-                                            </label>
-                                        </div>
-                                    </div>
                                 </div>
                                 <div className={modalStyles.instructorModalFooter}>
                                     <button className={`${commonBtnStyles.btn} ${commonBtnStyles.btnSecondary}`} onClick={closeFilterModal}>{t('reports.cancelBtn')}</button>
@@ -464,7 +452,7 @@ const InstructorReports = () => {
                                         onClick={handleGenerateReport}
                                         disabled={isGenerating}
                                     >
-                                        {isGenerating ? t('reports.generating') : `${t('reports.generateReport')} (${filters.format})`}
+                                        {isGenerating ? t('reports.generating') : t('reports.generateReport')}
                                     </button>
                                 </div>
                             </div>

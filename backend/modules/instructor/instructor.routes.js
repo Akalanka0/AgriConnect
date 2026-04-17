@@ -19,6 +19,8 @@ import {
     getMeetings,
     updateMeetingStatus,
     getReportsData,
+    getInstructorReportHistory,
+    addInstructorReportHistory,
     getMyMessages,
     markMessageAsRead,
     deleteMessage,
@@ -78,6 +80,9 @@ router.get('/ratings', getInstructorRatings);
 
 // Reports
 router.get('/reports', getReportsData);
+// Report History
+router.get('/report-history', getInstructorReportHistory);
+router.post('/report-history', addInstructorReportHistory);
 
 // Messages
 router.get('/messages', getMyMessages);
