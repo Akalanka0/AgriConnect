@@ -120,6 +120,9 @@ See [PROJECT_TECH_STACK.md](PROJECT_TECH_STACK.md) for full version-pinned detai
 | Real-time (server) | Socket.IO 4.8 |
 | Security | Helmet 8, express-rate-limit 8 |
 | Uploads | Multer 2 (memory storage → Cloudinary) |
+| Testing (Frontend) | Vitest 3, Playwright 1 |
+| Testing (Backend) | Node Native Test Runner, Supertest 7 |
+| API Documentation | Swagger UI (swagger-ui-express 5) |
 
 ---
 
@@ -283,7 +286,39 @@ npm run dev
 
 ---
 
-### 4. Demo Credentials (after `npm run seed:demo`)
+### 4. Running Tests
+
+The application comes with a full test suite for both the backend and frontend, as well as interactive API documentation.
+
+**Backend Tests (Node Native Test Runner & Supertest):**
+```bash
+cd backend
+npm test
+```
+
+**Frontend Unit Tests (Vitest & React Testing Library):**
+```bash
+cd frontend
+npm run test
+# Or run in interactive watch mode:
+npm run test:watch
+```
+
+**Frontend End-to-End Tests (Playwright):**
+```bash
+cd frontend
+npm run test:e2e
+```
+
+**View API Documentation (Swagger UI):**
+Start the backend development server (`npm run dev` inside the `backend` directory) and navigate your browser to:
+```text
+http://localhost:5005/api-docs
+```
+
+---
+
+### 5. Demo Credentials (after `npm run seed:demo`)
 
 | Role | Email | Password |
 |---|---|---|

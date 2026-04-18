@@ -91,6 +91,11 @@ Complete inventory of every technology, library, and tool used in this project, 
 | Package | Version | Purpose |
 |---|---|---|
 | `@faker-js/faker` | ^10.2.0 | Generates realistic demo data in seeders |
+| `node:test` (built-in) | — | Native Node.js test runner for unit/integration tests |
+| `supertest` | ^7.2.2 | HTTP assertions for testing Express API routes |
+| `cross-env` | ^10.1.0 | Sets `NODE_ENV=test` uniformly across platforms |
+| `swagger-jsdoc` | ^6.2.8 | Generates OpenAPI config from JSDoc comments |
+| `swagger-ui-express` | ^5.0.1 | Serves Swagger API docs at `/api-docs` |
 
 ### npm Scripts
 
@@ -98,6 +103,7 @@ Complete inventory of every technology, library, and tool used in this project, 
 |---|---|---|
 | `npm start` | `node server.js` | **Production** start |
 | `npm run dev` | `nodemon server.js` | Development with auto-restart |
+| `npm test` | `cross-env NODE_ENV=test node --test "tests/**/*.test.js"` | Run backend test suite |
 | `npm run migrate` | `node migrations/run-migrations.js` | Apply pending SQL migrations |
 | `npm run seed` | `node -r dotenv/config seeders/run-seeders.js` | **Production** seed: admin + crops + system settings |
 | `npm run seed:demo` | `node -r dotenv/config seeders/demo/run-demo-seeders.js` | **Demo** seed: demo instructor + farmer (skip for client delivery) |
@@ -170,6 +176,14 @@ Complete inventory of every technology, library, and tool used in this project, 
 | `eslint-plugin-react` | ^7.37.5 | React-specific lint rules |
 | `globals` | ^15.0.0 | Global variable definitions for ESLint |
 
+### Testing
+
+| Package | Version | Purpose |
+|---|---|---|
+| `vitest` | ^3.2.4 | Ultra-fast Vite-native unit testing framework |
+| `@playwright/test` | ^1.59.1 | End-to-End (E2E) testing framework |
+| `jsdom` | ^26.1.0 | Lightweight browser DOM environment used by Vitest |
+
 ### Build Configuration (Vite)
 
 | Setting | Value | Notes |
@@ -194,6 +208,9 @@ Complete inventory of every technology, library, and tool used in this project, 
 | `npm run dev` | `vite` | Development server (HMR, port 5173) |
 | `npm run build` | `vite build` | Production build → `dist/` |
 | `npm run lint` | `eslint . --ext js,jsx` | Lint check (zero warnings policy) |
+| `npm run test` | `vitest run` | Run unit tests |
+| `npm run test:watch` | `vitest` | Run unit tests in watch mode |
+| `npm run test:e2e` | `playwright test` | Run E2E tests |
 
 ---
 

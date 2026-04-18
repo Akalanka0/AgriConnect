@@ -11,7 +11,10 @@ export default [
   pluginReactConfig,
   {
     languageOptions: {
-      globals: globals.browser,
+      globals: {
+        ...globals.browser,
+        ...globals.node
+      },
     },
     settings: {
       react: {
