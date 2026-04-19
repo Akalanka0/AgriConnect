@@ -177,7 +177,7 @@ const Calendar = () => {
                 if (result.data.locations && result.data.locations.length > 0) {
                     setLocations(result.data.locations);
                     const divisions = result.data.locations
-                        .map(loc => loc.instructorDivision)
+                        .map(loc => loc.division || loc.instructorDivision)
                         .filter(Boolean);
 
                     // Remove duplicates
@@ -393,7 +393,7 @@ const Calendar = () => {
                                         onChange={(e) => {
                                             const selectedDiv = e.target.value;
                                             setMeetingForm({ ...meetingForm, division: selectedDiv });
-                                            const loc = locations.find(l => l.instructorDivision === selectedDiv);
+                                            const loc = locations.find(l => (l.division || l.instructorDivision) === selectedDiv);
                                             setSelectedInstructorName(loc?.assignedInstructorName || '');
                                             setSelectedInstructorId(loc?.assignedInstructorRefId || '');
                                         }}
@@ -401,8 +401,8 @@ const Calendar = () => {
                                         <option value="">{t('calendar.selectLocation')}</option>
                                         {locations.length > 0 ? (
                                             locations.map((loc, idx) => (
-                                                <option key={idx} value={loc.instructorDivision}>
-                                                    {loc.instructorDivision}
+                                                <option key={idx} value={loc.division || loc.instructorDivision}>
+                                                    {loc.zone ? `${loc.zone} - ` : ''}{loc.division || loc.instructorDivision}
                                                 </option>
                                             ))
                                         ) : (

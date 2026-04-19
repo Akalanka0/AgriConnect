@@ -85,7 +85,7 @@ const PestManagement = () => {
 
     const handleInstructorDivisionChange = (e) => {
         const selectedValue = e.target.value;
-        const selectedLoc = locations.find(loc => `${loc.zone} - ${loc.instructorDivision}` === selectedValue);
+        const selectedLoc = locations.find(loc => `${loc.zone} - ${loc.division || loc.instructorDivision}` === selectedValue);
 
         setPestForm(prev => ({
             ...prev,
@@ -240,8 +240,8 @@ const PestManagement = () => {
                             >
                                 <option value="">{t('pest.selectField')}</option>
                                 {locations.map((loc, idx) => (
-                                    <option key={idx} value={`${loc.zone} - ${loc.instructorDivision}`}>
-                                        {loc.instructorDivision}
+                                    <option key={idx} value={`${loc.zone} - ${loc.division || loc.instructorDivision}`}>
+                                        {loc.zone} - {loc.division || loc.instructorDivision}
                                     </option>
                                 ))}
                             </select>

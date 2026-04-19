@@ -325,7 +325,7 @@ const Engagement = () => {
                                                         <div className={styles.divisionTagsWrapper}>
                                                             {selectedFarmer.farmerLocations.map((loc, idx) => (
                                                                 <span key={idx} className={styles.divisionTag}>
-                                                                    {loc.instructorDivision || loc.instructor_division || '-'}
+                                                                    {loc.division || loc.instructorDivision || loc.instructor_division || '-'}
                                                                 </span>
                                                             ))}
                                                         </div>

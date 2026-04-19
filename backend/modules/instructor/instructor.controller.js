@@ -1217,7 +1217,7 @@ export const updateProfile = async (req, res) => {
         }
 
         user.full_name = full_name !== undefined ? full_name : user.full_name;
-        user.email = email !== undefined ? email : user.email;
+        // Do not allow email update
         user.phone = phone !== undefined ? phone : user.phone;
         await user.save();
 

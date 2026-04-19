@@ -209,8 +209,8 @@ const Activities = () => {
                             >
                                 <option value="">{t('activities.selectDiv')}</option>
                                 {availableLocations.map((loc, idx) => (
-                                    <option key={idx} value={`${loc.zone} - ${loc.instructorDivision}`}>
-                                        {loc.zone} - {loc.instructorDivision}
+                                    <option key={idx} value={`${loc.zone} - ${loc.division || loc.instructorDivision}`}>
+                                        {loc.zone} - {loc.division || loc.instructorDivision}
                                     </option>
                                 ))}
                             </select>
