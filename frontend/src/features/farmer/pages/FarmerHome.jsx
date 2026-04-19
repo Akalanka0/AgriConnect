@@ -77,7 +77,7 @@ const FarmerHome = () => {
                             name: loc.assignedInstructorName || 'Unknown Instructor',
                             title: 'Agriculture Instructor',
                             zone: loc.zone || 'N/A',
-                            division: loc.instructorDivision || 'N/A',
+                            division: loc.division || loc.instructorDivision || 'N/A',
                             email: 'N/A',
                             phone: 'N/A',
                             specialization: 'General',

@@ -535,9 +535,9 @@ const InstructorSettings = () => {
                         <label>{t('settings.email')}</label>
                         <input
                             type="email"
-                            className="form-control"
+                            className={`form-control ${styles.inputDisabled}`}
                             value={profileData.email}
-                            onChange={(e) => handleProfileChange('email', e.target.value)}
+                            disabled
                         />
                     </div>
                     <div className="form-group">

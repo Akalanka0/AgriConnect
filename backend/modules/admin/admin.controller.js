@@ -162,7 +162,7 @@ export const getRegionHierarchy = async (req, res) => {
 };
 
 /**
- * Get Regions (flat list with IDs — for admin management UI)
+ * Get Regions (flat list with IDs ï¿½ for admin management UI)
  */
 export const getRegions = async (req, res) => {
     try {
@@ -241,7 +241,7 @@ export const deleteRegionRow = async (req, res) => {
             if (subDivCount > 0) {
                 return res.status(409).json({
                     success: false,
-                    error: { message: `Cannot delete zone '${row.zone}' — remove its ${subDivCount} division(s) first` }
+                    error: { message: `Cannot delete zone '${row.zone}' ï¿½ remove its ${subDivCount} division(s) first` }
                 });
             }
         }
@@ -882,7 +882,7 @@ export const getInstructorEngagement = async (req, res) => {
                         phone: f.phone,
                         district: fDetails.district || primaryLoc.district || 'Anuradhapura',
                         zone: primaryLoc.zone || '-',
-                        instructorDivision: primaryLoc.instructorDivision || primaryLoc.instructor_division || primaryLoc.division || '-',
+                        instructorDivision: primaryLoc.division || primaryLoc.instructorDivision || primaryLoc.instructor_division || '-',
                         farmerLocations,
                         avatar: f.profile_picture || null
                     };

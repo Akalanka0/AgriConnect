@@ -291,7 +291,7 @@ const Settings = () => {
             const defaultDivision = availableDivisions.length > 0 ? availableDivisions[0] : '';
 
             location.zone = value;
-            location.instructorDivision = defaultDivision;
+            location.division = defaultDivision;
 
             // Find instructor for this division - check all assigned divisions
             const instructor = instructors.find(inst =>
@@ -301,8 +301,8 @@ const Settings = () => {
             location.assignedInstructorId = instructor ? instructor.dbId : 'Pending';
             location.assignedInstructorName = instructor ? instructor.name : t('settings.noInstructorAssigned');
             location.assignedInstructorRefId = instructor ? instructor.id : '';
-        } else if (field === 'instructorDivision') {
-            location.instructorDivision = value;
+        } else if (field === 'division') {
+            location.division = value;
             // Find instructor for this division - check all assigned divisions
             const instructor = instructors.find(inst =>
                 inst.assigned_divisions &&
@@ -321,7 +321,7 @@ const Settings = () => {
         const newLocation = {
             id: Date.now(),
             zone: '', // Let user select
-            instructorDivision: '', // Let user select
+            division: '', // Let user select
             assignedInstructorId: '', // Let user select
             assignedInstructorName: t('settings.selectDivisionFirst'), // Let user select
             assignedInstructorRefId: ''
@@ -339,8 +339,8 @@ const Settings = () => {
     const getAvailableDivisions = (zone, currentIndex) => {
         const allDivisions = hierarchyData[zone] || [];
         const usedDivisions = settings.locations
-            .filter((loc, i) => i !== currentIndex && loc.zone === zone && loc.instructorDivision)
-            .map(loc => loc.instructorDivision);
+            .filter((loc, i) => i !== currentIndex && loc.zone === zone && (loc.division || loc.instructorDivision))
+            .map(loc => loc.division || loc.instructorDivision);
         return allDivisions.filter(div => !usedDivisions.includes(div));
     };
 
@@ -386,7 +386,7 @@ const Settings = () => {
             const token = getAccessToken();
 
             // Determine primary instructor division from the first location if available
-            const primaryDivision = settings.locations.length > 0 ? settings.locations[0].instructorDivision : '';
+            const primaryDivision = settings.locations.length > 0 ? (settings.locations[0].division || settings.locations[0].instructorDivision) : '';
             const primaryZone = settings.locations.length > 0 ? settings.locations[0].zone : '';
 
             const res = await fetch('/api/farmer/profile', {
@@ -618,8 +618,8 @@ const Settings = () => {
                                         <label className={styles.smallLabel}>{t('settings.instructorDiv')}</label>
                                         <select
                                             className="form-control"
-                                            value={location.instructorDivision || ''}
-                                            onChange={(e) => handleLocationChange(index, 'instructorDivision', e.target.value)}
+                                            value={location.division || location.instructorDivision || ''}
+                                            onChange={(e) => handleLocationChange(index, 'division', e.target.value)}
                                             disabled={!location.zone}
                                         >
                                             <option value="">{t('settings.selectDiv')}</option>

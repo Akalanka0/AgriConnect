@@ -83,7 +83,7 @@ const CropPlans = () => {
                             id: index + 1,
                             district: location.district || farmerDetail.district || '',
                             zone: location.zone,
-                            instructorDivision: location.instructorDivision,
+                            instructorDivision: location.division || location.instructorDivision,
                             instructorName: location.instructorName || location.assignedInstructorName || '',
                             instructorId: location.instructorId || location.assignedInstructorId || '',
                             instructorDisplayId: location.assignedInstructorRefId || ''
@@ -148,7 +148,7 @@ const CropPlans = () => {
         const baseLocation = selectedValue.split(' (')[0];
 
         const selectedLoc = availableLocations.find(loc =>
-            `${loc.district || ''} - ${loc.zone} - ${loc.instructorDivision}` === baseLocation
+            `${loc.district || ''} - ${loc.zone} - ${loc.division || loc.instructorDivision}` === baseLocation
         );
 
         setCropForm(prev => ({
@@ -169,7 +169,7 @@ const CropPlans = () => {
         // Extract base location part (before instructor name in parentheses)
         const baseLocation = cropForm.fieldLocation.split(' (')[0];
         const selectedLoc = availableLocations.find(loc =>
-            `${loc.district || ''} - ${loc.zone} - ${loc.instructorDivision}` === baseLocation
+            `${loc.district || ''} - ${loc.zone} - ${loc.division || loc.instructorDivision}` === baseLocation
         );
 
         if (!finalCropName || !cropForm.fieldLocation || !cropForm.plantDate || !cropForm.harvestDate) {
@@ -186,7 +186,7 @@ const CropPlans = () => {
             formData.append('harvestDate', cropForm.harvestDate);
             formData.append('notes', cropForm.cropNotes);
             formData.append('instructorId', cropForm.assignedInstructorId || '');
-            formData.append('instructorDivision', selectedLoc ? selectedLoc.instructorDivision : '');
+            formData.append('instructorDivision', selectedLoc ? (selectedLoc.division || selectedLoc.instructorDivision) : '');
 
             if (imageFile) {
                 formData.append('attachment', imageFile);
@@ -333,8 +333,8 @@ const CropPlans = () => {
                             >
                                 <option value="">{t('crops.selectField')}</option>
                                 {availableLocations.map(loc => (
-                                    <option key={loc.id} value={`${loc.district || ''} - ${loc.zone} - ${loc.instructorDivision} (${loc.instructorName})`}>
-                                        {loc.instructorDivision}
+                                    <option key={loc.id} value={`${loc.district || ''} - ${loc.zone} - ${loc.division || loc.instructorDivision} (${loc.instructorName})`}>
+                                        {loc.zone} - {loc.division || loc.instructorDivision}
                                     </option>
                                 ))}
                             </select>

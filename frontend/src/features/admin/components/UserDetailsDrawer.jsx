@@ -70,7 +70,7 @@ const UserDetailsDrawer = ({ isOpen, onClose, user, activeTab }) => {
                                             <div className={styles.divisionTagsWrapper}>
                                                 {user.farmerLocations.map((loc, idx) => (
                                                     <span key={idx} className={styles.divisionTag}>
-                                                        {loc.instructorDivision || loc.instructor_division || '-'}
+                                                        {loc.division || loc.instructorDivision || loc.instructor_division || '-'}
                                                     </span>
                                                 ))}
                                             </div>
