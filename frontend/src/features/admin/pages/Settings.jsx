@@ -301,16 +301,15 @@ const Settings = () => {
             type: 'danger',
             id,
             name,
-            action: confirmDeleteAdmin
+            action: () => confirmDeleteAdmin(id, name)
         });
     };
 
-    const confirmDeleteAdmin = async () => {
+    const confirmDeleteAdmin = async (id, name) => {
         try {
-            const id = confirmConfig.id;
             await adminAPI.deleteUser(id);
             setAdmins(admins.filter(admin => admin.id !== id));
-            showToast(t('settings.toastAdminRemoved', { name: confirmConfig.name }), 'success');
+            showToast(t('settings.toastAdminRemoved', { name }), 'success');
             closeConfirm();
         } catch (error) {
             console.error('Error deleting admin:', error);
